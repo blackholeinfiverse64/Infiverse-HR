@@ -123,12 +123,12 @@ export default function CandidateSidebar() {
           <button
             onClick={handleLogout}
             title={isCollapsed ? 'Logout' : undefined}
-            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} w-full px-3 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow-lg shadow-red-500/30 transition-all duration-200`}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} w-full px-2.5 py-2 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 dark:border-red-800 hover:border-red-500 transition-all duration-200`}
           >
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            {!isCollapsed && <span>Logout</span>}
+            {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
           </button>
         </div>
       </div>

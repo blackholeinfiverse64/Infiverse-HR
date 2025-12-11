@@ -120,6 +120,23 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
             </svg>
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
           </button>
+
+          {/* User Profile */}
+          <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-gray-200 dark:border-slate-700">
+            <div className={`w-8 h-8 bg-gradient-to-br ${config.gradient} rounded-full flex items-center justify-center shadow-md`}>
+              <span className="text-white font-semibold text-sm">
+                {localStorage.getItem('user_name')?.charAt(0).toUpperCase() || role.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {localStorage.getItem('user_name') || role.charAt(0).toUpperCase() + role.slice(1)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {config.title}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </nav>
