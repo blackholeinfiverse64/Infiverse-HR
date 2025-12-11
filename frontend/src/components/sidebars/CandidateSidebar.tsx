@@ -1,10 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSidebar } from '../../context/SidebarContext'
+import { useAuth } from '../../context/AuthContext'
 
 export default function CandidateSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { isCollapsed } = useSidebar()
+  const { signOut } = useAuth()
   
   const navItems = [
     {
@@ -65,11 +67,8 @@ export default function CandidateSidebar() {
 
   const isActive = (path: string) => location.pathname === path
 
-  const handleLogout = () => {
-    localStorage.removeItem('user_role')
-    localStorage.removeItem('user_email')
-    localStorage.removeItem('user_name')
-    localStorage.removeItem('isAuthenticated')
+  const handleLogout = async () => {
+    await signOut()
     navigate('/')
   }
 

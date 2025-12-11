@@ -68,7 +68,7 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
             </div>
             <div className="hidden sm:block text-left">
               <span className="text-xl font-bold">
-                <span className="bg-gradient-to-r from-emerald-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                <span className={`bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>
                   Infiverse
                 </span>
                 <span className="text-gray-900 dark:text-white"> HR</span>
