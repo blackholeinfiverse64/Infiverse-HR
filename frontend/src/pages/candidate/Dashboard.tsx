@@ -9,11 +9,15 @@ import {
   type Application,
   type Interview 
 } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 export default function CandidateDashboard() {
   const navigate = useNavigate()
-  const userName = localStorage.getItem('user_name') || 'Candidate'
-  const candidateId = localStorage.getItem('candidate_id') || ''
+  const { user, userName: authUserName } = useAuth()
+  const userName = authUserName || localStorage.getItem('user_name') || 'Candidate'
+  // Get backend candidate ID (integer) for API calls
+  const backendCandidateId = localStorage.getItem('backend_candidate_id')
+  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   const [stats, setStats] = useState<DashboardStats>({
     total_applications: 0,
@@ -56,10 +60,10 @@ export default function CandidateDashboard() {
   }
 
   const statCards = [
-    { label: 'Applied Jobs', value: stats.total_applications, icon: '📝', color: 'from-blue-500 to-cyan-500' },
-    { label: 'Interviews', value: stats.interviews_scheduled, icon: '📅', color: 'from-emerald-500 to-teal-500' },
-    { label: 'Shortlisted', value: stats.shortlisted, icon: '⭐', color: 'from-amber-500 to-orange-500' },
-    { label: 'Offers', value: stats.offers_received, icon: '🎉', color: 'from-purple-500 to-pink-500' },
+    { label: 'Applied Jobs', value: stats.total_applications, color: 'from-blue-500 to-cyan-500' },
+    { label: 'Interviews', value: stats.interviews_scheduled, color: 'from-emerald-500 to-teal-500' },
+    { label: 'Shortlisted', value: stats.shortlisted, color: 'from-amber-500 to-orange-500' },
+    { label: 'Offers', value: stats.offers_received, color: 'from-purple-500 to-pink-500' },
   ]
 
   const getStatusColor = (status: string) => {
@@ -84,39 +88,39 @@ export default function CandidateDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-        <div className="relative">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {userName}! 👋</h1>
-          <p className="text-blue-100 text-lg">Track your job applications and upcoming interviews</p>
-          <div className="mt-6 flex gap-4">
-            <button 
-              onClick={() => navigate('/candidate/jobs')}
-              className="px-6 py-2.5 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
-            >
-              Browse Jobs
-            </button>
-            <button 
-              onClick={() => navigate('/candidate/profile')}
-              className="px-6 py-2.5 bg-blue-400/30 text-white font-semibold rounded-lg hover:bg-blue-400/40 transition-colors border border-white/30"
-            >
-              Update Profile
-            </button>
-          </div>
+      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Welcome back, {userName}</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Track your job applications and upcoming interviews</p>
+        <div className="mt-6 flex gap-4">
+          <button 
+            onClick={() => navigate('/candidate/jobs')}
+            className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Jobs
+          </button>
+          <button 
+            onClick={() => navigate('/candidate/profile')}
+            className="px-6 py-2.5 bg-blue-50/50 dark:bg-blue-900/20 backdrop-blur-sm text-blue-700 dark:text-blue-300 font-semibold rounded-lg hover:bg-blue-100/50 dark:hover:bg-blue-800/30 transition-colors border border-blue-200/30 dark:border-blue-500/20"
+          >
+            Update Profile
+          </button>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {statCards.map((stat) => (
+        {statCards.map((stat, index) => (
           <div
             key={stat.label}
             className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-lg transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-3xl">{stat.icon}</span>
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} opacity-20`} />
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                {index === 0 && <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+                {index === 1 && <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                {index === 2 && <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>}
+                {index === 3 && <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>}
+              </div>
             </div>
             {loading ? (
               <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded animate-pulse w-16"></div>
@@ -269,28 +273,28 @@ export default function CandidateDashboard() {
             onClick={() => navigate('/candidate/profile')}
             className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700/50 dark:to-slate-700 rounded-xl hover:shadow-md transition-all text-center group"
           >
-            <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">📝</span>
+            <svg className="w-8 h-8 mx-auto mb-2 text-gray-600 dark:text-gray-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Update Profile</span>
           </button>
           <button
             onClick={() => navigate('/candidate/jobs')}
             className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl hover:shadow-md transition-all text-center group"
           >
-            <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">🔍</span>
+            <svg className="w-8 h-8 mx-auto mb-2 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Browse Jobs</span>
           </button>
           <button
             onClick={() => navigate('/candidate/applied-jobs')}
             className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl hover:shadow-md transition-all text-center group"
           >
-            <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">📋</span>
+            <svg className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Track Applications</span>
           </button>
           <button
             onClick={() => navigate('/candidate/feedback')}
             className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl hover:shadow-md transition-all text-center group"
           >
-            <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">💬</span>
+            <svg className="w-8 h-8 mx-auto mb-2 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">View Feedback</span>
           </button>
         </div>

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { getJobs, applyForJob, type Job, type JobFilters } from '../../services/api'
+import { getJobs, applyForJob, getOrCreateBackendCandidateId, getCandidateApplications, type Job, type JobFilters } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 export default function JobSearch() {
+  const { user } = useAuth()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState<string | null>(null)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set())
   
   // Filter states
   const [filters, setFilters] = useState<JobFilters>({
@@ -17,11 +20,25 @@ export default function JobSearch() {
     search: ''
   })
 
-  const candidateId = localStorage.getItem('candidate_id') || ''
+  // Get backend candidate ID (integer) for API calls
+  const backendCandidateId = localStorage.getItem('backend_candidate_id')
+  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     fetchJobs()
-  }, [])
+    fetchAppliedJobs()
+  }, [backendCandidateId])
+
+  const fetchAppliedJobs = async () => {
+    if (!backendCandidateId) return
+    try {
+      const applications = await getCandidateApplications(backendCandidateId)
+      const appliedIds = new Set(applications.map(app => app.job_id))
+      setAppliedJobIds(appliedIds)
+    } catch (error) {
+      console.error('Error fetching applied jobs:', error)
+    }
+  }
 
   const fetchJobs = async () => {
     setLoading(true)
@@ -49,19 +66,39 @@ export default function JobSearch() {
   }
 
   const handleApply = async (job: Job) => {
-    if (!candidateId) {
+    if (!candidateId && !user) {
       toast.error('Please login to apply for jobs')
+      return
+    }
+
+    // Check if already applied
+    if (appliedJobIds.has(job.id)) {
+      toast.error('You have already applied for this job')
       return
     }
 
     setApplying(job.id)
     try {
-      await applyForJob(job.id, candidateId)
+      // Ensure we have a backend candidate ID before applying
+      let actualCandidateId = localStorage.getItem('backend_candidate_id')
+      if (user && !actualCandidateId) {
+        actualCandidateId = await getOrCreateBackendCandidateId(user)
+        if (!actualCandidateId) {
+          toast.error('Please complete your profile setup before applying')
+          setApplying(null)
+          return
+        }
+      }
+      
+      await applyForJob(job.id, actualCandidateId || candidateId)
       toast.success(`Successfully applied for ${job.title}!`)
+      
+      // Add to applied jobs immediately
+      setAppliedJobIds(prev => new Set([...prev, job.id]))
       setSelectedJob(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error applying for job:', error)
-      toast.error('Failed to apply for job')
+      toast.error(error?.message || 'Failed to apply for job')
     } finally {
       setApplying(null)
     }
@@ -84,9 +121,9 @@ export default function JobSearch() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Find Your Dream Job 🎯</h1>
-        <p className="text-blue-100 text-lg">Discover opportunities that match your skills and preferences</p>
+      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Find Your Dream Job</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Discover opportunities that match your skills and preferences</p>
       </div>
 
       {/* Search & Filters */}
@@ -223,13 +260,20 @@ export default function JobSearch() {
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{job.title}</h3>
                   <p className="text-gray-600 dark:text-gray-400">{job.company || 'Company'}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  job.status === 'active' 
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
-                  {job.status || 'Active'}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  {appliedJobIds.has(job.id) && (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      Applied
+                    </span>
+                  )}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    job.status === 'active' 
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {job.status || 'Active'}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -282,7 +326,7 @@ export default function JobSearch() {
               {/* Salary */}
               {(job.salary_min || job.salary_max) && (
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  💰 ₹{job.salary_min?.toLocaleString() || 'N/A'} - ₹{job.salary_max?.toLocaleString() || 'N/A'} / year
+                  ₹{job.salary_min?.toLocaleString() || 'N/A'} - ₹{job.salary_max?.toLocaleString() || 'N/A'} / year
                 </p>
               )}
 
@@ -294,13 +338,22 @@ export default function JobSearch() {
                 >
                   View Details
                 </button>
-                <button
-                  onClick={() => handleApply(job)}
-                  disabled={applying === job.id}
-                  className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium rounded-lg transition-colors"
-                >
-                  {applying === job.id ? 'Applying...' : 'Apply Now'}
-                </button>
+                {appliedJobIds.has(job.id) ? (
+                  <button
+                    disabled
+                    className="flex-1 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium rounded-lg cursor-default"
+                  >
+                    Applied
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleApply(job)}
+                    disabled={applying === job.id}
+                    className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium rounded-lg transition-colors"
+                  >
+                    {applying === job.id ? 'Applying...' : 'Apply Now'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -391,13 +444,22 @@ export default function JobSearch() {
               >
                 Close
               </button>
-              <button
-                onClick={() => handleApply(selectedJob)}
-                disabled={applying === selectedJob.id}
-                className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium rounded-lg transition-colors"
-              >
-                {applying === selectedJob.id ? 'Applying...' : 'Apply for this Job'}
-              </button>
+              {appliedJobIds.has(selectedJob.id) ? (
+                <button
+                  disabled
+                  className="flex-1 py-3 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium rounded-lg cursor-default"
+                >
+                  Already Applied
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleApply(selectedJob)}
+                  disabled={applying === selectedJob.id}
+                  className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium rounded-lg transition-colors"
+                >
+                  {applying === selectedJob.id ? 'Applying...' : 'Apply for this Job'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -97,7 +97,7 @@ export default function AutomationPanel() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Automation Panel</h1>
         <p className="text-gray-400">Trigger automated notifications and workflows</p>
       </div>

@@ -26,28 +26,25 @@ export default function ApiStatus({ showDetails = false }: ApiStatusProps) {
   const statusConfig = {
     checking: {
       color: 'bg-yellow-500',
-      text: 'Checking...',
-      icon: '🔄'
+      text: 'Checking...'
     },
     online: {
       color: 'bg-emerald-500',
-      text: 'API Online',
-      icon: '✅'
+      text: 'API Online'
     },
     offline: {
       color: 'bg-red-500',
-      text: 'API Offline',
-      icon: '❌'
+      text: 'API Offline'
     }
   }
 
   const config = statusConfig[status]
 
   return (
-    <div className="flex items-center gap-2">
-      <span className={`w-2 h-2 rounded-full ${config.color} animate-pulse`} />
-      <span className="text-xs text-gray-500 dark:text-gray-400">
-        {config.icon} {config.text}
+    <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gray-100/50 dark:bg-slate-800/50">
+      <span className={`w-2.5 h-2.5 rounded-full ${config.color} animate-pulse shadow-sm`} />
+      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+        {config.text}
       </span>
       {showDetails && lastChecked && (
         <span className="text-xs text-gray-400 dark:text-gray-500">

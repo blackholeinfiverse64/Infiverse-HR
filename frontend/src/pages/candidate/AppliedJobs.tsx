@@ -12,16 +12,23 @@ export default function AppliedJobs() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
 
-  // Get candidate ID from Supabase user or fallback to localStorage
-  const candidateId = user?.id || localStorage.getItem('candidate_id') || ''
+  // Get backend candidate ID (integer) for API calls, fallback to Supabase ID
+  const backendCandidateId = localStorage.getItem('backend_candidate_id')
+  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadApplications()
-  }, [])
+  }, [backendCandidateId])
 
   const loadApplications = async () => {
     if (!candidateId) {
       toast.error('Please login to view your applications')
+      setLoading(false)
+      return
+    }
+
+    // Only fetch if we have a backend candidate ID (integer)
+    if (!backendCandidateId) {
       setLoading(false)
       return
     }
@@ -32,47 +39,39 @@ export default function AppliedJobs() {
       setApplications(data)
     } catch (error) {
       console.error('Failed to load applications:', error)
-      toast.error('Failed to load applications')
     } finally {
       setLoading(false)
     }
   }
 
   const getStatusConfig = (status: string) => {
-    const configs: Record<string, { color: string; icon: string; label: string }> = {
+    const configs: Record<string, { color: string; label: string }> = {
       applied: { 
         color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 
-        icon: '📝', 
         label: 'Applied' 
       },
       screening: { 
         color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', 
-        icon: '🔍', 
         label: 'Screening' 
       },
       shortlisted: { 
         color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 
-        icon: '⭐', 
         label: 'Shortlisted' 
       },
       interview: { 
         color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', 
-        icon: '📅', 
         label: 'Interview' 
       },
       offer: { 
         color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400', 
-        icon: '🎉', 
         label: 'Offer' 
       },
       rejected: { 
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', 
-        icon: '❌', 
         label: 'Rejected' 
       },
       hired: { 
         color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', 
-        icon: '✅', 
         label: 'Hired' 
       },
     }
@@ -107,9 +106,9 @@ export default function AppliedJobs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">My Applications 📋</h1>
-        <p className="text-purple-100 text-lg">Track and manage all your job applications</p>
+      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">My Applications</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Track and manage all your job applications</p>
       </div>
 
       {/* Stats Cards */}
@@ -117,7 +116,7 @@ export default function AppliedJobs() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <span className="text-lg">📝</span>
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
@@ -128,7 +127,7 @@ export default function AppliedJobs() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-              <span className="text-lg">⭐</span>
+              <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.shortlisted}</p>
@@ -139,7 +138,7 @@ export default function AppliedJobs() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <span className="text-lg">📅</span>
+              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.interview}</p>
@@ -150,7 +149,7 @@ export default function AppliedJobs() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-              <span className="text-lg">🎉</span>
+              <svg className="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{stats.offer}</p>
@@ -224,28 +223,23 @@ export default function AppliedJobs() {
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{statusConfig.icon}</span>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{app.job_title}</h3>
-                        <p className="text-gray-600 dark:text-gray-400">{app.company || 'Company'}</p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Applied: {new Date(app.applied_date).toLocaleDateString()}
-                          </span>
-                          {app.match_score && (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                              </svg>
-                              Match: {app.match_score}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{app.job_title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400">{app.company || 'Company'}</p>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Applied: {new Date(app.applied_date).toLocaleDateString()}
+                      </span>
+                      {app.match_score && (
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          Match: {app.match_score}%
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -314,7 +308,7 @@ export default function AppliedJobs() {
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400">Status</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusConfig(selectedApp.status).color}`}>
-                  {getStatusConfig(selectedApp.status).icon} {getStatusConfig(selectedApp.status).label}
+                  {getStatusConfig(selectedApp.status).label}
                 </span>
               </div>
               

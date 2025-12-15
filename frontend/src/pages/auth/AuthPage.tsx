@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
+import { signIn as supabaseSignIn, signOut } from '../../lib/supabase'
 
 type AuthMode = 'login' | 'signup'
 
@@ -11,6 +12,9 @@ const roleConfig = {
     gradient: 'from-blue-500 to-cyan-500',
     bgGradient: 'from-blue-500/10 to-cyan-500/10',
     borderColor: 'border-blue-500/30',
+    focusRing: 'focus:ring-blue-500',
+    checkboxColor: 'text-blue-500 focus:ring-blue-500',
+    shadowColor: 'hover:shadow-blue-500/25',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -23,6 +27,9 @@ const roleConfig = {
     gradient: 'from-emerald-500 to-teal-500',
     bgGradient: 'from-emerald-500/10 to-teal-500/10',
     borderColor: 'border-emerald-500/30',
+    focusRing: 'focus:ring-emerald-500',
+    checkboxColor: 'text-emerald-500 focus:ring-emerald-500',
+    shadowColor: 'hover:shadow-emerald-500/25',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -35,6 +42,9 @@ const roleConfig = {
     gradient: 'from-purple-500 to-pink-500',
     bgGradient: 'from-purple-500/10 to-pink-500/10',
     borderColor: 'border-purple-500/30',
+    focusRing: 'focus:ring-purple-500',
+    checkboxColor: 'text-purple-500 focus:ring-purple-500',
+    shadowColor: 'hover:shadow-purple-500/25',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -47,7 +57,7 @@ const roleConfig = {
 export default function AuthPage() {
   const { role } = useParams<{ role: string }>()
   const navigate = useNavigate()
-  const { signIn, signUp } = useAuth()
+  const { signUp } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
   const [isLoading, setIsLoading] = useState(false)
   
@@ -113,8 +123,11 @@ export default function AuthPage() {
         localStorage.setItem('isAuthenticated', 'true')
         
         toast.success('Account created! Please check your email to verify.')
+        setIsLoading(false)
+        navigate(config.redirectPath)
       } else {
-        const { error } = await signIn(formData.email, formData.password)
+        // Login - need to verify role matches using direct Supabase call to get user data
+        const { error, data } = await supabaseSignIn(formData.email, formData.password)
         
         if (error) {
           toast.error(error.message || 'Login failed')
@@ -122,16 +135,27 @@ export default function AuthPage() {
           return
         }
         
-        localStorage.setItem('user_role', role || 'candidate')
+        // Check if user's role matches the page they're logging in from
+        const userRole = data?.user?.user_metadata?.role
+        const expectedRole = role || 'candidate'
+        
+        if (userRole && userRole !== expectedRole) {
+          // Role mismatch - sign them out and show error
+          await signOut()
+          toast.error(`This account is registered as a ${userRole}. Please use the ${userRole} login page.`)
+          setIsLoading(false)
+          return
+        }
+        
+        localStorage.setItem('user_role', userRole || expectedRole)
         localStorage.setItem('user_email', formData.email)
-        localStorage.setItem('user_name', formData.fullName || formData.email.split('@')[0])
+        localStorage.setItem('user_name', data?.user?.user_metadata?.name || formData.email.split('@')[0])
         localStorage.setItem('isAuthenticated', 'true')
         
         toast.success('Login successful!')
+        setIsLoading(false)
+        navigate(config.redirectPath)
       }
-      
-      setIsLoading(false)
-      navigate(config.redirectPath)
     } catch (err: any) {
       toast.error(err.message || 'An error occurred')
       setIsLoading(false)
@@ -225,7 +249,7 @@ export default function AuthPage() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     placeholder="John Doe"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -241,7 +265,7 @@ export default function AuthPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="john@example.com"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -257,7 +281,7 @@ export default function AuthPage() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="+1 (555) 123-4567"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                   />
                 </div>
 
@@ -273,7 +297,7 @@ export default function AuthPage() {
                       value={formData.company}
                       onChange={handleInputChange}
                       placeholder="Acme Inc."
-                      className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                      className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     />
                   </div>
                 ) : (
@@ -291,7 +315,7 @@ export default function AuthPage() {
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -307,7 +331,7 @@ export default function AuthPage() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -328,7 +352,7 @@ export default function AuthPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="john@example.com"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -344,7 +368,7 @@ export default function AuthPage() {
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-purple-500 transition-all"
+                    className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:ring-2 ${config.focusRing} transition-all`}
                     required
                   />
                 </div>
@@ -367,7 +391,7 @@ export default function AuthPage() {
                 <input
                   type="checkbox"
                   id="terms"
-                  className="w-4 h-4 mt-1 rounded border-slate-600 bg-slate-900/60 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                  className={`w-4 h-4 mt-1 rounded border-slate-600 bg-slate-900/60 ${config.checkboxColor} focus:ring-offset-0`}
                   required
                 />
                 <label htmlFor="terms" className="text-sm text-gray-400">
@@ -387,7 +411,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3.5 px-6 bg-gradient-to-r ${config.gradient} text-white font-bold rounded-xl hover:opacity-90 hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6`}
+              className={`w-full py-3.5 px-6 bg-gradient-to-r ${config.gradient} text-white font-bold rounded-xl hover:opacity-90 hover:shadow-lg ${config.shadowColor} transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6`}
             >
               {isLoading ? (
                 <>

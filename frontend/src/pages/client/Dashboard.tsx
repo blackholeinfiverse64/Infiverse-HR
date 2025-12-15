@@ -38,7 +38,7 @@ export default function ClientDashboard() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-purple-500/5 to-pink-500/5 dark:from-purple-500/10 dark:to-pink-500/10 backdrop-blur-xl border border-purple-300/20 dark:border-purple-500/20">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Client Dashboard</h1>
         <p className="text-gray-400">Overview of all recruitment activities</p>
       </div>

@@ -9,8 +9,9 @@ export default function CandidateFeedback() {
   const [loading, setLoading] = useState(true)
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
 
-  // Get candidate ID from Supabase user or fallback to localStorage
-  const candidateId = user?.id || localStorage.getItem('candidate_id') || ''
+  // Get backend candidate ID (integer) for API calls
+  const backendCandidateId = localStorage.getItem('backend_candidate_id')
+  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadFeedback()
@@ -35,70 +36,23 @@ export default function CandidateFeedback() {
     }
   }
 
-  const coreValues = [
-    { name: 'Integrity', icon: '🎯', description: 'Adherence to moral principles' },
-    { name: 'Honesty', icon: '💎', description: 'Truthfulness and transparency' },
-    { name: 'Discipline', icon: '⚡', description: 'Self-control and consistency' },
-    { name: 'Hard Work', icon: '💪', description: 'Dedication and persistence' },
-    { name: 'Gratitude', icon: '🙏', description: 'Appreciation and thankfulness' },
-  ]
-
   const getDecisionConfig = (decision?: string) => {
-    const configs: Record<string, { color: string; icon: string; label: string }> = {
+    const configs: Record<string, { color: string; label: string }> = {
       accept: { 
         color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 
-        icon: '✅', 
         label: 'Accepted' 
       },
       reject: { 
         color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', 
-        icon: '❌', 
         label: 'Rejected' 
       },
       hold: { 
         color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', 
-        icon: '⏳', 
         label: 'On Hold' 
       },
     }
-    return configs[decision?.toLowerCase() || ''] || { color: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', icon: '📋', label: 'Pending' }
+    return configs[decision?.toLowerCase() || ''] || { color: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', label: 'Pending' }
   }
-
-  const calculateAverageValues = () => {
-    if (feedbacks.length === 0) return null
-    
-    const feedbacksWithValues = feedbacks.filter(f => f.values_assessment)
-    if (feedbacksWithValues.length === 0) return null
-
-    const totals = {
-      integrity: 0,
-      honesty: 0,
-      discipline: 0,
-      hardWork: 0,
-      gratitude: 0,
-    }
-
-    feedbacksWithValues.forEach(f => {
-      if (f.values_assessment) {
-        totals.integrity += f.values_assessment.integrity || 0
-        totals.honesty += f.values_assessment.honesty || 0
-        totals.discipline += f.values_assessment.discipline || 0
-        totals.hardWork += f.values_assessment.hardWork || 0
-        totals.gratitude += f.values_assessment.gratitude || 0
-      }
-    })
-
-    const count = feedbacksWithValues.length
-    return {
-      integrity: totals.integrity / count,
-      honesty: totals.honesty / count,
-      discipline: totals.discipline / count,
-      hardWork: totals.hardWork / count,
-      gratitude: totals.gratitude / count,
-    }
-  }
-
-  const averageValues = calculateAverageValues()
 
   const getValueColor = (value: number) => {
     if (value >= 4) return 'from-emerald-500 to-teal-500'
@@ -117,82 +71,17 @@ export default function CandidateFeedback() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Employer Feedback ⭐</h1>
-        <p className="text-amber-100 text-lg">View feedback and values assessments from employers</p>
+      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Employer Feedback</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">View feedback and assessments from employers</p>
       </div>
-
-      {/* Core Values Overview */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Core Values</h2>
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
-          These values are assessed by employers based on your interviews and interactions
-        </p>
-        
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {coreValues.map((value) => (
-            <div
-              key={value.name}
-              className="text-center p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-100 dark:border-amber-800"
-            >
-              <span className="text-3xl mb-2 block">{value.icon}</span>
-              <span className="font-semibold text-gray-900 dark:text-white block">{value.name}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{value.description}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Average Values Assessment */}
-      {averageValues && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Your Average Scores</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {Object.entries(averageValues).map(([key, value]) => {
-              const displayName = key.replace(/([A-Z])/g, ' $1').trim()
-              return (
-                <div key={key} className="text-center">
-                  <div className="relative w-20 h-20 mx-auto mb-2">
-                    <svg className="w-20 h-20 transform -rotate-90">
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="currentColor"
-                        strokeWidth="6"
-                        fill="none"
-                        className="text-gray-200 dark:text-slate-700"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="url(#gradient)"
-                        strokeWidth="6"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeDasharray={`${(value / 5) * 226} 226`}
-                        className={`${value >= 4 ? 'text-emerald-500' : value >= 3 ? 'text-amber-500' : 'text-red-500'}`}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">{value.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{displayName}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Feedback Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <span className="text-lg">📋</span>
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{feedbacks.length}</p>
@@ -203,7 +92,7 @@ export default function CandidateFeedback() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-              <span className="text-lg">✅</span>
+              <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -216,7 +105,7 @@ export default function CandidateFeedback() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <span className="text-lg">⏳</span>
+              <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
@@ -229,7 +118,7 @@ export default function CandidateFeedback() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <span className="text-lg">❌</span>
+              <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </div>
             <div>
               <p className="text-2xl font-bold text-red-600 dark:text-red-400">
@@ -270,15 +159,12 @@ export default function CandidateFeedback() {
                 onClick={() => setSelectedFeedback(feedback)}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <span className="text-3xl">{decisionConfig.icon}</span>
-                    <div>
+                  <div>
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{feedback.job_title || 'Interview Feedback'}</h3>
                       {feedback.interviewer_name && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">From: {feedback.interviewer_name}</p>
                       )}
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{formatDate(feedback.created_at)}</p>
-                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${decisionConfig.color}`}>
@@ -286,7 +172,8 @@ export default function CandidateFeedback() {
                     </span>
                     {feedback.rating && (
                       <span className="flex items-center gap-1 text-amber-500">
-                        ⭐ {feedback.rating}/5
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        {feedback.rating}/5
                       </span>
                     )}
                   </div>
@@ -349,7 +236,7 @@ export default function CandidateFeedback() {
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400">Decision</span>
                 <span className={`px-4 py-2 rounded-full text-sm font-medium ${getDecisionConfig(selectedFeedback.decision).color}`}>
-                  {getDecisionConfig(selectedFeedback.decision).icon} {getDecisionConfig(selectedFeedback.decision).label}
+                  {getDecisionConfig(selectedFeedback.decision).label}
                 </span>
               </div>
 

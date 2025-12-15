@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../context/ThemeContext'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
-import ApiStatus from '../ApiStatus'
 
 interface RoleNavbarProps {
   role: 'candidate' | 'recruiter' | 'client'
@@ -13,6 +12,7 @@ const roleConfig = {
     gradient: 'from-blue-500 to-cyan-500',
     title: 'Candidate Portal',
     homePath: '/candidate/dashboard',
+    profilePath: '/candidate/profile',
     icon: (
       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -23,6 +23,7 @@ const roleConfig = {
     gradient: 'from-emerald-500 to-teal-500',
     title: 'Recruiter Console',
     homePath: '/recruiter',
+    profilePath: '/recruiter/profile',
     icon: (
       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -33,6 +34,7 @@ const roleConfig = {
     gradient: 'from-purple-500 to-pink-500',
     title: 'Client Dashboard',
     homePath: '/client',
+    profilePath: '/client/profile',
     icon: (
       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -128,23 +130,25 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
 
           {/* User Profile */}
           <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-gray-200 dark:border-slate-700">
-            {/* API Status Indicator */}
-            <div className="hidden sm:block pr-2 border-r border-gray-200 dark:border-slate-700">
-              <ApiStatus />
-            </div>
-            <div className={`w-8 h-8 bg-gradient-to-br ${config.gradient} rounded-full flex items-center justify-center shadow-md`}>
-              <span className="text-white font-semibold text-sm">
-                {userName?.charAt(0).toUpperCase() || localStorage.getItem('user_name')?.charAt(0).toUpperCase() || role.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {userName || localStorage.getItem('user_name') || role.charAt(0).toUpperCase() + role.slice(1)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {config.title}
-              </p>
-            </div>
+            <button
+              onClick={() => navigate(config.profilePath)}
+              className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl p-1.5 transition-all duration-200"
+              title="View Profile"
+            >
+              <div className={`w-8 h-8 bg-gradient-to-br ${config.gradient} rounded-full flex items-center justify-center shadow-md`}>
+                <span className="text-white font-semibold text-sm">
+                  {userName?.charAt(0).toUpperCase() || localStorage.getItem('user_name')?.charAt(0).toUpperCase() || role.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {userName || localStorage.getItem('user_name') || role.charAt(0).toUpperCase() + role.slice(1)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {config.title}
+                </p>
+              </div>
+            </button>
             {/* Logout Button */}
             <button
               onClick={handleLogout}

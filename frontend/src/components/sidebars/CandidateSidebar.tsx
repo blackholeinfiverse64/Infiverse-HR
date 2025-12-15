@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
+import ApiStatus from '../ApiStatus'
 
 export default function CandidateSidebar() {
   const location = useLocation()
@@ -99,6 +100,10 @@ export default function CandidateSidebar() {
 
       {/* User Info & Logout */}
       <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        {/* API Status */}
+        <div className={`px-3 pt-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <ApiStatus />
+        </div>
         {/* User Details */}
         <div className={`p-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>

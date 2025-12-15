@@ -95,10 +95,10 @@ export default function FeedbackForm() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
         <button
           onClick={() => navigate(-1)}
-          className="text-blue-400 hover:text-blue-300 mb-4 flex items-center space-x-2"
+          className="text-green-400 hover:text-green-300 mb-4 flex items-center space-x-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

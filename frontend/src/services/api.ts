@@ -98,10 +98,56 @@ export const candidateLogin = async (data: CandidateLoginRequest) => {
 export const candidateRegister = async (data: CandidateRegisterRequest) => {
   try {
     const response = await api.post('/v1/candidate/register', data)
+    // Store the backend candidate_id if registration successful
+    if (response.data.candidate_id) {
+      localStorage.setItem('backend_candidate_id', response.data.candidate_id.toString())
+    }
     return response.data
   } catch (error) {
     console.error('Candidate registration error:', error)
     throw error
+  }
+}
+
+// Helper to get or create backend candidate ID for Supabase users
+export const getOrCreateBackendCandidateId = async (supabaseUser: { id: string; email?: string; user_metadata?: { name?: string } }): Promise<string | null> => {
+  // Check if we already have a backend candidate_id stored
+  const storedId = localStorage.getItem('backend_candidate_id')
+  if (storedId) {
+    return storedId
+  }
+
+  // Try to register the Supabase user in the backend
+  try {
+    const response = await api.post('/v1/candidate/register', {
+      name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+      email: supabaseUser.email || `${supabaseUser.id}@supabase.user`,
+      password: supabaseUser.id, // Use Supabase ID as password (not used for auth)
+    })
+    
+    if (response.data.candidate_id) {
+      localStorage.setItem('backend_candidate_id', response.data.candidate_id.toString())
+      return response.data.candidate_id.toString()
+    }
+    return null
+  } catch (error: any) {
+    // If user already exists (email conflict), try to login instead
+    if (error?.response?.status === 400 || error?.response?.status === 409) {
+      try {
+        const loginResponse = await api.post('/v1/candidate/login', {
+          email: supabaseUser.email,
+          password: supabaseUser.id,
+        })
+        if (loginResponse.data.candidate_id) {
+          localStorage.setItem('backend_candidate_id', loginResponse.data.candidate_id.toString())
+          return loginResponse.data.candidate_id.toString()
+        }
+      } catch (loginError) {
+        console.warn('Could not retrieve backend candidate ID')
+      }
+    }
+    console.error('Error creating backend candidate:', error)
+    return null
   }
 }
 
@@ -184,13 +230,21 @@ export interface Application {
 
 export const applyForJob = async (jobId: string, candidateId: string, resumeUrl?: string) => {
   try {
+    // Use backend candidate_id if available (integer), otherwise use the provided ID
+    const backendCandidateId = localStorage.getItem('backend_candidate_id') || candidateId
+    
     const response = await api.post('/v1/candidate/apply', {
       job_id: jobId,
-      candidate_id: candidateId,
+      candidate_id: backendCandidateId,
       resume_url: resumeUrl
     })
     return response.data
-  } catch (error) {
+  } catch (error: any) {
+    // If 422 error (UUID vs integer issue), provide helpful message
+    if (error?.response?.status === 422) {
+      console.error('Apply failed: Backend requires registered candidate. Please complete profile setup.')
+      throw new Error('Please complete your profile setup before applying for jobs.')
+    }
     console.error('Error applying for job:', error)
     throw error
   }
@@ -198,23 +252,39 @@ export const applyForJob = async (jobId: string, candidateId: string, resumeUrl?
 
 export const getCandidateApplications = async (candidateId: string): Promise<Application[]> => {
   try {
+    // Backend expects integer candidate_id, not UUID
+    // If using Supabase UUID, this will fail - return empty for now
     const response = await api.get(`/v1/candidate/applications/${candidateId}`)
     return response.data.applications || response.data || []
-  } catch (error) {
+  } catch (error: any) {
+    // Handle 422 error (invalid candidate_id format - UUID vs integer)
+    if (error?.response?.status === 422) {
+      console.warn('Applications: Backend expects integer candidate_id, got UUID. Returning empty.')
+      return []
+    }
+    // Handle 404 (no applications found)
+    if (error?.response?.status === 404) {
+      return []
+    }
     console.error('Error fetching applications:', error)
-    throw error
+    return []
   }
 }
 
 // ==================== CANDIDATE PROFILE API ====================
 
-export const getCandidateProfile = async (candidateId: string): Promise<CandidateProfile> => {
+export const getCandidateProfile = async (candidateId: string): Promise<CandidateProfile | null> => {
   try {
     const response = await api.get(`/v1/candidates/${candidateId}`)
     return response.data
-  } catch (error) {
+  } catch (error: any) {
+    // Handle 422 (UUID vs integer mismatch) or 404 (not found)
+    if (error?.response?.status === 422 || error?.response?.status === 404) {
+      console.warn('Candidate profile not found or invalid ID format')
+      return null
+    }
     console.error('Error fetching candidate profile:', error)
-    throw error
+    return null
   }
 }
 
@@ -222,7 +292,12 @@ export const updateCandidateProfile = async (candidateId: string, data: Partial<
   try {
     const response = await api.put(`/v1/candidate/profile/${candidateId}`, data)
     return response.data
-  } catch (error) {
+  } catch (error: any) {
+    // Handle 422 (UUID vs integer mismatch)
+    if (error?.response?.status === 422) {
+      console.warn('Cannot update profile: Backend expects integer candidate_id')
+      return { error: 'Profile update not available. Please complete registration.' }
+    }
     console.error('Error updating candidate profile:', error)
     throw error
   }
@@ -259,9 +334,13 @@ export const getInterviews = async (candidateId?: string): Promise<Interview[]> 
     const params = candidateId ? `?candidate_id=${candidateId}` : ''
     const response = await api.get(`/v1/interviews${params}`)
     return response.data.interviews || response.data || []
-  } catch (error) {
+  } catch (error: any) {
+    // Handle errors gracefully - return empty array
+    if (error?.response?.status === 404 || error?.response?.status === 422) {
+      return []
+    }
     console.error('Error fetching interviews:', error)
-    throw error
+    return []
   }
 }
 
@@ -300,9 +379,13 @@ export const getCandidateFeedback = async (candidateId: string): Promise<Feedbac
   try {
     const response = await api.get(`/v1/feedback?candidate_id=${candidateId}`)
     return response.data.feedback || response.data || []
-  } catch (error) {
+  } catch (error: any) {
+    // Handle errors gracefully - return empty array
+    if (error?.response?.status === 404 || error?.response?.status === 422) {
+      return []
+    }
     console.error('Error fetching feedback:', error)
-    throw error
+    return []
   }
 }
 
@@ -337,9 +420,13 @@ export const getTasks = async (candidateId: string): Promise<Task[]> => {
   try {
     const response = await api.get(`/v1/tasks?candidate_id=${candidateId}`)
     return response.data.tasks || response.data || []
-  } catch (error) {
+  } catch (error: any) {
+    // Tasks endpoint doesn't exist on backend - return empty array
+    if (error?.response?.status === 404) {
+      console.warn('Tasks endpoint not available on backend')
+      return []
+    }
     console.error('Error fetching tasks:', error)
-    // Return empty array if tasks endpoint doesn't exist
     return []
   }
 }
