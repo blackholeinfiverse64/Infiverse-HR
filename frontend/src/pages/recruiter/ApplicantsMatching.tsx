@@ -20,7 +20,6 @@ export default function ApplicantsMatching() {
   const [candidates, setCandidates] = useState<MatchResult[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCandidate, setSelectedCandidate] = useState<MatchResult | null>(null)
-  const [matchingInProgress, setMatchingInProgress] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -40,22 +39,6 @@ export default function ApplicantsMatching() {
       toast.error('Failed to load applicants')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleRunAIMatching = async () => {
-    try {
-      setMatchingInProgress(true)
-      toast.loading('Running AI matching...')
-      const results = await getTopMatches(jobId!, 20)
-      setCandidates(results)
-      toast.dismiss()
-      toast.success(`Found ${results.length} matches!`)
-    } catch (error) {
-      toast.dismiss()
-      toast.error('AI matching failed')
-    } finally {
-      setMatchingInProgress(false)
     }
   }
 
@@ -79,17 +62,17 @@ export default function ApplicantsMatching() {
     }
   }
 
-  const handleScheduleInterview = async (candidateId: string, candidateName: string) => {
+  const handleScheduleInterview = async (candidateId: string) => {
     try {
       await scheduleInterview({
         candidate_id: candidateId,
         job_id: jobId!,
         job_title: job?.title,
-        scheduled_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week from now
+        scheduled_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         interview_type: 'video',
         status: 'scheduled'
       })
-      toast.success(`Interview scheduled for ${candidateName}`)
+      toast.success('Interview scheduled')
     } catch (error) {
       toast.error('Failed to schedule interview')
     }
@@ -125,7 +108,7 @@ export default function ApplicantsMatching() {
         <h1 className="page-title">{job?.title}</h1>
         <div className="flex flex-wrap items-center gap-3 mt-2">
           <span className="badge badge-info">{job?.location}</span>
-          <span className="badge badge-purple">{job?.jobType}</span>
+          <span className="badge badge-purple">{job?.job_type}</span>
           <span className="badge badge-success">{job?.department}</span>
         </div>
       </div>
@@ -150,7 +133,7 @@ export default function ApplicantsMatching() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Salary Range</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {formatSalary(job?.salaryMin)} - {formatSalary(job?.salaryMax)}
+                {formatSalary(job?.salary_min ?? 0)} - {formatSalary(job?.salary_max ?? 0)}
               </p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
@@ -164,7 +147,7 @@ export default function ApplicantsMatching() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Experience Required</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{job?.experienceRange} years</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{job?.experience_required || 'Not specified'}</p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,50 +182,49 @@ export default function ApplicantsMatching() {
           </div>
         ) : (
           <Table
-            columns={['Candidate', 'Location', 'Experience', 'Current', 'Expected', 'Skills', 'Match', 'Actions']}
+            columns={['Candidate', 'Match Score', 'Skills Match', 'Experience', 'Location', 'Matched Skills', 'Actions']}
             data={candidates}
             renderRow={(candidate) => (
               <>
                 <td>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {candidate.name.split(' ').map((n: string) => n[0]).join('')}
+                      {candidate.candidate_name.split(' ').map((n: string) => n[0]).join('')}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">{candidate.name}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{candidate.candidate_name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{candidate.email}</p>
                     </div>
                   </div>
                 </td>
-                <td className="text-gray-600 dark:text-gray-400">{candidate.location}</td>
-                <td className="text-gray-600 dark:text-gray-400">{candidate.totalExperience} yrs</td>
-                <td className="text-gray-600 dark:text-gray-400">{formatSalary(candidate.currentSalary)}</td>
-                <td className="text-gray-600 dark:text-gray-400">{formatSalary(candidate.expectedSalary)}</td>
+                <td>
+                  <span className={`badge ${getMatchScoreColor(candidate.match_score)}`}>
+                    {candidate.match_score}%
+                  </span>
+                </td>
+                <td className="text-gray-600 dark:text-gray-400">{candidate.skills_match}%</td>
+                <td className="text-gray-600 dark:text-gray-400">{candidate.experience_match}%</td>
+                <td className="text-gray-600 dark:text-gray-400">{candidate.location_match}%</td>
                 <td>
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {candidate.skills.slice(0, 3).map((skill: string, idx: number) => (
+                    {candidate.matched_skills.slice(0, 3).map((skill: string, idx: number) => (
                       <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
                         {skill}
                       </span>
                     ))}
-                    {candidate.skills.length > 3 && (
+                    {candidate.matched_skills.length > 3 && (
                       <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs font-medium">
-                        +{candidate.skills.length - 3}
+                        +{candidate.matched_skills.length - 3}
                       </span>
                     )}
                   </div>
                 </td>
                 <td>
-                  <span className={`badge ${getMatchScoreColor(candidate.matchScore)}`}>
-                    {candidate.matchScore}%
-                  </span>
-                </td>
-                <td>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => window.open(candidate.resumeUrl, '_blank')}
+                      onClick={() => setSelectedCandidate(candidate)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
-                      title="View Resume"
+                      title="View Details"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -259,7 +241,7 @@ export default function ApplicantsMatching() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleShortlist(candidate.id)}
+                      onClick={() => handleShortlist(candidate.candidate_id)}
                       className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400 transition-colors"
                       title="Shortlist"
                     >
@@ -268,7 +250,16 @@ export default function ApplicantsMatching() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => navigate(`/recruiter/feedback/${candidate.id}`)}
+                      onClick={() => handleScheduleInterview(candidate.candidate_id)}
+                      className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
+                      title="Schedule Interview"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => navigate(`/recruiter/feedback/${candidate.candidate_id}`)}
                       className="p-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400 transition-colors"
                       title="Add Feedback"
                     >
@@ -277,7 +268,7 @@ export default function ApplicantsMatching() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleReject(candidate.id)}
+                      onClick={() => handleReject(candidate.candidate_id)}
                       className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors"
                       title="Reject"
                     >
@@ -302,10 +293,10 @@ export default function ApplicantsMatching() {
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl">
-                    {selectedCandidate.name.split(' ').map((n: string) => n[0]).join('')}
+                    {selectedCandidate.candidate_name.split(' ').map((n: string) => n[0]).join('')}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedCandidate.name}</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedCandidate.candidate_name}</h3>
                     <p className="text-gray-500 dark:text-gray-400">{selectedCandidate.email}</p>
                   </div>
                 </div>
@@ -321,45 +312,45 @@ export default function ApplicantsMatching() {
 
               {/* Match Score Banner */}
               <div className={`rounded-xl p-4 mb-6 ${
-                selectedCandidate.matchScore >= 80 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800' :
-                selectedCandidate.matchScore >= 60 ? 'bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800' :
+                selectedCandidate.match_score >= 80 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800' :
+                selectedCandidate.match_score >= 60 ? 'bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800' :
                 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800'
               }`}>
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">Match Score</span>
                   <span className={`text-3xl font-bold ${
-                    selectedCandidate.matchScore >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
-                    selectedCandidate.matchScore >= 60 ? 'text-amber-600 dark:text-amber-400' :
+                    selectedCandidate.match_score >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+                    selectedCandidate.match_score >= 60 ? 'text-amber-600 dark:text-amber-400' :
                     'text-red-600 dark:text-red-400'
-                  }`}>{selectedCandidate.matchScore}%</span>
+                  }`}>{selectedCandidate.match_score}%</span>
                 </div>
               </div>
 
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.phone}</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Experience Match</p>
+                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.experience_match}%</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</p>
-                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.location}</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Location Match</p>
+                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.location_match}%</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Experience</p>
-                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.totalExperience} years</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Skills Match</p>
+                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.skills_match}%</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Expected Salary</p>
-                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{formatSalary(selectedCandidate.expectedSalary)}</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Matched Skills</p>
+                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedCandidate.matched_skills.length}</p>
                 </div>
               </div>
 
               {/* Skills */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Skills</h4>
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Matched Skills</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedCandidate.skills.map((skill: string, idx: number) => (
+                  {selectedCandidate.matched_skills.map((skill: string, idx: number) => (
                     <span key={idx} className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg font-medium text-sm">
                       {skill}
                     </span>
@@ -367,32 +358,25 @@ export default function ApplicantsMatching() {
                 </div>
               </div>
 
-              {/* Core Values */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Core Values Assessment</h4>
-                <div className="space-y-3">
-                  {Object.entries(selectedCandidate.values).map(([key, value]: [string, any]) => (
-                    <div key={key}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">{key}</span>
-                        <span className="text-gray-900 dark:text-white font-bold">{value.toFixed(1)}/5</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-bar-fill bg-gradient-to-r from-purple-500 to-pink-500"
-                          style={{ width: `${(value / 5) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+              {/* Missing Skills */}
+              {selectedCandidate.missing_skills.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Missing Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.missing_skills.map((skill: string, idx: number) => (
+                      <span key={idx} className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg font-medium text-sm">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => {
-                    handleShortlist(selectedCandidate.id)
+                    handleShortlist(selectedCandidate.candidate_id)
                     setSelectedCandidate(null)
                   }}
                   className="btn-success flex-1"
@@ -404,7 +388,7 @@ export default function ApplicantsMatching() {
                 </button>
                 <button
                   onClick={() => {
-                    navigate(`/recruiter/feedback/${selectedCandidate.id}`)
+                    navigate(`/recruiter/feedback/${selectedCandidate.candidate_id}`)
                   }}
                   className="btn-primary flex-1"
                 >

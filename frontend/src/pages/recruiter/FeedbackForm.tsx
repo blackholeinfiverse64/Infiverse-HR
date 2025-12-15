@@ -4,13 +4,23 @@ import toast from 'react-hot-toast'
 import { submitFeedback, getCandidateProfile } from '../../services/api'
 import Loading from '../../components/Loading'
 
+type DecisionType = 'accept' | 'reject' | 'hold' | ''
+
 export default function FeedbackForm() {
   const { candidateId } = useParams()
   const navigate = useNavigate()
   const [candidate, setCandidate] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    comment: string
+    integrity: number
+    honesty: number
+    discipline: number
+    hardWork: number
+    gratitude: number
+    decision: DecisionType
+  }>({
     comment: '',
     integrity: 3,
     honesty: 3,
@@ -51,7 +61,16 @@ export default function FeedbackForm() {
 
     setSubmitting(true)
     try {
-      await submitFeedback(candidateId!, formData)
+      const feedbackData = {
+        comment: formData.comment,
+        integrity: formData.integrity,
+        honesty: formData.honesty,
+        discipline: formData.discipline,
+        hardWork: formData.hardWork,
+        gratitude: formData.gratitude,
+        decision: formData.decision as 'accept' | 'reject' | 'hold'
+      }
+      await submitFeedback(candidateId!, feedbackData)
       toast.success('Feedback submitted successfully!')
       navigate(-1)
     } catch (error) {
@@ -195,22 +214,25 @@ export default function FeedbackForm() {
                 Decision
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['Accept', 'Reject', 'Hold', 'Task'].map((decision) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { value: 'accept', label: 'Accept', color: 'green' },
+                  { value: 'reject', label: 'Reject', color: 'red' },
+                  { value: 'hold', label: 'Hold', color: 'yellow' }
+                ].map((option) => (
                   <button
-                    key={decision}
+                    key={option.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, decision })}
+                    onClick={() => setFormData({ ...formData, decision: option.value as DecisionType })}
                     className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                      formData.decision === decision
-                        ? decision === 'Accept' ? 'bg-green-600 text-white ring-2 ring-green-400' :
-                          decision === 'Reject' ? 'bg-red-600 text-white ring-2 ring-red-400' :
-                          decision === 'Hold' ? 'bg-yellow-600 text-white ring-2 ring-yellow-400' :
-                          'bg-purple-600 text-white ring-2 ring-purple-400'
+                      formData.decision === option.value
+                        ? option.color === 'green' ? 'bg-green-600 text-white ring-2 ring-green-400' :
+                          option.color === 'red' ? 'bg-red-600 text-white ring-2 ring-red-400' :
+                          'bg-yellow-600 text-white ring-2 ring-yellow-400'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
-                    {decision}
+                    {option.label}
                   </button>
                 ))}
               </div>

@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { getCandidateApplications, type Application } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 type StatusFilter = 'all' | 'applied' | 'screening' | 'shortlisted' | 'interview' | 'offer' | 'rejected' | 'hired'
 
 export default function AppliedJobs() {
+  const { user } = useAuth()
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
 
-  const candidateId = localStorage.getItem('candidate_id') || ''
+  // Get candidate ID from Supabase user or fallback to localStorage
+  const candidateId = user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadApplications()

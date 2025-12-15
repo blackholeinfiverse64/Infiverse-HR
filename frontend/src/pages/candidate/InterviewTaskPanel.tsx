@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { getInterviews, getTasks, submitTask, type Interview, type Task } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 type TabType = 'interviews' | 'tasks'
 
 export default function InterviewTaskPanel() {
+  const { user } = useAuth()
   const [interviews, setInterviews] = useState<Interview[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -12,7 +14,8 @@ export default function InterviewTaskPanel() {
   const [submitting, setSubmitting] = useState<string | null>(null)
   const [submitModal, setSubmitModal] = useState<{ task: Task; url: string } | null>(null)
 
-  const candidateId = localStorage.getItem('candidate_id') || ''
+  // Get candidate ID from Supabase user or fallback to localStorage
+  const candidateId = user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadData()

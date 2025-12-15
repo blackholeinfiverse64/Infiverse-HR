@@ -1,8 +1,10 @@
 import axios from 'axios'
-import { supabase } from '../lib/supabase'
 
 // API Base URL - Gateway service
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+
+// API Key for backend authentication (required until Supabase auth is deployed to backend)
+const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,14 +14,13 @@ const api = axios.create({
   },
 })
 
-// Request interceptor for adding Supabase auth tokens
+// Request interceptor - Always use API key for backend auth
+// (Backend doesn't yet have Supabase auth configured)
 api.interceptors.request.use(
   async (config) => {
-    // Get Supabase session token
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`
-    }
+    // Always use API key for authentication
+    // The backend validates this API key against API_KEY_SECRET env var
+    config.headers.Authorization = `Bearer ${API_KEY}`
     return config
   },
   (error) => Promise.reject(error)
@@ -29,13 +30,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expired, try to refresh
-      const { data: { session } } = await supabase.auth.refreshSession()
-      if (!session) {
-        // Redirect to login
-        window.location.href = '/'
-      }
+    // Log errors for debugging
+    if (error.response) {
+      console.error(`API Error: ${error.response.status} - ${error.config?.url}`)
     }
     return Promise.reject(error)
   }

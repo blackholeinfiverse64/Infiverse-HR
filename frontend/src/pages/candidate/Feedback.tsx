@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { getCandidateFeedback, type Feedback } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 export default function CandidateFeedback() {
+  const { user } = useAuth()
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
 
-  const candidateId = localStorage.getItem('candidate_id') || ''
+  // Get candidate ID from Supabase user or fallback to localStorage
+  const candidateId = user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadFeedback()

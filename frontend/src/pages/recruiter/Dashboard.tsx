@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getJobs, getRecruiterStats, getSystemStats, type Job, type RecruiterStats } from '../../services/api'
+import { getJobs, getRecruiterStats, type Job, type RecruiterStats } from '../../services/api'
 import StatsCard from '../../components/StatsCard'
 import Table from '../../components/Table'
 import Loading from '../../components/Loading'
@@ -17,7 +17,6 @@ export default function RecruiterDashboard() {
     hired: 0
   })
   const [loading, setLoading] = useState(true)
-  const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking')
 
   useEffect(() => {
     loadDashboardData()
@@ -26,7 +25,6 @@ export default function RecruiterDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      setApiStatus('checking')
       
       // Load jobs and stats in parallel
       const [jobsData, statsData] = await Promise.all([
@@ -43,10 +41,8 @@ export default function RecruiterDashboard() {
       
       setJobs(jobsData)
       setStats(statsData)
-      setApiStatus('online')
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
-      setApiStatus('offline')
       toast.error('Failed to connect to backend API')
     } finally {
       setLoading(false)
