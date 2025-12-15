@@ -56,40 +56,33 @@ else:
 
 from fastapi.openapi.utils import get_openapi
 
-# Security setup
-security = HTTPBearer()
+# Security setup - Use Supabase authentication
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-def validate_api_key(api_key: str) -> bool:
-    """Validate API key against environment variable"""
-    expected_key = os.getenv("API_KEY_SECRET")
-    return api_key == expected_key
-
-def auth_dependency(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Authentication dependency mirroring Gateway"""
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Authentication required")
+try:
+    from supabase_auth import (
+        security,
+        validate_api_key,
+        get_api_key,
+        get_auth,
+        auth_dependency,
+    )
+except ImportError:
+    # Fallback if shared module not available
+    from fastapi.security import HTTPBearer
+    security = HTTPBearer()
     
-    # Try API key first
-    if validate_api_key(credentials.credentials):
-        return {"type": "api_key", "credentials": credentials.credentials}
+    def validate_api_key(api_key: str) -> bool:
+        expected_key = os.getenv("API_KEY_SECRET")
+        return api_key == expected_key
     
-    # Try client JWT token
-    try:
-        jwt_secret = os.getenv("JWT_SECRET_KEY")
-        payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
-        return {"type": "client_token", "client_id": payload.get("client_id")}
-    except:
-        pass
-    
-    # Try candidate JWT token
-    try:
-        candidate_jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
-        payload = jwt.decode(credentials.credentials, candidate_jwt_secret, algorithms=["HS256"])
-        return {"type": "candidate_token", "candidate_id": payload.get("candidate_id")}
-    except:
-        pass
-    
-    raise HTTPException(status_code=401, detail="Invalid authentication")
+    def auth_dependency(credentials = Security(security)):
+        if not credentials:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        if validate_api_key(credentials.credentials):
+            return {"type": "api_key", "credentials": credentials.credentials}
+        raise HTTPException(status_code=401, detail="Invalid authentication")
 
 app = FastAPI(
     title="BHIV AI Matching Engine",

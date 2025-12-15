@@ -1,0 +1,190 @@
+"""
+Supabase Authentication Module for BHIV HR Platform Backend
+Validates Supabase JWT tokens from frontend
+"""
+
+import os
+import jwt
+import httpx
+from fastapi import HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional, Dict, Any
+from functools import lru_cache
+import logging
+
+logger = logging.getLogger(__name__)
+
+security = HTTPBearer(auto_error=False)
+
+# Supabase configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+
+# API Key for service-to-service communication (keep this)
+API_KEY_SECRET = os.getenv("API_KEY_SECRET", "")
+
+
+def validate_api_key(api_key: str) -> bool:
+    """Validate API key for service-to-service communication"""
+    if not API_KEY_SECRET:
+        return False
+    return api_key == API_KEY_SECRET
+
+
+def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Verify a Supabase JWT token and return the payload.
+    Supabase uses HS256 with the JWT secret from project settings.
+    """
+    if not SUPABASE_JWT_SECRET:
+        logger.error("SUPABASE_JWT_SECRET not configured")
+        return None
+    
+    try:
+        # Supabase JWT tokens use HS256 algorithm
+        payload = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated"
+        )
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("Supabase token expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid Supabase token: {e}")
+        return None
+
+
+def get_user_from_token(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract user information from Supabase token payload"""
+    return {
+        "user_id": payload.get("sub"),
+        "email": payload.get("email"),
+        "role": payload.get("user_metadata", {}).get("role", "candidate"),
+        "name": payload.get("user_metadata", {}).get("name", ""),
+        "aud": payload.get("aud"),
+        "exp": payload.get("exp"),
+    }
+
+
+def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Dependency for API key only authentication"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if not validate_api_key(credentials.credentials):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
+    return credentials.credentials
+
+
+def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """
+    Unified authentication: API key OR Supabase JWT token
+    - API keys: For service-to-service communication
+    - Supabase JWT: For authenticated users from frontend
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    token = credentials.credentials
+    
+    # Try API key first (for service-to-service)
+    if validate_api_key(token):
+        return {
+            "type": "api_key",
+            "credentials": token,
+            "user_id": "service",
+            "role": "admin"
+        }
+    
+    # Try Supabase JWT token
+    payload = verify_supabase_token(token)
+    if payload:
+        user_info = get_user_from_token(payload)
+        return {
+            "type": "supabase_token",
+            "user_id": user_info["user_id"],
+            "email": user_info["email"],
+            "role": user_info["role"],
+            "name": user_info["name"],
+        }
+    
+    raise HTTPException(status_code=401, detail="Invalid authentication token")
+
+
+def auth_dependency(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Standard auth dependency for all services"""
+    return get_auth(credentials)
+
+
+def require_role(*allowed_roles: str):
+    """
+    Dependency factory to require specific roles.
+    Usage: Depends(require_role("admin", "recruiter"))
+    """
+    def role_checker(auth: dict = Security(get_auth)):
+        user_role = auth.get("role", "")
+        if user_role not in allowed_roles and auth.get("type") != "api_key":
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied. Required roles: {', '.join(allowed_roles)}"
+            )
+        return auth
+    return role_checker
+
+
+# Role-specific dependencies
+def get_candidate_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Authentication for candidate-only endpoints"""
+    auth = get_auth(credentials)
+    if auth.get("type") == "api_key":
+        return auth  # API keys have full access
+    if auth.get("role") != "candidate":
+        raise HTTPException(status_code=403, detail="Candidate access required")
+    return auth
+
+
+def get_recruiter_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Authentication for recruiter-only endpoints"""
+    auth = get_auth(credentials)
+    if auth.get("type") == "api_key":
+        return auth
+    if auth.get("role") not in ["recruiter", "admin"]:
+        raise HTTPException(status_code=403, detail="Recruiter access required")
+    return auth
+
+
+def get_client_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Authentication for client-only endpoints"""
+    auth = get_auth(credentials)
+    if auth.get("type") == "api_key":
+        return auth
+    if auth.get("role") not in ["client", "admin"]:
+        raise HTTPException(status_code=403, detail="Client access required")
+    return auth
+
+
+def get_admin_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Authentication for admin-only endpoints"""
+    auth = get_auth(credentials)
+    if auth.get("type") == "api_key":
+        return auth
+    if auth.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return auth
+
+
+# Optional auth (for public endpoints that can optionally use auth)
+def get_optional_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Optional authentication - returns None if not authenticated"""
+    if not credentials:
+        return None
+    
+    try:
+        return get_auth(credentials)
+    except HTTPException:
+        return None

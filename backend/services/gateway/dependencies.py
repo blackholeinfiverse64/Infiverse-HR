@@ -1,41 +1,44 @@
-from fastapi import HTTPException, Depends, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+"""
+Gateway Authentication Dependencies
+Uses Supabase JWT tokens for user authentication
+"""
+
+# Re-export from shared Supabase auth module
+import sys
 import os
-import jwt
-from datetime import datetime, timezone
 
-security = HTTPBearer()
+# Add shared module to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-def validate_api_key(api_key: str) -> bool:
-    """Validate API key against environment variable"""
-    expected_key = os.getenv("API_KEY_SECRET")
-    return api_key == expected_key
+from supabase_auth import (
+    security,
+    validate_api_key,
+    get_api_key,
+    get_auth,
+    auth_dependency,
+    verify_supabase_token,
+    get_user_from_token,
+    require_role,
+    get_candidate_auth,
+    get_recruiter_auth,
+    get_client_auth,
+    get_admin_auth,
+    get_optional_auth,
+)
 
-def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Dependency for API key authentication"""
-    if not credentials or not validate_api_key(credentials.credentials):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return credentials.credentials
-
-def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Dual authentication: API key or client JWT token"""
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    # Try API key first
-    if validate_api_key(credentials.credentials):
-        return {"type": "api_key", "credentials": credentials.credentials}
-    
-    # Try client JWT token
-    try:
-        jwt_secret = os.getenv("JWT_SECRET")
-        payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
-        return {"type": "client_token", "client_id": payload.get("client_id")}
-    except:
-        pass
-    
-    raise HTTPException(status_code=401, detail="Invalid authentication")
-
-def auth_dependency(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Standard auth dependency for all services"""
-    return get_auth(credentials)
+# Re-export all for backwards compatibility
+__all__ = [
+    "security",
+    "validate_api_key",
+    "get_api_key",
+    "get_auth",
+    "auth_dependency",
+    "verify_supabase_token",
+    "get_user_from_token",
+    "require_role",
+    "get_candidate_auth",
+    "get_recruiter_auth",
+    "get_client_auth",
+    "get_admin_auth",
+    "get_optional_auth",
+]
