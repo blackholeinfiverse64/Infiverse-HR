@@ -39,7 +39,6 @@ import ValuesAssessment from './pages/recruiter/ValuesAssessment'
 import ClientDashboard from './pages/client/ClientDashboard'
 import ClientJobPosting from './pages/client/ClientJobPosting'
 import ClientCandidates from './pages/client/ClientCandidates'
-import ShortlistReview from './pages/client/ShortlistReview'
 import MatchResults from './pages/client/MatchResults'
 import ClientReports from './pages/client/ClientReports'
 

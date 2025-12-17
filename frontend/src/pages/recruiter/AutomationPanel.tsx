@@ -24,7 +24,6 @@ export default function AutomationPanel() {
   const checkServiceStatus = async () => {
     setServiceStatus('checking')
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-l0xp.onrender.com'
       const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
       const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
       
@@ -145,7 +144,6 @@ export default function AutomationPanel() {
 
     setTesting(true)
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-l0xp.onrender.com'
       const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
       const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
       
@@ -153,7 +151,7 @@ export default function AutomationPanel() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_API_KEY || ''}`
+          'Authorization': `Bearer ${API_KEY}`
         },
         body: JSON.stringify({
           candidate_name: testForm.candidate_name,
@@ -184,7 +182,6 @@ export default function AutomationPanel() {
   const handleSequenceTest = async (sequenceType: string) => {
     setTesting(true)
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-l0xp.onrender.com'
       const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
       const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
       

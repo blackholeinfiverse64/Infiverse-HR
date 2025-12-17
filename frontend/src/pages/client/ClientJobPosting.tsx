@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
-import { createJob, getJobs, Job } from '../../services/api'
+import { useState } from 'react'
+import { createJob, Job } from '../../services/api'
 import { toast } from 'react-hot-toast'
-import Loading from '../../components/Loading'
 
 export default function ClientJobPosting() {
   const [loading, setLoading] = useState(false)

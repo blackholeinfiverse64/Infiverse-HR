@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getAllCandidates, getJobs, submitFeedback, type Job } from '../../services/api'
 import Loading from '../../components/Loading'
@@ -11,7 +10,6 @@ interface Candidate {
 }
 
 export default function ValuesAssessment() {
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [candidates, setCandidates] = useState<Candidate[]>([])

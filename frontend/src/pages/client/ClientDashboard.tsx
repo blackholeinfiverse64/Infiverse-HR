@@ -59,7 +59,7 @@ export default function ClientDashboard() {
   // Calculate pipeline data from real-time backend data
   const applied = totalApplications
   const aiScreened = applications.filter((app: MatchResult) => app.match_score && app.match_score > 0).length
-  const reviewed = applications.filter((app: MatchResult) => app.status === 'reviewed' || app.status === 'shortlisted').length
+  const reviewed = applications.filter((app: any) => (app.status === 'reviewed' || app.status === 'shortlisted' || app.recommendation === 'Strong Recommend')).length
   const interview = interviewsScheduled
   const offer = offersMade
   const hired = offers.filter((o: any) => o.status === 'accepted' || o.status === 'hired').length

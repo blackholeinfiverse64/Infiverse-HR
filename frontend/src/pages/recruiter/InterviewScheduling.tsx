@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { scheduleInterview, getInterviews, getJobs, getAllCandidates, type Interview } from '../../services/api'
+import { scheduleInterview, getInterviews, getJobs, type Interview } from '../../services/api'
 import Loading from '../../components/Loading'
 
 export default function InterviewScheduling() {
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'schedule' | 'view'>('schedule')
   const [loading, setLoading] = useState(false)
   const [interviews, setInterviews] = useState<Interview[]>([])
   const [jobs, setJobs] = useState<any[]>([])
-  const [candidates, setCandidates] = useState<any[]>([])
   
   // Form state
   const [formData, setFormData] = useState({
@@ -33,7 +30,6 @@ export default function InterviewScheduling() {
       return () => clearInterval(interval)
     }
     loadJobs()
-    loadCandidates()
   }, [activeTab])
 
   const loadInterviews = async () => {
@@ -61,14 +57,6 @@ export default function InterviewScheduling() {
     }
   }
 
-  const loadCandidates = async () => {
-    try {
-      const candidatesData = await getAllCandidates()
-      setCandidates(candidatesData)
-    } catch (error) {
-      console.error('Failed to load candidates:', error)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

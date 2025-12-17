@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getJobs, bulkUploadCandidates } from '../../services/api'
 import Loading from '../../components/Loading'
@@ -14,10 +13,8 @@ interface CSVRow {
 }
 
 export default function BatchUpload() {
-  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [jobId, setJobId] = useState<number>(1)
-  const [jobs, setJobs] = useState<any[]>([])
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<CSVRow[]>([])
   const [uploading, setUploading] = useState(false)
@@ -32,7 +29,6 @@ export default function BatchUpload() {
     try {
       setLoading(true)
       const jobsData = await getJobs()
-      setJobs(jobsData)
       if (jobsData.length > 0) {
         setJobId(parseInt(jobsData[0].id) || 1)
       }

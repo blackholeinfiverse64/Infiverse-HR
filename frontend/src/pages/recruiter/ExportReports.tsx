@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { getAllCandidates, getInterviews, getJobs } from '../../services/api'
+import { getAllCandidates, getInterviews } from '../../services/api'
 import Loading from '../../components/Loading'
 import StatsCard from '../../components/StatsCard'
 
@@ -8,7 +8,6 @@ export default function ExportReports() {
   const [loading, setLoading] = useState(true)
   const [candidates, setCandidates] = useState<any[]>([])
   const [interviews, setInterviews] = useState<any[]>([])
-  const [jobs, setJobs] = useState<any[]>([])
   const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
@@ -21,14 +20,12 @@ export default function ExportReports() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [candidatesData, interviewsData, jobsData] = await Promise.all([
+      const [candidatesData, interviewsData] = await Promise.all([
         getAllCandidates().catch(() => []),
-        getInterviews().catch(() => []),
-        getJobs().catch(() => [])
+        getInterviews().catch(() => [])
       ])
       setCandidates(candidatesData)
       setInterviews(interviewsData)
-      setJobs(jobsData)
     } catch (error) {
       console.error('Failed to load data:', error)
       toast.error('Failed to load assessment data')
