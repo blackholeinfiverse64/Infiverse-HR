@@ -150,8 +150,8 @@ export default function InterviewScheduling() {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">📅 Interview Management System</h1>
-        <p className="text-gray-600 dark:text-gray-400">Schedule, track, and manage candidate interviews</p>
+        <h1 className="page-title">Interview Management System</h1>
+        <p className="page-subtitle">Schedule, track, and manage candidate interviews</p>
       </div>
 
       {/* Tabs */}
@@ -165,7 +165,12 @@ export default function InterviewScheduling() {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            📅 Schedule Interview
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Schedule Interview
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('view')}
@@ -175,7 +180,12 @@ export default function InterviewScheduling() {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            📋 View Interviews
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              View Interviews
+            </span>
           </button>
         </div>
 

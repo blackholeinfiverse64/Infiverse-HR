@@ -7,6 +7,7 @@ import {
   shortlistCandidate, 
   rejectCandidate,
   scheduleInterview,
+  getJobs,
   type MatchResult,
   type Job
 } from '../../services/api'
@@ -14,23 +15,60 @@ import Table from '../../components/Table'
 import Loading from '../../components/Loading'
 
 export default function ApplicantsMatching() {
-  const { jobId } = useParams()
+  const { jobId: urlJobId } = useParams()
   const navigate = useNavigate()
+  const [jobId, setJobId] = useState<number>(urlJobId ? parseInt(urlJobId) : 1)
   const [job, setJob] = useState<Job | null>(null)
+  const [, setJobs] = useState<any[]>([])
   const [candidates, setCandidates] = useState<MatchResult[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState<MatchResult | null>(null)
+  const [aiAnalysis, setAiAnalysis] = useState<string>('')
+  const [algorithmVersion, setAlgorithmVersion] = useState<string>('')
 
   useEffect(() => {
-    loadData()
+    loadJobs()
+    if (urlJobId) {
+      loadData()
+    }
+  }, [urlJobId])
+
+  useEffect(() => {
+    if (jobId) {
+      loadJobDetails()
+    }
   }, [jobId])
 
+  const loadJobs = async () => {
+    try {
+      const jobsData = await getJobs()
+      setJobs(jobsData)
+    } catch (error) {
+      console.error('Failed to load jobs:', error)
+    }
+  }
+
+  const loadJobDetails = async () => {
+    try {
+      const jobData = await getJobById(jobId.toString())
+      setJob(jobData)
+    } catch (error) {
+      console.error('Failed to load job:', error)
+    }
+  }
+
   const loadData = async () => {
+    if (!jobId) {
+      toast.error('Please enter a Job ID')
+      return
+    }
+
     try {
       setLoading(true)
       const [jobData, matchResults] = await Promise.all([
-        getJobById(jobId!).catch(() => null),
-        getTopMatches(jobId!, 20).catch(() => [])
+        getJobById(jobId.toString()).catch(() => null),
+        getTopMatches(jobId.toString(), 20).catch(() => [])
       ])
       setJob(jobData)
       setCandidates(matchResults)
@@ -42,9 +80,55 @@ export default function ApplicantsMatching() {
     }
   }
 
+  const handleGenerateShortlist = async () => {
+    if (!jobId) {
+      toast.error('Please enter a Job ID')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      // Call AI matching endpoint
+      const agentUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001'
+      
+      const response = await fetch(`${agentUrl}/match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ job_id: jobId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const candidatesData = data.top_candidates || []
+        setAiAnalysis(data.ai_analysis || '')
+        setAlgorithmVersion(data.algorithm_version || 'v3.0.0')
+        setCandidates(candidatesData)
+        
+        // Also load job details
+        const jobData = await getJobById(jobId.toString()).catch(() => null)
+        setJob(jobData)
+        
+        if (candidatesData.length === 0) {
+          toast('No candidates found for this job. Please upload candidates first.', { icon: '⚠' })
+        } else {
+          toast.success(`Found ${candidatesData.length} matched candidates`)
+        }
+      } else {
+        throw new Error('Failed to generate shortlist')
+      }
+    } catch (error) {
+      console.error('Generate shortlist error:', error)
+      toast.error('Failed to generate AI shortlist')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const handleShortlist = async (candidateId: string) => {
     try {
-      await shortlistCandidate(jobId!, candidateId)
+      await shortlistCandidate(jobId.toString(), candidateId)
       toast.success('Candidate shortlisted successfully')
       loadData()
     } catch (error) {
@@ -54,7 +138,7 @@ export default function ApplicantsMatching() {
 
   const handleReject = async (candidateId: string) => {
     try {
-      await rejectCandidate(jobId!, candidateId)
+      await rejectCandidate(jobId.toString(), candidateId)
       toast.success('Candidate rejected')
       loadData()
     } catch (error) {
@@ -66,7 +150,7 @@ export default function ApplicantsMatching() {
     try {
       await scheduleInterview({
         candidate_id: candidateId,
-        job_id: jobId!,
+        job_id: jobId.toString(),
         job_title: job?.title,
         scheduled_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         interview_type: 'video',
@@ -78,109 +162,162 @@ export default function ApplicantsMatching() {
     }
   }
 
-  const formatSalary = (amount: number) => {
-    return `₹${(amount / 100000).toFixed(1)}L`
-  }
-
   const getMatchScoreColor = (score: number) => {
     if (score >= 80) return 'badge-success'
     if (score >= 60) return 'badge-warning'
     return 'badge-danger'
   }
 
-  if (loading) {
-    return <Loading message="Loading applicants..." />
+  const incrementJobId = () => {
+    setJobId(prev => prev + 1)
+  }
+
+  const decrementJobId = () => {
+    if (jobId > 1) {
+      setJobId(prev => prev - 1)
+    }
   }
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Back Button & Header */}
+      {/* Header */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
-        <button
-          onClick={() => navigate('/recruiter')}
-          className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-semibold mb-4 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Back to Dashboard</span>
-        </button>
-        <h1 className="page-title">{job?.title}</h1>
-        <div className="flex flex-wrap items-center gap-3 mt-2">
-          <span className="badge badge-info">{job?.location}</span>
-          <span className="badge badge-purple">{job?.job_type}</span>
-          <span className="badge badge-success">{job?.department}</span>
-        </div>
+        <h1 className="page-title">AI-Powered Candidate Shortlist</h1>
+        <p className="page-subtitle">Get the top candidates matched by AI using advanced semantic analysis and values alignment</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="card bg-blue-50 dark:bg-blue-900/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Applicants</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{candidates.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div className="card bg-emerald-50 dark:bg-emerald-900/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Salary Range</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {formatSalary(job?.salary_min ?? 0)} - {formatSalary(job?.salary_max ?? 0)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div className="card bg-purple-50 dark:bg-purple-900/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Experience Required</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{job?.experience_required || 'Not specified'}</p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+      {/* Job Selection & Actions */}
+      <div className="card">
+        <h2 className="section-title mb-4">Generate AI Shortlist</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Job ID Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Job ID
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={decrementJobId}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                value={jobId}
+                onChange={(e) => setJobId(parseInt(e.target.value) || 1)}
+                min="1"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-center"
+              />
+              <button
+                type="button"
+                onClick={incrementJobId}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+              >
+                +
+              </button>
             </div>
           </div>
+
+          {/* Generate Button */}
+          <div className="flex items-end">
+            <button
+              onClick={handleGenerateShortlist}
+              disabled={generating || loading}
+              className="group w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-green-500/25 hover:shadow-lg hover:shadow-green-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generating ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Generate AI Shortlist</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Refresh Button */}
+          <div className="flex items-end">
+            <button
+              onClick={loadData}
+              disabled={loading || generating}
+              className="w-full px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
+
+        {/* AI Analysis Info */}
+        {aiAnalysis && (
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">AI Analysis</p>
+                <p className="text-sm text-blue-800 dark:text-blue-400">{aiAnalysis}</p>
+                {algorithmVersion && (
+                  <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">Algorithm Version: {algorithmVersion}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Job Info */}
+        {job && (
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-semibold text-gray-900 dark:text-white">{job.title}</span>
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-medium">{job.location}</span>
+              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs font-medium">{job.job_type}</span>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs font-medium">{job.department}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Candidates Table */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h2 className="section-title mb-1">Matched Candidates</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">AI-ranked based on job requirements</p>
-          </div>
-          <div className="flex gap-2">
-            <span className="badge badge-success">High Match (80%+)</span>
-            <span className="badge badge-warning">Medium (60-79%)</span>
-            <span className="badge badge-danger">Low (&lt;60%)</span>
-          </div>
+      {loading ? (
+        <Loading message="Loading candidates..." />
+      ) : candidates.length === 0 ? (
+        <div className="card text-center py-12">
+          <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-gray-500 dark:text-gray-400 text-lg">No candidates found</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Click "Generate AI Shortlist" to find matched candidates</p>
         </div>
-        
-        {candidates.length === 0 ? (
-          <div className="empty-state">
-            <svg className="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <p className="empty-state-text">No applicants yet</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Candidates will appear here once they apply</p>
+      ) : (
+        <div className="card">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h2 className="section-title mb-1">Matched Candidates ({candidates.length})</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">AI-ranked based on job requirements</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="badge badge-success">High Match (80%+)</span>
+              <span className="badge badge-warning">Medium (60-79%)</span>
+              <span className="badge badge-danger">Low (&lt;60%)</span>
+            </div>
           </div>
-        ) : (
+          
           <Table
             columns={['Candidate', 'Match Score', 'Skills Match', 'Experience', 'Location', 'Matched Skills', 'Actions']}
             data={candidates}
@@ -226,18 +363,9 @@ export default function ApplicantsMatching() {
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
                       title="View Details"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setSelectedCandidate(candidate)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-purple-600 dark:text-purple-400 transition-colors"
-                      title="View Details"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
                     <button
@@ -245,7 +373,7 @@ export default function ApplicantsMatching() {
                       className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400 transition-colors"
                       title="Shortlist"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </button>
@@ -254,7 +382,7 @@ export default function ApplicantsMatching() {
                       className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
                       title="Schedule Interview"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </button>
@@ -263,7 +391,7 @@ export default function ApplicantsMatching() {
                       className="p-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400 transition-colors"
                       title="Add Feedback"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
@@ -272,7 +400,7 @@ export default function ApplicantsMatching() {
                       className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors"
                       title="Reject"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -281,8 +409,8 @@ export default function ApplicantsMatching() {
               </>
             )}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Candidate Detail Modal */}
       {selectedCandidate && (
@@ -359,7 +487,7 @@ export default function ApplicantsMatching() {
               </div>
 
               {/* Missing Skills */}
-              {selectedCandidate.missing_skills.length > 0 && (
+              {selectedCandidate.missing_skills && selectedCandidate.missing_skills.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Missing Skills</h4>
                   <div className="flex flex-wrap gap-2">
@@ -379,23 +507,23 @@ export default function ApplicantsMatching() {
                     handleShortlist(selectedCandidate.candidate_id)
                     setSelectedCandidate(null)
                   }}
-                  className="btn-success flex-1"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-green-500/25 hover:shadow-lg hover:shadow-green-500/40 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Shortlist Candidate
+                  <span>Shortlist</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/recruiter/feedback/${selectedCandidate.candidate_id}`)
                   }}
-                  className="btn-primary flex-1"
+                  className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Add Feedback
+                  <span>Feedback</span>
                 </button>
               </div>
             </div>

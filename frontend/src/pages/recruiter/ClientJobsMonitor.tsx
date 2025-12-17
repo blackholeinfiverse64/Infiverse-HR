@@ -71,7 +71,7 @@ export default function ClientJobsMonitor() {
       <div className="p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">🔄 Live Client Job Postings</h1>
+            <h1 className="page-title">Live Client Job Postings</h1>
             <p className="text-gray-600 dark:text-gray-400">Real-time view of all jobs posted by clients across the platform</p>
           </div>
           <button
@@ -160,7 +160,7 @@ export default function ClientJobsMonitor() {
           {clients.map((clientId) => (
             <div key={clientId} className="card">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                🏢 Client {clientId} ({clientJobsMap[clientId].length} jobs)
+                Client {clientId} ({clientJobsMap[clientId].length} jobs)
               </h2>
               <div className="space-y-4">
                 {clientJobsMap[clientId].map((job) => (
@@ -171,7 +171,7 @@ export default function ClientJobsMonitor() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                          💼 {job.title || 'Untitled Job'} - {job.department || 'N/A'}
+                          {job.title || 'Untitled Job'} - {job.department || 'N/A'}
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
@@ -222,19 +222,19 @@ export default function ClientJobsMonitor() {
                         onClick={() => navigate(`/recruiter/applicants/${job.id}`)}
                         className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors text-sm"
                       >
-                        🎯 Get AI Matches
+                        Get AI Matches
                       </button>
                       <button
                         onClick={() => navigate(`/recruiter/applicants/${job.id}`)}
                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm"
                       >
-                        👥 View Candidates
+                        View Candidates
                       </button>
                       <button
                         onClick={() => navigate(`/recruiter`)}
                         className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors text-sm"
                       >
-                        📊 Analytics
+                        Analytics
                       </button>
                     </div>
                   </div>
@@ -246,7 +246,7 @@ export default function ClientJobsMonitor() {
       ) : (
         <div className="card">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            🏢 Client {selectedClient} ({clientJobsMap[selectedClient]?.length || 0} jobs)
+            Client {selectedClient} ({clientJobsMap[selectedClient]?.length || 0} jobs)
           </h2>
           {filteredJobs.length === 0 ? (
             <div className="text-center py-8">
@@ -260,7 +260,7 @@ export default function ClientJobsMonitor() {
                   className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
                 >
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                    💼 {job.title || 'Untitled Job'} - {job.department || 'N/A'}
+                    {job.title || 'Untitled Job'} - {job.department || 'N/A'}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                     <div>
@@ -294,13 +294,13 @@ export default function ClientJobsMonitor() {
                       onClick={() => navigate(`/recruiter/applicants/${job.id}`)}
                       className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors text-sm"
                     >
-                      🎯 Get AI Matches
+                      Get AI Matches
                     </button>
                     <button
                       onClick={() => navigate(`/recruiter/applicants/${job.id}`)}
                       className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm"
                     >
-                      👥 View Candidates
+                      View Candidates
                     </button>
                   </div>
                 </div>

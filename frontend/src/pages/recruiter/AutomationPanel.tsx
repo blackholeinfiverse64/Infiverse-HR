@@ -222,12 +222,12 @@ export default function AutomationPanel() {
       {/* Communication Service Status */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Communication Service Status</h2>
+          <h2 className="section-title">Communication Service Status</h2>
           <button
             onClick={checkServiceStatus}
             className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
         
@@ -241,24 +241,24 @@ export default function AutomationPanel() {
           {serviceStatus === 'online' && (
             <>
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-green-600 dark:text-green-400 font-medium">✅ LangGraph Communication Service: Online</span>
+              <span className="text-green-600 dark:text-green-400 font-medium">LangGraph Communication Service: Online</span>
             </>
           )}
           {serviceStatus === 'offline' && (
             <>
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span className="text-red-600 dark:text-red-400 font-medium">❌ LangGraph Communication Service: Offline</span>
+              <span className="text-red-600 dark:text-red-400 font-medium">LangGraph Communication Service: Offline</span>
             </>
           )}
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          ℹ️ Note: Individual test endpoints are not available. Use the multi-channel test below.
+          Note: Individual test endpoints are not available. Use the multi-channel test below.
         </p>
       </div>
 
       {/* Multi-Channel Notification Test */}
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">📢 Test Multi-Channel Notification</h2>
+        <h2 className="section-title mb-4">Test Multi-Channel Notification</h2>
         
         <form onSubmit={handleMultiChannelTest} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,14 +357,14 @@ export default function AutomationPanel() {
             disabled={testing || testForm.channels.length === 0}
             className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
-            {testing ? '📢 Sending...' : '📢 Send Multi-Channel Test'}
+            {testing ? 'Sending...' : 'Send Multi-Channel Test'}
           </button>
         </form>
       </div>
 
       {/* Automated Sequences Testing */}
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🤖 Test Automated Sequences</h2>
+        <h2 className="section-title mb-4">Test Automated Sequences</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
@@ -413,7 +413,7 @@ export default function AutomationPanel() {
 
       {/* Automation Triggers */}
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">⚙️ Automation Triggers</h2>
+        <h2 className="section-title mb-4">Automation Triggers</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {automations.map((automation) => (
             <div key={automation.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">

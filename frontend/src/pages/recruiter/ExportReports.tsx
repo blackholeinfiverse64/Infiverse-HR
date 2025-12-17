@@ -172,7 +172,7 @@ export default function ExportReports() {
 
       {/* Assessment Overview */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">📊 Assessment Overview</h2>
+        <h2 className="section-title mb-6">Assessment Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title="Total Candidates"
@@ -219,7 +219,7 @@ export default function ExportReports() {
 
       {/* Export Options */}
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">📥 Export Assessment Reports</h2>
+        <h2 className="section-title mb-4">Export Assessment Reports</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
           All exports include assessments, feedback, interviews, and shortlist data
         </p>
@@ -228,7 +228,7 @@ export default function ExportReports() {
           {/* Complete Candidate Report */}
           <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              📥 Complete Candidate Report
+              Complete Candidate Report
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               All candidates with assessments, interviews, and shortlist status
@@ -245,7 +245,7 @@ export default function ExportReports() {
           {/* Assessment Summary */}
           <div className="p-6 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              📊 Assessment Summary
+              Assessment Summary
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Candidates with interviews and all assessment data
@@ -262,7 +262,7 @@ export default function ExportReports() {
           {/* Quick Actions */}
           <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              ⚡ Quick Actions
+              Quick Actions
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               View and manage assessment data
@@ -272,7 +272,7 @@ export default function ExportReports() {
                 onClick={loadData}
                 className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
               >
-                🔄 Refresh Data
+                Refresh Data
               </button>
             </div>
           </div>
@@ -282,7 +282,7 @@ export default function ExportReports() {
       {/* Data Preview */}
       {candidates.length > 0 && (
         <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">📋 Data Preview</h2>
+          <h2 className="section-title mb-4">Data Preview</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Showing first 5 candidates (Total: {candidates.length})
           </p>
@@ -319,7 +319,9 @@ export default function ExportReports() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {hasInterview ? '✅ Scheduled' : '❌ Not Scheduled'}
+                        <span className={hasInterview ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}>
+                          {hasInterview ? 'Scheduled' : 'Not Scheduled'}
+                        </span>
                       </td>
                     </tr>
                   )

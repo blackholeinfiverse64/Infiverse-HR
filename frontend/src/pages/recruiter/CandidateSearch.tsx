@@ -191,7 +191,7 @@ export default function CandidateSearch() {
       setCandidates(results)
       
       if (results.length === 0) {
-        toast('No candidates found matching your criteria', { icon: 'ℹ️' })
+        toast('No candidates found matching your criteria', { icon: 'ℹ' })
       } else {
         toast.success(`Found ${results.length} candidates`)
       }

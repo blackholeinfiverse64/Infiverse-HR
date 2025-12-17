@@ -210,7 +210,7 @@ export default function BatchOperations() {
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
-              📤 Bulk Upload
+              Bulk Upload
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
@@ -220,7 +220,7 @@ export default function BatchOperations() {
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
-              📧 Bulk Notifications
+              Bulk Notifications
             </button>
           </div>
         </div>
@@ -229,7 +229,7 @@ export default function BatchOperations() {
         {activeTab === 'upload' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">📤 Bulk Candidate Upload</h2>
+              <h2 className="section-title mb-4">Bulk Candidate Upload</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Upload multiple candidates at once using CSV format
               </p>
@@ -255,7 +255,7 @@ export default function BatchOperations() {
 
             {/* CSV Format Info */}
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">📋 Expected CSV Format</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Expected CSV Format</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
