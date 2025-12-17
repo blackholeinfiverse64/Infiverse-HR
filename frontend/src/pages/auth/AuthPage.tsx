@@ -149,7 +149,7 @@ export default function AuthPage() {
         
         localStorage.setItem('user_role', userRole || expectedRole)
         localStorage.setItem('user_email', formData.email)
-        localStorage.setItem('user_name', data?.user?.user_metadata?.name || formData.email.split('@')[0])
+        localStorage.setItem('user_name', (data?.user?.user_metadata as any)?.name || formData.email.split('@')[0])
         localStorage.setItem('isAuthenticated', 'true')
         
         toast.success('Login successful!')

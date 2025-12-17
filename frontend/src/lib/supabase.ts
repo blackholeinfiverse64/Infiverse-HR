@@ -17,38 +17,157 @@ export const isSupabaseConfigured = () => {
 
 // Auth helper functions
 export const signUp = async (email: string, password: string, userData: { name: string; role: string }) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        name: userData.name,
-        role: userData.role,
+  // Skip Supabase if not configured - use localStorage auth instead
+  if (!isSupabaseConfigured()) {
+    // Return mock success for localStorage-based auth
+    return { 
+      data: { 
+        user: { 
+          id: 'local-user', 
+          email: email,
+          user_metadata: { 
+            name: userData.name,
+            role: userData.role 
+          }
+        } 
+      }, 
+      error: null 
+    }
+  }
+  
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: userData.name,
+          role: userData.role,
+        },
       },
-    },
-  })
-  return { data, error }
+    })
+    return { data, error }
+  } catch (err: any) {
+    // If Supabase fails, fall back to localStorage auth
+    console.warn('Supabase sign up failed, using localStorage auth:', err)
+    return { 
+      data: { 
+        user: { 
+          id: 'local-user', 
+          email: email,
+          user_metadata: { 
+            name: userData.name,
+            role: userData.role 
+          }
+        } 
+      }, 
+      error: null 
+    }
+  }
 }
 
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-  return { data, error }
+  // Skip Supabase if not configured - use localStorage auth instead
+  if (!isSupabaseConfigured()) {
+    // Return mock success for localStorage-based auth
+    return { 
+      data: { 
+        user: { 
+          id: 'local-user', 
+          email: email,
+          user_metadata: { role: 'candidate' }
+        } 
+      }, 
+      error: null 
+    }
+  }
+  
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { data, error }
+  } catch (err: any) {
+    // If Supabase fails, fall back to localStorage auth
+    console.warn('Supabase sign in failed, using localStorage auth:', err)
+    return { 
+      data: { 
+        user: { 
+          id: 'local-user', 
+          email: email,
+          user_metadata: { role: 'candidate' }
+        } 
+      }, 
+      error: null 
+    }
+  }
 }
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  // Skip Supabase if not configured
+  if (!isSupabaseConfigured()) {
+    return { error: null }
+  }
+  
+  try {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+  } catch (err: any) {
+    // If Supabase fails, just return success (localStorage will be cleared separately)
+    console.warn('Supabase sign out failed:', err)
+    return { error: null }
+  }
 }
 
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  return { user, error }
+  // Skip Supabase if not configured
+  if (!isSupabaseConfigured()) {
+    const storedAuth = localStorage.getItem('isAuthenticated')
+    if (storedAuth === 'true') {
+      return { 
+        user: { 
+          id: localStorage.getItem('user_id') || 'local-user',
+          email: localStorage.getItem('user_email') || '',
+        } as any, 
+        error: null 
+      }
+    }
+    return { user: null, error: null }
+  }
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    return { user, error }
+  } catch (err: any) {
+    console.warn('Supabase get user failed:', err)
+    return { user: null, error: err }
+  }
 }
 
 export const getSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
-  return { session, error }
+  // Skip Supabase if not configured
+  if (!isSupabaseConfigured()) {
+    const storedAuth = localStorage.getItem('isAuthenticated')
+    if (storedAuth === 'true') {
+      return { 
+        session: { 
+          user: { 
+            id: localStorage.getItem('user_id') || 'local-user',
+            email: localStorage.getItem('user_email') || '',
+          } 
+        } as any, 
+        error: null 
+      }
+    }
+    return { session: null, error: null }
+  }
+  
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    return { session, error }
+  } catch (err: any) {
+    console.warn('Supabase get session failed:', err)
+    return { session: null, error: err }
+  }
 }

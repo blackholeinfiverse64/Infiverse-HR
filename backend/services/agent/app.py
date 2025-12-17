@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
 from psycopg2 import pool
@@ -88,6 +89,15 @@ app = FastAPI(
     title="BHIV AI Matching Engine",
     description="Advanced AI-Powered Semantic Candidate Matching Service",
     version="3.0.0"
+)
+
+# Add CORS middleware to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (can be restricted to specific domains in production)
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Custom OpenAPI schema with organized tags and security

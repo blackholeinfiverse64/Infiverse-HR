@@ -68,11 +68,19 @@ app = FastAPI(
     description="Enterprise HR Platform with Advanced Security Features"
 )
 
+# CORS Configuration - Allow Vercel frontend and all origins for flexibility
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+if ALLOWED_ORIGINS != "*":
+    # Parse comma-separated origins
+    allowed_origins_list = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
+else:
+    allowed_origins_list = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 

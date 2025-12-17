@@ -21,31 +21,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Only use Supabase if configured, otherwise use localStorage auth
-    if (isSupabaseConfigured()) {
-      // Get initial session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setLoading(false)
-      }).catch(() => {
-        // If Supabase fails, fall back to localStorage
-        setLoading(false)
-      })
-
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setLoading(false)
-      })
-
-      return () => subscription.unsubscribe()
-    } else {
-      // Use localStorage-based auth if Supabase not configured
+    // Always use localStorage-based auth (Supabase is optional)
+    // This prevents ERR_NAME_NOT_RESOLVED errors when Supabase is not configured
+    try {
       const storedAuth = localStorage.getItem('isAuthenticated')
       if (storedAuth === 'true') {
         // Create a mock user from localStorage
+        const mockUser = {
+          id: localStorage.getItem('user_id') || 'local-user',
+          email: localStorage.getItem('user_email') || '',
+        } as User
+        setUser(mockUser)
+      }
+      setLoading(false)
+      
+      // Optionally try Supabase if configured (but don't block on it)
+      if (isSupabaseConfigured()) {
+        // Try to get Supabase session in background (non-blocking)
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setSession(session)
+            setUser(session.user)
+          }
+        }).catch(() => {
+          // Silently fail - we're using localStorage auth
+          console.debug('Supabase not available, using localStorage auth')
+        })
+
+        // Listen for auth changes (non-blocking)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            setSession(session)
+            setUser(session.user)
+          }
+        })
+
+        return () => subscription.unsubscribe()
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error)
+      // Fallback to localStorage auth on any error
+      const storedAuth = localStorage.getItem('isAuthenticated')
+      if (storedAuth === 'true') {
         const mockUser = {
           id: localStorage.getItem('user_id') || 'local-user',
           email: localStorage.getItem('user_email') || '',
