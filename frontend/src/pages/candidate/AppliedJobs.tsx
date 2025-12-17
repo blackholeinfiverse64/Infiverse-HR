@@ -106,9 +106,9 @@ export default function AppliedJobs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">My Applications</h1>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">Track and manage all your job applications</p>
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="page-title">My Applications</h1>
+        <p className="page-subtitle">Track and manage all your job applications</p>
       </div>
 
       {/* Stats Cards */}

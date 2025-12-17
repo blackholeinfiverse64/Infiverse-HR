@@ -35,6 +35,9 @@ export default function ValuesAssessment() {
 
   useEffect(() => {
     loadData()
+    // Auto-refresh every 30 seconds for real-time data
+    const interval = setInterval(loadData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const loadData = async () => {

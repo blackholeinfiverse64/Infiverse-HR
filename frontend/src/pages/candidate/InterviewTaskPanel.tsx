@@ -103,9 +103,9 @@ export default function InterviewTaskPanel() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl p-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Interviews & Tasks</h1>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">Manage your interviews and complete assigned tasks</p>
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20">
+        <h1 className="page-title">Interviews & Tasks</h1>
+        <p className="page-subtitle">Manage your interviews and complete assigned tasks</p>
       </div>
 
       {/* Stats */}
@@ -369,7 +369,9 @@ export default function InterviewTaskPanel() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">✅</span>
+                        <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-white">{task.title}</h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400">{task.job_title || 'Assignment'}</p>
@@ -404,7 +406,7 @@ export default function InterviewTaskPanel() {
             <div className="p-6 border-b border-gray-100 dark:border-slate-700">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Submit Task</h2>
+                  <h2 className="section-title">Submit Task</h2>
                   <p className="text-gray-600 dark:text-gray-400">{submitModal.task.title}</p>
                 </div>
                 <button

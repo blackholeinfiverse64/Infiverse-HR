@@ -28,6 +28,9 @@ export default function InterviewScheduling() {
   useEffect(() => {
     if (activeTab === 'view') {
       loadInterviews()
+      // Auto-refresh interviews every 30 seconds when viewing
+      const interval = setInterval(loadInterviews, 30000)
+      return () => clearInterval(interval)
     }
     loadJobs()
     loadCandidates()
@@ -110,9 +113,11 @@ export default function InterviewScheduling() {
         notes: ''
       })
 
-      // Switch to view tab
+      // Switch to view tab and refresh
       setActiveTab('view')
-      loadInterviews()
+      setTimeout(() => {
+        loadInterviews()
+      }, 500)
     } catch (error: any) {
       console.error('Schedule error:', error)
       toast.error(error?.response?.data?.error || 'Failed to schedule interview')

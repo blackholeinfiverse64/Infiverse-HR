@@ -40,6 +40,16 @@ export default function ApplicantsMatching() {
     }
   }, [jobId])
 
+  // Auto-refresh candidates every 30 seconds when candidates are loaded
+  useEffect(() => {
+    if (candidates.length > 0 && jobId) {
+      const interval = setInterval(() => {
+        loadData()
+      }, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [candidates.length, jobId])
+
   const loadJobs = async () => {
     try {
       const jobsData = await getJobs()
@@ -88,13 +98,18 @@ export default function ApplicantsMatching() {
 
     setGenerating(true)
     try {
-      // Call AI matching endpoint
-      const agentUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001'
+      // Call AI matching endpoint via Gateway API
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+      
+      // Try Gateway API first, fallback to direct agent service
+      const agentUrl = import.meta.env.VITE_AGENT_SERVICE_URL || `${API_BASE_URL}/v1/match`
       
       const response = await fetch(`${agentUrl}/match`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
         },
         body: JSON.stringify({ job_id: jobId }),
       })

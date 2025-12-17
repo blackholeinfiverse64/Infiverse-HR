@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { getJobs, bulkUploadCandidates } from '../../services/api'
+import { getJobs, bulkUploadCandidates, getAllCandidates } from '../../services/api'
 import Loading from '../../components/Loading'
 
 export default function BatchOperations() {
@@ -17,15 +17,34 @@ export default function BatchOperations() {
 
   // Notifications tab states
   const [notificationType, setNotificationType] = useState<string>('shortlisted')
-  const [candidates, setCandidates] = useState<any[]>([
-    { name: 'John Doe', email: 'john.doe@example.com', phone: '+1234567890' },
-    { name: 'Jane Smith', email: 'jane.smith@example.com', phone: '+1234567891' },
-    { name: 'Mike Johnson', email: 'mike.johnson@example.com', phone: '+1234567892' }
-  ])
+  const [candidates, setCandidates] = useState<any[]>([])
+  const [loadingCandidates, setLoadingCandidates] = useState(false)
 
   useEffect(() => {
     loadJobs()
+    loadCandidates()
   }, [])
+
+  const loadCandidates = async () => {
+    try {
+      setLoadingCandidates(true)
+      const candidatesData = await getAllCandidates()
+      // Map backend candidate data to notification format
+      const mappedCandidates = candidatesData.slice(0, 10).map((c: any) => ({
+        name: c.name || '',
+        email: c.email || '',
+        phone: c.phone || '',
+        candidate_id: c.id || c.candidate_id
+      }))
+      setCandidates(mappedCandidates.length > 0 ? mappedCandidates : [])
+    } catch (error) {
+      console.error('Failed to load candidates:', error)
+      // Start with empty array if load fails
+      setCandidates([])
+    } finally {
+      setLoadingCandidates(false)
+    }
+  }
 
   const loadJobs = async () => {
     try {
@@ -141,18 +160,26 @@ export default function BatchOperations() {
 
     setSendingNotifications(true)
     try {
-      // Call LangGraph service for bulk notifications
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'http://localhost:8003'
-      const response = await fetch(`${langgraphUrl}/automation/bulk-notifications`, {
+      // Call LangGraph service for bulk notifications via Gateway API
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || `${API_BASE_URL}/v1/automation`
+      
+      const response = await fetch(`${langgraphUrl}/bulk-notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_API_KEY || ''}`
+          'Authorization': `Bearer ${API_KEY}`
         },
         body: JSON.stringify({
-          candidates: candidates,
+          candidates: candidates.map(c => ({
+            candidate_name: c.name,
+            candidate_email: c.email,
+            candidate_phone: c.phone,
+            candidate_id: c.candidate_id
+          })),
           sequence_type: notificationType,
-          job_title: 'Software Engineer',
+          job_title: jobs.find(j => j.id === selectedJobId)?.title || 'Software Engineer',
           matching_score: 'High'
         })
       })

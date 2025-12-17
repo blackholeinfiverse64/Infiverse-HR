@@ -86,7 +86,7 @@ export default function ShortlistReview() {
           </svg>
           <span>Back to Dashboard</span>
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Shortlist Review</h1>
+        <h1 className="page-title">Shortlist Review</h1>
         <p className="text-gray-400">{job?.title} - {job?.location}</p>
       </div>
 

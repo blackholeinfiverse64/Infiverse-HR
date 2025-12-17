@@ -24,11 +24,14 @@ export default function AutomationPanel() {
   const checkServiceStatus = async () => {
     setServiceStatus('checking')
     try {
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'http://localhost:8003'
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || `${API_BASE_URL}/v1/automation`
+      
       const response = await fetch(`${langgraphUrl}/health`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_API_KEY || ''}`
+          'Authorization': `Bearer ${API_KEY}`
         }
       })
       
@@ -142,7 +145,10 @@ export default function AutomationPanel() {
 
     setTesting(true)
     try {
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'http://localhost:8003'
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || `${API_BASE_URL}/v1/automation`
+      
       const response = await fetch(`${langgraphUrl}/tools/send-notification`, {
         method: 'POST',
         headers: {
@@ -178,7 +184,10 @@ export default function AutomationPanel() {
   const handleSequenceTest = async (sequenceType: string) => {
     setTesting(true)
     try {
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'http://localhost:8003'
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bhiv-hr-gateway-ltg0.onrender.com'
+      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || `${API_BASE_URL}/v1/automation`
+      
       const testData = {
         candidate_name: 'John Doe',
         candidate_email: 'john.doe@example.com',
@@ -191,7 +200,7 @@ export default function AutomationPanel() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_API_KEY || ''}`
+          'Authorization': `Bearer ${API_KEY}`
         },
         body: JSON.stringify(testData)
       })

@@ -12,6 +12,9 @@ export default function ClientJobsMonitor() {
 
   useEffect(() => {
     loadJobs()
+    // Auto-refresh every 30 seconds for real-time data
+    const interval = setInterval(loadJobs, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const loadJobs = async () => {
