@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase, signIn, signUp, signOut } from '../lib/supabase'
+import { supabase, signIn, signUp, signOut, isSupabaseConfigured } from '../lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -21,21 +21,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    // Only use Supabase if configured, otherwise use localStorage auth
+    if (isSupabaseConfigured()) {
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }).catch(() => {
+        // If Supabase fails, fall back to localStorage
+        setLoading(false)
+      })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
 
-    return () => subscription.unsubscribe()
+      return () => subscription.unsubscribe()
+    } else {
+      // Use localStorage-based auth if Supabase not configured
+      const storedAuth = localStorage.getItem('isAuthenticated')
+      if (storedAuth === 'true') {
+        // Create a mock user from localStorage
+        const mockUser = {
+          id: localStorage.getItem('user_id') || 'local-user',
+          email: localStorage.getItem('user_email') || '',
+        } as User
+        setUser(mockUser)
+      }
+      setLoading(false)
+    }
   }, [])
 
   const handleSignIn = async (email: string, password: string) => {

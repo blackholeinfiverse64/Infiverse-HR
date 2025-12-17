@@ -1,13 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
+// Create Supabase client with fallback values if not configured
+// This allows the app to run without Supabase (using localStorage auth instead)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return import.meta.env.VITE_SUPABASE_URL && 
+         import.meta.env.VITE_SUPABASE_ANON_KEY &&
+         import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+         import.meta.env.VITE_SUPABASE_ANON_KEY !== 'placeholder-key'
+}
 
 // Auth helper functions
 export const signUp = async (email: string, password: string, userData: { name: string; role: string }) => {
