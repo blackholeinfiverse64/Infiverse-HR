@@ -46,6 +46,24 @@ export const signUp = async (email: string, password: string, userData: { name: 
         },
       },
     })
+    
+    // If signup fails because user already exists, return a clearer error
+    if (error) {
+      // Check if it's an "already exists" error
+      if (error.message?.includes('already registered') || 
+          error.message?.includes('User already registered') ||
+          error.message?.includes('already exists') ||
+          error.status === 422) {
+        return { 
+          data: null, 
+          error: { 
+            ...error, 
+            message: 'This email is already registered. Please use the login page instead.' 
+          } 
+        }
+      }
+    }
+    
     return { data, error }
   } catch (err: any) {
     // If Supabase fails, fall back to localStorage auth

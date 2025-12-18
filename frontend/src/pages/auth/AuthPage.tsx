@@ -106,13 +106,30 @@ export default function AuthPage() {
 
     try {
       if (mode === 'signup') {
-        const { error } = await signUp(formData.email, formData.password, {
+        const { error, data } = await signUp(formData.email, formData.password, {
           name: formData.fullName,
           role: role || 'candidate',
         })
         
         if (error) {
-          toast.error(error.message || 'Signup failed')
+          // Handle specific Supabase errors
+          if (error.message?.includes('already registered') || 
+              error.message?.includes('User already registered') ||
+              error.message?.includes('already exists')) {
+            toast.error('This email is already registered. Please login instead.')
+          } else if (error.message?.includes('registered as')) {
+            // If error mentions role, extract and show appropriate message
+            toast.error('This email is already registered. Please use the login page.')
+          } else {
+            toast.error(error.message || 'Signup failed. Please try again.')
+          }
+          setIsLoading(false)
+          return
+        }
+        
+        // Only proceed if signup was successful (no error and user data exists)
+        if (!data?.user) {
+          toast.error('Signup failed. Please try again.')
           setIsLoading(false)
           return
         }
