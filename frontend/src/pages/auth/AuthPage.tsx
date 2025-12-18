@@ -165,11 +165,19 @@ export default function AuthPage() {
         
         // IMPORTANT: Set role from the page URL, not from user metadata
         // This ensures role-based separation
+        // Set role BEFORE any potential Supabase auto-login triggers
         localStorage.setItem('user_role', expectedRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', formData.fullName)
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user_id', data.user.id)
+        
+        // If Supabase auto-logged in, ensure the role in user metadata matches
+        // (This prevents auth state change from overriding our role)
+        if (data.user.user_metadata && data.user.user_metadata.role !== expectedRole) {
+          // Role mismatch in metadata - this shouldn't happen, but handle it
+          console.warn(`Role mismatch: metadata has ${data.user.user_metadata.role}, expected ${expectedRole}`)
+        }
         
         toast.success(`Account created successfully as ${expectedRole}!`)
         setIsLoading(false)
@@ -191,11 +199,12 @@ export default function AuthPage() {
           return
         }
         
-        // Get user's role from Supabase metadata
-        const userRole = data.user.user_metadata?.role
+        // Get user's role from Supabase metadata or localStorage
+        const userRole = data.user.user_metadata?.role || localStorage.getItem('user_role')
         
-        // STRICT ROLE CHECK: User's role MUST match the page role
-        if (userRole && userRole !== expectedRole) {
+        // STRICT ROLE CHECK: Only check if user has a role set
+        // If role exists and doesn't match page role, reject login
+        if (userRole && userRole.trim() !== '' && userRole !== expectedRole) {
           // Role mismatch - sign them out and show clear error
           await signOut()
           toast.error(`This account is registered as a ${userRole}. Please login at /auth/${userRole} instead.`)
@@ -203,9 +212,9 @@ export default function AuthPage() {
           return
         }
         
-        // Role matches OR no role set (backward compatibility)
-        // Use the role from metadata if available, otherwise use page role
-        const finalRole = userRole || expectedRole
+        // Role matches OR no role set (use page role for new signups or when role is missing)
+        // Use the role from metadata/localStorage if available, otherwise use page role
+        const finalRole = (userRole && userRole.trim() !== '') ? userRole : expectedRole
         
         localStorage.setItem('user_role', finalRole)
         localStorage.setItem('user_email', formData.email)

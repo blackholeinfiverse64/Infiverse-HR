@@ -87,13 +87,19 @@ export const signUp = async (email: string, password: string, userData: { name: 
 export const signIn = async (email: string, password: string) => {
   // Skip Supabase if not configured - use localStorage auth instead
   if (!isSupabaseConfigured()) {
+    // Check if user exists in localStorage (for demo purposes)
+    // In real app, this would validate against a backend
+    const storedEmail = localStorage.getItem('user_email')
+    const storedRole = localStorage.getItem('user_role')
+    
     // Return mock success for localStorage-based auth
+    // Use stored role if available, otherwise return null (will be set by AuthPage)
     return { 
       data: { 
         user: { 
-          id: 'local-user', 
+          id: localStorage.getItem('user_id') || 'local-user', 
           email: email,
-          user_metadata: { role: 'candidate' }
+          user_metadata: storedRole ? { role: storedRole } : {}
         } 
       }, 
       error: null 
@@ -109,12 +115,13 @@ export const signIn = async (email: string, password: string) => {
   } catch (err: any) {
     // If Supabase fails, fall back to localStorage auth
     console.warn('Supabase sign in failed, using localStorage auth:', err)
+    const storedRole = localStorage.getItem('user_role')
     return { 
       data: { 
         user: { 
-          id: 'local-user', 
+          id: localStorage.getItem('user_id') || 'local-user', 
           email: email,
-          user_metadata: { role: 'candidate' }
+          user_metadata: storedRole ? { role: storedRole } : {}
         } 
       }, 
       error: null 
