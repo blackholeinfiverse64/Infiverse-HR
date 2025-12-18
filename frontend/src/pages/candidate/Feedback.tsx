@@ -18,19 +18,29 @@ export default function CandidateFeedback() {
   }, [])
 
   const loadFeedback = async () => {
-    if (!candidateId) {
+    // Check authentication first
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || !!user
+    
+    if (!isAuthenticated) {
       toast.error('Please login to view feedback')
+      setLoading(false)
+      return
+    }
+
+    // If authenticated but no candidate ID, show empty state
+    if (!candidateId) {
+      setFeedbacks([])
       setLoading(false)
       return
     }
 
     try {
       setLoading(true)
-      const data = await getCandidateFeedback(candidateId)
+      const data = await getCandidateFeedback(candidateId).catch(() => [])
       setFeedbacks(data)
     } catch (error) {
       console.error('Failed to load feedback:', error)
-      toast.error('Failed to load feedback')
+      setFeedbacks([])
     } finally {
       setLoading(false)
     }

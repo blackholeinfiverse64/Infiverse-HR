@@ -21,7 +21,7 @@ export default function AppliedJobs() {
   }, [backendCandidateId])
 
   const loadApplications = async () => {
-    // Check if user is authenticated first
+    // Check authentication first
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || !!user
     
     if (!isAuthenticated) {
@@ -30,9 +30,8 @@ export default function AppliedJobs() {
       return
     }
 
-    // If no candidate ID is available, show empty state but don't error
-    if (!candidateId) {
-      console.warn('No candidate ID found, showing empty state')
+    // If authenticated but no candidate ID, show empty state
+    if (!candidateId || !backendCandidateId) {
       setApplications([])
       setLoading(false)
       return
@@ -40,15 +39,10 @@ export default function AppliedJobs() {
 
     try {
       setLoading(true)
-      const data = await getCandidateApplications(candidateId).catch(err => {
-        console.error('Failed to load applications:', err)
-        // Return empty array instead of throwing
-        return []
-      })
+      const data = await getCandidateApplications(candidateId)
       setApplications(data)
     } catch (error) {
       console.error('Failed to load applications:', error)
-      // Don't show error toast, just set empty array
       setApplications([])
     } finally {
       setLoading(false)

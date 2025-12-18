@@ -23,7 +23,7 @@ export default function InterviewTaskPanel() {
   }, [])
 
   const loadData = async () => {
-    // Check if user is authenticated first
+    // Check authentication first
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || !!user
     
     if (!isAuthenticated) {
@@ -32,9 +32,8 @@ export default function InterviewTaskPanel() {
       return
     }
 
-    // If no candidate ID is available, show empty state but don't error
+    // If authenticated but no candidate ID, show empty state
     if (!candidateId) {
-      console.warn('No candidate ID found, showing empty state')
       setInterviews([])
       setTasks([])
       setLoading(false)
@@ -44,20 +43,15 @@ export default function InterviewTaskPanel() {
     try {
       setLoading(true)
       const [interviewsData, tasksData] = await Promise.all([
-        getInterviews(candidateId).catch(err => {
-          console.error('Failed to load interviews:', err)
-          return []
-        }),
-        getTasks(candidateId).catch(err => {
-          console.error('Failed to load tasks:', err)
-          return []
-        })
+        getInterviews(candidateId).catch(() => []),
+        getTasks(candidateId).catch(() => [])
       ])
       setInterviews(interviewsData)
       setTasks(tasksData)
     } catch (error) {
       console.error('Failed to load data:', error)
-      toast.error('Failed to load data')
+      setInterviews([])
+      setTasks([])
     } finally {
       setLoading(false)
     }
