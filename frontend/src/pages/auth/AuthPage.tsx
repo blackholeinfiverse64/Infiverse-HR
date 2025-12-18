@@ -138,20 +138,32 @@ export default function AuthPage() {
         localStorage.setItem('user_id', data.user.id)
         
         // Update Supabase metadata if configured
-        if (isSupabaseConfigured() && data.user.user_metadata?.role !== selectedRole) {
+        // The role should already be set during signUp, but we ensure it's correct here
+        if (isSupabaseConfigured()) {
+          // Always try to update metadata to ensure role is saved
+          // This handles cases where the initial signup didn't save the role properly
           try {
             const { error: updateError } = await supabase.auth.updateUser({
               data: { 
-                ...data.user.user_metadata,
+                ...(data.user.user_metadata || {}),
                 role: selectedRole,
                 name: formData.fullName
               }
             })
             if (updateError) {
               console.warn('Could not update user metadata:', updateError)
+              // Even if update fails, continue - role is in localStorage
+            } else {
+              console.log('User metadata updated successfully with role:', selectedRole)
+              // Verify the update worked by getting fresh user data
+              const { data: { user: verifyUser } } = await supabase.auth.getUser()
+              if (verifyUser?.user_metadata?.role !== selectedRole) {
+                console.warn('Role verification failed. Role in metadata:', verifyUser?.user_metadata?.role, 'Expected:', selectedRole)
+              }
             }
           } catch (err) {
             console.warn('Error updating user metadata:', err)
+            // Continue anyway - role is in localStorage
           }
         }
         
@@ -174,28 +186,60 @@ export default function AuthPage() {
           return
         }
         
-        // Get user's role from metadata or localStorage
-        const storedRole = localStorage.getItem('user_role')
-        const metadataRole = data.user.user_metadata?.role
+        // Get user's role from Supabase metadata (primary source)
+        // Try to get fresh user data to ensure we have the latest metadata
+        let userRole: UserRole | null = null
         
-        // Determine final role: metadata > localStorage > default to candidate
-        let finalRole: UserRole = 'candidate'
+        // First, check user metadata from the sign-in response
+        const metadataRole = data.user.user_metadata?.role
         if (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole)) {
-          finalRole = metadataRole as UserRole
-        } else if (storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
-          finalRole = storedRole as UserRole
+          userRole = metadataRole as UserRole
+        }
+        
+        // If role not found in initial response, try to get fresh user data
+        if (!userRole && isSupabaseConfigured()) {
+          try {
+            const { data: { user: freshUser } } = await supabase.auth.getUser()
+            if (freshUser?.user_metadata?.role && ['candidate', 'recruiter', 'client'].includes(freshUser.user_metadata.role)) {
+              userRole = freshUser.user_metadata.role as UserRole
+            }
+          } catch (err) {
+            console.warn('Could not fetch fresh user data:', err)
+          }
+        }
+        
+        // If still no role found, check localStorage (but only if email matches)
+        // This handles cases where Supabase isn't configured
+        if (!userRole) {
+          const storedEmail = localStorage.getItem('user_email')
+          const storedRole = localStorage.getItem('user_role')
+          // Only use localStorage role if email matches (same user)
+          if (storedEmail === formData.email && storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
+            userRole = storedRole as UserRole
+          }
+        }
+        
+        // If role still not found, try to update it based on email pattern or show error
+        if (!userRole) {
+          // Last resort: Check if we can infer role from email or other data
+          // But for security, we should not guess - show error instead
+          console.error('Role not found for user:', formData.email)
+          console.error('User metadata:', data.user.user_metadata)
+          toast.error('Role not found for this account. The account may need to be recreated. Please contact support.')
+          setIsLoading(false)
+          return
         }
         
         // Save role and user info
-        localStorage.setItem('user_role', finalRole)
+        localStorage.setItem('user_role', userRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', (data.user.user_metadata as any)?.name || formData.email.split('@')[0])
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user_id', data.user.id)
         
-        toast.success(`Login successful as ${roleConfig[finalRole].title}!`)
+        toast.success(`Login successful as ${roleConfig[userRole].title}!`)
         setIsLoading(false)
-        navigate(roleConfig[finalRole].redirectPath)
+        navigate(roleConfig[userRole].redirectPath)
       }
     } catch (err: any) {
       toast.error(err.message || 'An error occurred')
