@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { signIn as supabaseSignIn, signOut } from '../../lib/supabase'
@@ -58,9 +58,30 @@ export default function AuthPage() {
   const { role } = useParams<{ role: string }>()
   const navigate = useNavigate()
   const { signUp } = useAuth()
-  const [mode, setMode] = useState<AuthMode>('login')
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Get initial mode from URL query parameter, default to 'login'
+  const urlMode = searchParams.get('mode')
+  const initialMode = (urlMode === 'signup' ? 'signup' : 'login') as AuthMode
+  const [mode, setMode] = useState<AuthMode>(initialMode)
   const [isLoading, setIsLoading] = useState(false)
-  const [isSigningUp, setIsSigningUp] = useState(false)
+  
+  // Sync mode with URL parameter when URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const currentUrlMode = searchParams.get('mode')
+    if (currentUrlMode === 'signup' || currentUrlMode === 'login') {
+      const newMode = currentUrlMode as AuthMode
+      if (mode !== newMode) {
+        setMode(newMode)
+      }
+    }
+  }, [searchParams, mode])
+  
+  // Helper to change mode and update URL
+  const handleModeChange = (newMode: AuthMode) => {
+    setMode(newMode)
+    setSearchParams({ mode: newMode }, { replace: true })
+  }
   
   const [formData, setFormData] = useState({
     email: '',
@@ -110,120 +131,89 @@ export default function AuthPage() {
       const expectedRole = role || 'candidate'
       
       if (mode === 'signup') {
-        setIsSigningUp(true) // Flag to prevent role checks during signup
-        
-        // Enforce role-based signup - user can only signup with the role of the page they're on
+        // SIGNUP: Create account with the role from the page URL
+        // No role checking during signup - just create with the page's role
         const { error, data } = await signUp(formData.email, formData.password, {
           name: formData.fullName,
-          role: expectedRole, // Use the role from the URL, not a form selection
+          role: expectedRole, // Always use the role from the URL
         })
         
         if (error) {
-          // Handle specific Supabase errors
+          // Simple error handling - don't try to login or check roles
           const errorMsg = error.message || ''
           
           if (errorMsg.includes('already registered') || 
               errorMsg.includes('User already registered') ||
               errorMsg.includes('already exists') ||
-              errorMsg.includes('email address is already')) {
-            // Check if the existing user has a different role
-            // Try to get user info to check role
-            try {
-              const { data: loginData } = await supabaseSignIn(formData.email, formData.password)
-              if (loginData?.user?.user_metadata?.role) {
-                const existingRole = loginData.user.user_metadata.role
-                if (existingRole !== expectedRole) {
-                  toast.error(`This email is registered as a ${existingRole}. Please use the ${existingRole} ${mode === 'signup' ? 'signup' : 'login'} page.`)
-                } else {
-                  toast.error('This email is already registered. Please use the login page instead.')
-                }
-                await signOut() // Sign out the test login
-              } else {
-                toast.error('This email is already registered. Please use the login page instead.')
-              }
-            } catch {
-              toast.error('This email is already registered. Please use the login page instead.')
-            }
+              errorMsg.includes('email address is already') ||
+              errorMsg.includes('already been registered')) {
+            // Email exists - tell them to login, but don't check role here
+            toast.error(`This email is already registered. Please use the login page at /auth/${expectedRole} to login.`)
           } else {
             toast.error(errorMsg || 'Signup failed. Please try again.')
           }
-          setIsSigningUp(false)
           setIsLoading(false)
           return
         }
         
-        // Only proceed if signup was successful
+        // Signup successful - set role from page, not from Supabase
         if (!data?.user) {
-          setIsSigningUp(false)
           toast.error('Signup failed. Please try again.')
           setIsLoading(false)
           return
         }
         
-        // Verify the role was set correctly during signup
-        const createdUserRole = data.user.user_metadata?.role || expectedRole
-        
-        // Enforce role match - user must signup with the role of the page
-        if (createdUserRole !== expectedRole) {
-          setIsSigningUp(false)
-          toast.error(`Account created but role mismatch. Please contact support.`)
-          setIsLoading(false)
-          return
-        }
-        
-        // Set the role from the page URL (expectedRole)
+        // IMPORTANT: Set role from the page URL, not from user metadata
+        // This ensures role-based separation
         localStorage.setItem('user_role', expectedRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', formData.fullName)
         localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('user_id', data.user.id)
         
-        setIsSigningUp(false)
-        toast.success(`Account created successfully as ${expectedRole}! Please check your email to verify.`)
+        toast.success(`Account created successfully as ${expectedRole}!`)
         setIsLoading(false)
         navigate(config.redirectPath)
       } else {
-        // Login - STRICT role-based authentication
-        // User must login through the correct role page
+        // LOGIN: STRICT role-based authentication
+        // User MUST login through their role's page
         const { error, data } = await supabaseSignIn(formData.email, formData.password)
         
         if (error) {
-          toast.error(error.message || 'Login failed')
+          toast.error(error.message || 'Login failed. Please check your credentials.')
           setIsLoading(false)
           return
         }
         
-        // Get user's actual role from Supabase
-        const userRole = data?.user?.user_metadata?.role
-        
-        // STRICT CHECK: User's role MUST match the page role
-        if (!userRole) {
-          // If no role in metadata, use the page role (for backward compatibility)
-          localStorage.setItem('user_role', expectedRole)
-          localStorage.setItem('user_email', formData.email)
-          localStorage.setItem('user_name', (data?.user?.user_metadata as any)?.name || formData.email.split('@')[0])
-          localStorage.setItem('isAuthenticated', 'true')
-          toast.success('Login successful!')
+        if (!data?.user) {
+          toast.error('Login failed. Please try again.')
           setIsLoading(false)
-          navigate(config.redirectPath)
           return
         }
         
-        // Enforce role match - user MUST login through their role's page
-        if (userRole !== expectedRole) {
-          // Role mismatch - sign them out immediately
+        // Get user's role from Supabase metadata
+        const userRole = data.user.user_metadata?.role
+        
+        // STRICT ROLE CHECK: User's role MUST match the page role
+        if (userRole && userRole !== expectedRole) {
+          // Role mismatch - sign them out and show clear error
           await signOut()
-          toast.error(`This account is registered as a ${userRole}. Please use the ${userRole} login page at /auth/${userRole}.`)
+          toast.error(`This account is registered as a ${userRole}. Please login at /auth/${userRole} instead.`)
           setIsLoading(false)
           return
         }
         
-        // Role matches - proceed with login
-        localStorage.setItem('user_role', userRole)
-        localStorage.setItem('user_email', formData.email)
-        localStorage.setItem('user_name', (data?.user?.user_metadata as any)?.name || formData.email.split('@')[0])
-        localStorage.setItem('isAuthenticated', 'true')
+        // Role matches OR no role set (backward compatibility)
+        // Use the role from metadata if available, otherwise use page role
+        const finalRole = userRole || expectedRole
         
-        toast.success(`Login successful as ${userRole}!`)
+        localStorage.setItem('user_role', finalRole)
+        localStorage.setItem('user_email', formData.email)
+        localStorage.setItem('user_name', (data.user.user_metadata as any)?.name || formData.email.split('@')[0])
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('user_id', data.user.id)
+        
+        toast.success(`Login successful as ${finalRole}!`)
         setIsLoading(false)
         navigate(config.redirectPath)
       }
@@ -279,31 +269,39 @@ export default function AuthPage() {
 
         {/* Form Card */}
         <div className={`bg-slate-800/60 backdrop-blur-xl border ${config.borderColor} rounded-3xl p-8 shadow-2xl`}>
-          {/* Mode Toggle */}
-          <div className="flex bg-slate-900/60 rounded-2xl p-1.5 mb-6">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
-                mode === 'login'
-                  ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('signup')}
-              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
-                mode === 'signup'
-                  ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
+           {/* Mode Toggle - Clear and Prominent */}
+           <div className="flex bg-slate-900/60 rounded-2xl p-1.5 mb-6">
+             <button
+               type="button"
+               onClick={() => handleModeChange('login')}
+               className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
+                 mode === 'login'
+                   ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
+                   : 'text-gray-400 hover:text-white'
+               }`}
+             >
+               Sign In
+             </button>
+             <button
+               type="button"
+               onClick={() => handleModeChange('signup')}
+               className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
+                 mode === 'signup'
+                   ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
+                   : 'text-gray-400 hover:text-white'
+               }`}
+             >
+               Sign Up
+             </button>
+           </div>
+           
+           {/* Role Indicator */}
+           <div className="mb-4 text-center">
+             <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/60 rounded-full text-sm text-gray-300">
+               <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${config.gradient}`}></span>
+               {config.title} Portal
+             </span>
+           </div>
 
           <form onSubmit={handleSubmit}>
             {/* ========== SIGNUP FORM - 2 COLUMNS ========== */}
@@ -529,17 +527,17 @@ export default function AuthPage() {
             </div>
           </form>
 
-          {/* Switch Mode */}
-          <p className="text-center text-gray-400 text-sm mt-6">
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              type="button"
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-              className={`font-semibold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent hover:opacity-80 transition-opacity`}
-            >
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
+           {/* Switch Mode */}
+           <p className="text-center text-gray-400 text-sm mt-6">
+             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+             <button
+               type="button"
+               onClick={() => handleModeChange(mode === 'login' ? 'signup' : 'login')}
+               className={`font-semibold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent hover:opacity-80 transition-opacity`}
+             >
+               {mode === 'login' ? 'Sign up' : 'Sign in'}
+             </button>
+           </p>
         </div>
 
         {/* Back Link */}

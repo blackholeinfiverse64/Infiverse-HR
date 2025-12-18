@@ -49,20 +49,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         // Listen for auth changes (non-blocking)
-        // Note: During signup, we don't want to override the role from localStorage
+        // IMPORTANT: Never override role from localStorage during auth state changes
+        // This prevents role conflicts during signup/login
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session?.user) {
             setSession(session)
             setUser(session.user)
-            // Don't override role from localStorage if it's already set (from signup)
-            // This prevents role mismatch errors during signup
-            if (!localStorage.getItem('user_role')) {
-              // Only set role from Supabase if not already set in localStorage
-              const roleFromMetadata = session.user.user_metadata?.role
-              if (roleFromMetadata) {
-                localStorage.setItem('user_role', roleFromMetadata)
-              }
+            // Only update user_id, never override role during auth state changes
+            // Role should only be set during explicit signup/login actions
+            if (session.user.id) {
+              localStorage.setItem('user_id', session.user.id)
             }
+          } else {
+            // User signed out
+            setSession(null)
+            setUser(null)
           }
         })
 

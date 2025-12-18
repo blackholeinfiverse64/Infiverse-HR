@@ -88,7 +88,7 @@ export default function RoleSelection() {
           {roles.map((role, index) => (
             <button
               key={role.id}
-              onClick={() => navigate(role.path)}
+              onClick={() => navigate(`${role.path}?mode=signup`)}
               className="group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 text-left transition-all duration-300 hover:scale-105 hover:border-slate-600 hover:shadow-2xl hover:shadow-purple-500/10"
               style={{ animationDelay: `${index * 100}ms` }}
             >
