@@ -203,17 +203,16 @@ export default function AuthPage() {
     }
   }
 
-  // Get current role config for styling (use selected role for signup, or default for login)
-  const currentRole = mode === 'signup' ? selectedRole : 'candidate'
-  const config = roleConfig[currentRole]
+  // Fixed blue color scheme for auth page
+  const fixedGradient = 'from-blue-500 to-cyan-500'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 py-8">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-20 w-[500px] h-[500px] bg-gradient-to-br ${config.gradient} rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob`} />
-        <div className="absolute bottom-20 left-20 w-[400px] h-[400px] bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000" />
-        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br ${config.gradient} rounded-full mix-blend-multiply filter blur-3xl opacity-5`} />
+        <div className={`absolute top-20 right-20 w-[500px] h-[500px] bg-gradient-to-br ${fixedGradient} rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob`} />
+        <div className="absolute bottom-20 left-20 w-[400px] h-[400px] bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000" />
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br ${fixedGradient} rounded-full mix-blend-multiply filter blur-3xl opacity-5`} />
       </div>
 
       {/* Centered Content */}
@@ -229,7 +228,7 @@ export default function AuthPage() {
               </div>
             </div>
             <span className="text-2xl font-bold">
-              <span className={`bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>
+              <span className={`bg-gradient-to-r ${fixedGradient} bg-clip-text text-transparent`}>
                 Infiverse
               </span>
               <span className="text-white"> HR</span>
@@ -239,9 +238,9 @@ export default function AuthPage() {
           {/* Heading */}
           <h1 className="text-3xl font-bold text-white mb-2">
             {mode === 'login' ? (
-              <>Welcome <span className={`bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>Back!</span></>
+              <>Welcome <span className={`bg-gradient-to-r ${fixedGradient} bg-clip-text text-transparent`}>Back!</span></>
             ) : (
-              <>Create <span className={`bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>Account</span></>
+              <>Create <span className={`bg-gradient-to-r ${fixedGradient} bg-clip-text text-transparent`}>Account</span></>
             )}
           </h1>
           <p className="text-gray-400">
@@ -260,7 +259,7 @@ export default function AuthPage() {
                onClick={() => handleModeChange('login')}
                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
                  mode === 'login'
-                   ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
+                   ? `bg-gradient-to-r ${fixedGradient} text-white shadow-lg`
                    : 'text-gray-400 hover:text-white'
                }`}
              >
@@ -271,7 +270,7 @@ export default function AuthPage() {
                onClick={() => handleModeChange('signup')}
                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
                  mode === 'signup'
-                   ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
+                   ? `bg-gradient-to-r ${fixedGradient} text-white shadow-lg`
                    : 'text-gray-400 hover:text-white'
                }`}
              >
@@ -474,7 +473,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3.5 px-6 bg-gradient-to-r ${config.gradient} text-white font-bold rounded-xl hover:opacity-90 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6`}
+              className={`w-full py-3.5 px-6 bg-gradient-to-r ${fixedGradient} text-white font-bold rounded-xl hover:opacity-90 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6`}
             >
               {isLoading ? (
                 <>
