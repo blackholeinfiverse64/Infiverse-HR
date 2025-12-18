@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { signIn as supabaseSignIn, signUp as supabaseSignUp, supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { signIn as supabaseSignIn, signUp as supabaseSignUp, supabase, isSupabaseConfigured, getUserRole } from '../../lib/supabase'
 
 type AuthMode = 'login' | 'signup'
 type UserRole = 'candidate' | 'recruiter' | 'client'
@@ -186,17 +186,30 @@ export default function AuthPage() {
           return
         }
         
-        // Get user's role from Supabase metadata (primary source)
-        // Try to get fresh user data to ensure we have the latest metadata
+        // Get user's role from multiple sources (priority order)
         let userRole: UserRole | null = null
         
-        // First, check user metadata from the sign-in response
-        const metadataRole = data.user.user_metadata?.role
-        if (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole)) {
-          userRole = metadataRole as UserRole
+        // Priority 1: Check user_profiles table (most reliable)
+        if (isSupabaseConfigured()) {
+          try {
+            const profileRole = await getUserRole(data.user.id)
+            if (profileRole && ['candidate', 'recruiter', 'client'].includes(profileRole)) {
+              userRole = profileRole as UserRole
+            }
+          } catch (err) {
+            console.warn('Could not fetch role from user_profiles:', err)
+          }
         }
         
-        // If role not found in initial response, try to get fresh user data
+        // Priority 2: Check user metadata from the sign-in response
+        if (!userRole) {
+          const metadataRole = data.user.user_metadata?.role
+          if (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole)) {
+            userRole = metadataRole as UserRole
+          }
+        }
+        
+        // Priority 3: Try to get fresh user data
         if (!userRole && isSupabaseConfigured()) {
           try {
             const { data: { user: freshUser } } = await supabase.auth.getUser()
@@ -208,7 +221,7 @@ export default function AuthPage() {
           }
         }
         
-        // If still no role found, check localStorage (but only if email matches)
+        // Priority 4: Check localStorage (but only if email matches)
         // This handles cases where Supabase isn't configured
         if (!userRole) {
           const storedEmail = localStorage.getItem('user_email')
@@ -219,13 +232,11 @@ export default function AuthPage() {
           }
         }
         
-        // If role still not found, try to update it based on email pattern or show error
+        // If role still not found, show error
         if (!userRole) {
-          // Last resort: Check if we can infer role from email or other data
-          // But for security, we should not guess - show error instead
           console.error('Role not found for user:', formData.email)
           console.error('User metadata:', data.user.user_metadata)
-          toast.error('Role not found for this account. The account may need to be recreated. Please contact support.')
+          toast.error('Role not found for this account. Please contact support or try signing up again.')
           setIsLoading(false)
           return
         }

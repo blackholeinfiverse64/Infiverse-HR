@@ -195,3 +195,67 @@ export const getSession = async () => {
     return { session: null, error: err }
   }
 }
+
+/**
+ * Get user role from user_profiles table
+ * This is the primary source of truth for user roles
+ */
+export const getUserRole = async (userId?: string): Promise<string | null> => {
+  if (!isSupabaseConfigured()) {
+    return localStorage.getItem('user_role')
+  }
+
+  try {
+    // Get current user if userId not provided
+    let targetUserId = userId
+    if (!targetUserId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+      targetUserId = user.id
+    }
+
+    // Query user_profiles table
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', targetUserId)
+      .single()
+
+    if (error) {
+      console.warn('Error fetching user role from profiles:', error)
+      return null
+    }
+
+    return data?.role || null
+  } catch (err: any) {
+    console.warn('Error getting user role:', err)
+    return null
+  }
+}
+
+/**
+ * Update user role in user_profiles table
+ */
+export const updateUserRole = async (userId: string, role: 'candidate' | 'recruiter' | 'client'): Promise<boolean> => {
+  if (!isSupabaseConfigured()) {
+    localStorage.setItem('user_role', role)
+    return true
+  }
+
+  try {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+
+    if (error) {
+      console.error('Error updating user role:', error)
+      return false
+    }
+
+    return true
+  } catch (err: any) {
+    console.error('Error updating user role:', err)
+    return false
+  }
+}
