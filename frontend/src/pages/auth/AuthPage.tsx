@@ -60,6 +60,7 @@ export default function AuthPage() {
   const { signUp } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSigningUp, setIsSigningUp] = useState(false)
   
   const [formData, setFormData] = useState({
     email: '',
@@ -105,45 +106,84 @@ export default function AuthPage() {
     }
 
     try {
+      // Get the expected role from URL parameter - this is the role-specific page
+      const expectedRole = role || 'candidate'
+      
       if (mode === 'signup') {
+        setIsSigningUp(true) // Flag to prevent role checks during signup
+        
+        // Enforce role-based signup - user can only signup with the role of the page they're on
         const { error, data } = await signUp(formData.email, formData.password, {
           name: formData.fullName,
-          role: role || 'candidate',
+          role: expectedRole, // Use the role from the URL, not a form selection
         })
         
         if (error) {
           // Handle specific Supabase errors
-          if (error.message?.includes('already registered') || 
-              error.message?.includes('User already registered') ||
-              error.message?.includes('already exists')) {
-            toast.error('This email is already registered. Please login instead.')
-          } else if (error.message?.includes('registered as')) {
-            // If error mentions role, extract and show appropriate message
-            toast.error('This email is already registered. Please use the login page.')
+          const errorMsg = error.message || ''
+          
+          if (errorMsg.includes('already registered') || 
+              errorMsg.includes('User already registered') ||
+              errorMsg.includes('already exists') ||
+              errorMsg.includes('email address is already')) {
+            // Check if the existing user has a different role
+            // Try to get user info to check role
+            try {
+              const { data: loginData } = await supabaseSignIn(formData.email, formData.password)
+              if (loginData?.user?.user_metadata?.role) {
+                const existingRole = loginData.user.user_metadata.role
+                if (existingRole !== expectedRole) {
+                  toast.error(`This email is registered as a ${existingRole}. Please use the ${existingRole} ${mode === 'signup' ? 'signup' : 'login'} page.`)
+                } else {
+                  toast.error('This email is already registered. Please use the login page instead.')
+                }
+                await signOut() // Sign out the test login
+              } else {
+                toast.error('This email is already registered. Please use the login page instead.')
+              }
+            } catch {
+              toast.error('This email is already registered. Please use the login page instead.')
+            }
           } else {
-            toast.error(error.message || 'Signup failed. Please try again.')
+            toast.error(errorMsg || 'Signup failed. Please try again.')
           }
+          setIsSigningUp(false)
           setIsLoading(false)
           return
         }
         
-        // Only proceed if signup was successful (no error and user data exists)
+        // Only proceed if signup was successful
         if (!data?.user) {
+          setIsSigningUp(false)
           toast.error('Signup failed. Please try again.')
           setIsLoading(false)
           return
         }
         
-        localStorage.setItem('user_role', role || 'candidate')
+        // Verify the role was set correctly during signup
+        const createdUserRole = data.user.user_metadata?.role || expectedRole
+        
+        // Enforce role match - user must signup with the role of the page
+        if (createdUserRole !== expectedRole) {
+          setIsSigningUp(false)
+          toast.error(`Account created but role mismatch. Please contact support.`)
+          setIsLoading(false)
+          return
+        }
+        
+        // Set the role from the page URL (expectedRole)
+        localStorage.setItem('user_role', expectedRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', formData.fullName)
         localStorage.setItem('isAuthenticated', 'true')
         
-        toast.success('Account created! Please check your email to verify.')
+        setIsSigningUp(false)
+        toast.success(`Account created successfully as ${expectedRole}! Please check your email to verify.`)
         setIsLoading(false)
         navigate(config.redirectPath)
       } else {
-        // Login - need to verify role matches using direct Supabase call to get user data
+        // Login - STRICT role-based authentication
+        // User must login through the correct role page
         const { error, data } = await supabaseSignIn(formData.email, formData.password)
         
         if (error) {
@@ -152,24 +192,38 @@ export default function AuthPage() {
           return
         }
         
-        // Check if user's role matches the page they're logging in from
+        // Get user's actual role from Supabase
         const userRole = data?.user?.user_metadata?.role
-        const expectedRole = role || 'candidate'
         
-        if (userRole && userRole !== expectedRole) {
-          // Role mismatch - sign them out and show error
+        // STRICT CHECK: User's role MUST match the page role
+        if (!userRole) {
+          // If no role in metadata, use the page role (for backward compatibility)
+          localStorage.setItem('user_role', expectedRole)
+          localStorage.setItem('user_email', formData.email)
+          localStorage.setItem('user_name', (data?.user?.user_metadata as any)?.name || formData.email.split('@')[0])
+          localStorage.setItem('isAuthenticated', 'true')
+          toast.success('Login successful!')
+          setIsLoading(false)
+          navigate(config.redirectPath)
+          return
+        }
+        
+        // Enforce role match - user MUST login through their role's page
+        if (userRole !== expectedRole) {
+          // Role mismatch - sign them out immediately
           await signOut()
-          toast.error(`This account is registered as a ${userRole}. Please use the ${userRole} login page.`)
+          toast.error(`This account is registered as a ${userRole}. Please use the ${userRole} login page at /auth/${userRole}.`)
           setIsLoading(false)
           return
         }
         
-        localStorage.setItem('user_role', userRole || expectedRole)
+        // Role matches - proceed with login
+        localStorage.setItem('user_role', userRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', (data?.user?.user_metadata as any)?.name || formData.email.split('@')[0])
         localStorage.setItem('isAuthenticated', 'true')
         
-        toast.success('Login successful!')
+        toast.success(`Login successful as ${userRole}!`)
         setIsLoading(false)
         navigate(config.redirectPath)
       }
