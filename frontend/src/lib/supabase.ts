@@ -89,7 +89,6 @@ export const signIn = async (email: string, password: string) => {
   if (!isSupabaseConfigured()) {
     // Check if user exists in localStorage (for demo purposes)
     // In real app, this would validate against a backend
-    const storedEmail = localStorage.getItem('user_email')
     const storedRole = localStorage.getItem('user_role')
     
     // Return mock success for localStorage-based auth

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { useAuth } from '../../context/AuthContext'
-import { signIn as supabaseSignIn, signOut, supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { signIn as supabaseSignIn, signUp as supabaseSignUp, supabase, isSupabaseConfigured } from '../../lib/supabase'
 
 type AuthMode = 'login' | 'signup'
 type UserRole = 'candidate' | 'recruiter' | 'client'
@@ -27,7 +26,6 @@ const roleConfig = {
 
 export default function AuthPage() {
   const navigate = useNavigate()
-  const { signUp } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   
   // Get initial mode from URL query parameter, default to 'login'
@@ -105,7 +103,7 @@ export default function AuthPage() {
     try {
       if (mode === 'signup') {
         // SIGNUP: Create account with the selected role
-        const { error, data } = await signUp(formData.email, formData.password, {
+        const { error, data } = await supabaseSignUp(formData.email, formData.password, {
           name: formData.fullName,
           role: selectedRole,
         })
