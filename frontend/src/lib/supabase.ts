@@ -222,6 +222,11 @@ export const getUserRole = async (userId?: string): Promise<string | null> => {
       .single()
 
     if (error) {
+      // If profile doesn't exist (PGRST116), return null (caller can handle)
+      if (error.code === 'PGRST116') {
+        console.warn('User profile does not exist for user:', targetUserId)
+        return null
+      }
       console.warn('Error fetching user role from profiles:', error)
       return null
     }

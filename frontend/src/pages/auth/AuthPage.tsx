@@ -232,13 +232,56 @@ export default function AuthPage() {
           }
         }
         
-        // If role still not found, show error
+        // If role still not found, try to recover by creating profile or allow user to select
         if (!userRole) {
           console.error('Role not found for user:', formData.email)
           console.error('User metadata:', data.user.user_metadata)
-          toast.error('Role not found for this account. Please contact support or try signing up again.')
-          setIsLoading(false)
-          return
+          
+          // Try to create profile if it doesn't exist (recovery mechanism)
+          if (isSupabaseConfigured()) {
+            try {
+              // Check if profile exists
+              const { data: profileData, error: profileError } = await supabase
+                .from('user_profiles')
+                .select('id, role')
+                .eq('id', data.user.id)
+                .single()
+              
+              // If profile doesn't exist, create it with default role
+              if (profileError && profileError.code === 'PGRST116') {
+                // Profile doesn't exist - create it
+                const defaultRole = 'candidate' // Default to candidate for recovery
+                const { error: insertError } = await supabase
+                  .from('user_profiles')
+                  .insert({
+                    id: data.user.id,
+                    email: formData.email,
+                    full_name: data.user.user_metadata?.name || formData.email.split('@')[0],
+                    role: defaultRole
+                  })
+                
+                if (!insertError) {
+                  userRole = defaultRole as UserRole
+                  console.log('Created missing profile with default role:', defaultRole)
+                  toast.success('Profile created. Please update your role in settings if needed.')
+                } else {
+                  console.error('Failed to create profile:', insertError)
+                }
+              } else if (profileData && profileData.role) {
+                // Profile exists but role might be null - use default
+                userRole = (profileData.role || 'candidate') as UserRole
+              }
+            } catch (err) {
+              console.error('Error during profile recovery:', err)
+            }
+          }
+          
+          // If still no role, show error with helpful message
+          if (!userRole) {
+            toast.error('Role not found for this account. The account may need to be set up. Please contact support.')
+            setIsLoading(false)
+            return
+          }
         }
         
         // Save role and user info
