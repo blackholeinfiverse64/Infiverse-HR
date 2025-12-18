@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import SplashScreen from './components/SplashScreen'
-import RoleSelection from './pages/RoleSelection'
 import AuthPage from './pages/auth/AuthPage'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
@@ -67,7 +66,7 @@ function App() {
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               {/* Public Routes - redirect to dashboard if already logged in */}
-              <Route path="/" element={<PublicRoute><RoleSelection /></PublicRoute>} />
+              <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
 
               {/* Candidate Routes - Protected for 'candidate' role only */}
@@ -124,7 +123,7 @@ function App() {
               </Route>
 
               {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
             <Toaster
               position="top-right"

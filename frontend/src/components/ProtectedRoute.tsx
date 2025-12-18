@@ -43,8 +43,8 @@ export default function ProtectedRoute({
   const isAuthenticated = !!user || localStorage.getItem('isAuthenticated') === 'true'
   
   if (requireAuth && !isAuthenticated) {
-    // Redirect to role selection with return URL
-    return <Navigate to="/" state={{ from: location }} replace />
+    // Redirect to auth page with return URL
+    return <Navigate to="/auth" state={{ from: location }} replace />
   }
 
   // Check role-based access
