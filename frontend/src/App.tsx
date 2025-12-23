@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import SplashScreen from './components/SplashScreen'
+import AuthPage from './pages/auth/AuthPage'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute, { PublicRoute } from './components/ProtectedRoute'
 
 // Layouts
 import CandidateLayout from './components/layouts/CandidateLayout'
@@ -63,11 +65,16 @@ function App() {
         ) : (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
-              {/* Default route - redirect to candidate dashboard */}
-              <Route path="/" element={<Navigate to="/candidate/dashboard" replace />} />
+              {/* Public Routes */}
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
 
-              {/* Candidate Routes - All screens accessible without auth */}
-              <Route path="/candidate" element={<CandidateLayout />}>
+              {/* Candidate Routes - Protected for 'candidate' role only */}
+              <Route path="/candidate" element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateLayout />
+                </ProtectedRoute>
+              }>
                 <Route index element={<Navigate to="/candidate/dashboard" replace />} />
                 <Route path="dashboard" element={<CandidateDashboard />} />
                 <Route path="profile" element={<CandidateProfile />} />
@@ -77,8 +84,12 @@ function App() {
                 <Route path="feedback" element={<CandidateFeedback />} />
               </Route>
 
-              {/* Recruiter Routes - All screens accessible without auth */}
-              <Route path="/recruiter" element={<RecruiterLayout />}>
+              {/* Recruiter Routes - Protected for 'recruiter' role only */}
+              <Route path="/recruiter" element={
+                <ProtectedRoute allowedRoles={['recruiter']}>
+                  <RecruiterLayout />
+                </ProtectedRoute>
+              }>
                 <Route index element={<RecruiterDashboard />} />
                 <Route path="create-job" element={<JobCreation />} />
                 <Route path="upload-candidates" element={<BatchUpload />} />
@@ -97,8 +108,12 @@ function App() {
                 <Route path="reports" element={<ExportReports />} />
               </Route>
 
-              {/* Client Routes - All screens accessible without auth */}
-              <Route path="/client" element={<ClientLayout />}>
+              {/* Client Routes - Protected for 'client' role only */}
+              <Route path="/client" element={
+                <ProtectedRoute allowedRoles={['client']}>
+                  <ClientLayout />
+                </ProtectedRoute>
+              }>
                 <Route index element={<ClientDashboard />} />
                 <Route path="dashboard" element={<ClientDashboard />} />
                 <Route path="jobs" element={<ClientJobPosting />} />
@@ -107,8 +122,8 @@ function App() {
                 <Route path="reports" element={<ClientReports />} />
               </Route>
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/candidate/dashboard" replace />} />
+              {/* Fallback - redirect to auth */}
+              <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
             <Toaster
               position="top-right"
