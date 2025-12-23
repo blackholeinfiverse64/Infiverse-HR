@@ -5,11 +5,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-k
 
 // Debug: Log configuration (only in development)
 if (import.meta.env.DEV) {
+  const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key'
+  const keyFormat = supabaseAnonKey?.startsWith('eyJ') ? 'JWT (standard)' : 
+                     supabaseAnonKey?.startsWith('sb_publishable_') ? 'Publishable key' :
+                     supabaseAnonKey?.startsWith('sb_') ? 'Service key (wrong!)' : 'Unknown format'
+  
   console.log('🔧 Supabase Configuration:', {
     url: supabaseUrl,
-    keyPrefix: supabaseAnonKey?.substring(0, 20) + '...',
-    isConfigured: supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key'
+    keyPrefix: supabaseAnonKey?.substring(0, 30) + '...',
+    keyFormat: keyFormat,
+    isConfigured: isConfigured,
+    warning: !supabaseAnonKey?.startsWith('eyJ') && !supabaseAnonKey?.startsWith('sb_publishable_') 
+      ? '⚠️ Key format unusual - verify you\'re using the "anon public" key from Supabase dashboard'
+      : null
   })
+  
+  // Warn if using service role key (should use anon key)
+  if (supabaseAnonKey?.startsWith('sb_') && !supabaseAnonKey?.startsWith('sb_publishable_')) {
+    console.warn('⚠️ WARNING: You might be using a service role key. Use the "anon public" key instead!')
+  }
 }
 
 // Create Supabase client with fallback values if not configured
@@ -112,14 +126,23 @@ export const signUp = async (email: string, password: string, userData: { name: 
         }
       }
       
-      // Check for network/fetch errors
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+      // Check for network/fetch errors - this is the most common issue
+      if (error.message?.includes('Failed to fetch') || 
+          error.message?.includes('NetworkError') ||
+          error.message?.includes('AuthRetryableFetchError') ||
+          error.name === 'AuthRetryableFetchError') {
         console.error('Supabase connection error:', error)
+        console.error('🔍 Troubleshooting tips:')
+        console.error('1. Check if Supabase project is active (not paused) at: https://supabase.com/dashboard')
+        console.error('2. Verify URL:', supabaseUrl)
+        console.error('3. Verify API key format (should start with eyJ or be anon key)')
+        console.error('4. Check browser console Network tab for CORS errors')
+        
         return {
           data: null,
           error: {
             ...error,
-            message: 'Unable to connect to authentication service. Please check your internet connection or try again later.'
+            message: 'Cannot connect to authentication service. Please check: 1) Supabase project is active (not paused), 2) Internet connection, 3) Browser console for details.'
           }
         }
       }
@@ -128,13 +151,21 @@ export const signUp = async (email: string, password: string, userData: { name: 
     return { data, error }
   } catch (err: any) {
     // If Supabase fails, check if it's a network error
-    if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError')) {
+    if (err?.message?.includes('Failed to fetch') || 
+        err?.message?.includes('NetworkError') ||
+        err?.name === 'AuthRetryableFetchError') {
       console.error('Supabase network error during signup:', err)
+      console.error('🔍 Troubleshooting tips:')
+      console.error('1. Check if Supabase project is active (not paused) at: https://supabase.com/dashboard')
+      console.error('2. Verify URL:', supabaseUrl)
+      console.error('3. Try accessing Supabase directly in browser:', `${supabaseUrl}/rest/v1/`)
+      
       return {
         data: null,
         error: {
-          message: 'Network error: Unable to connect to authentication service. Please check your internet connection and ensure the Supabase project is active.',
-          status: 0
+          message: 'Network error: Cannot connect to authentication service. The Supabase project may be paused. Please check the Supabase dashboard and ensure the project is active.',
+          status: 0,
+          name: err?.name || 'NetworkError'
         }
       }
     }
