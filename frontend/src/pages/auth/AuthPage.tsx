@@ -143,11 +143,18 @@ export default function AuthPage() {
         }
         
         // Set role from selected role, not from Supabase
+        console.log('💾 Signup: Saving to localStorage:', {
+          user_role: selectedRole,
+          user_email: formData.email,
+          user_name: formData.fullName,
+          user_id: data.user.id
+        })
         localStorage.setItem('user_role', selectedRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', formData.fullName)
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user_id', data.user.id)
+        console.log('✅ Signup: localStorage saved. Current user_role:', localStorage.getItem('user_role'))
         
         // Update Supabase metadata and create profile if configured
         if (isSupabaseConfigured()) {
@@ -219,11 +226,20 @@ export default function AuthPage() {
         // Get user's role from multiple sources (priority order)
         let userRole: UserRole | null = null
         
+        console.log('🔍 Login: Attempting to retrieve user role for:', formData.email)
+        console.log('🔍 Login: User data from signIn:', {
+          id: data.user.id,
+          email: data.user.email,
+          metadata: data.user.user_metadata
+        })
+        
         // Priority 1: Check user metadata from the sign-in response
         // (This is fastest and works with both Supabase and localStorage fallback)
         const metadataRole = data.user.user_metadata?.role
+        console.log('🔍 Login: Metadata role:', metadataRole)
         if (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole)) {
           userRole = metadataRole as UserRole
+          console.log('✅ Login: Using role from metadata:', userRole)
         }
         
         // Priority 2: Check localStorage (if email matches)
@@ -231,10 +247,26 @@ export default function AuthPage() {
         if (!userRole) {
           const storedEmail = localStorage.getItem('user_email')
           const storedRole = localStorage.getItem('user_role')
+          // Normalize emails for comparison (lowercase, trim)
+          const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+          const normalizedLoginEmail = formData.email.toLowerCase().trim()
+          console.log('🔍 Login: localStorage values:', { 
+            storedEmail: normalizedStoredEmail, 
+            storedRole, 
+            loginEmail: normalizedLoginEmail,
+            match: normalizedStoredEmail === normalizedLoginEmail
+          })
           // Only use localStorage role if email matches (same user)
-          if (storedEmail === formData.email && storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
+          if (normalizedStoredEmail === normalizedLoginEmail && storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
             userRole = storedRole as UserRole
-            console.log('Using role from localStorage:', userRole)
+            console.log('✅ Login: Using role from localStorage:', userRole)
+          } else {
+            console.warn('⚠️ Login: localStorage email/role mismatch or invalid:', { 
+              storedEmail: normalizedStoredEmail, 
+              storedRole, 
+              loginEmail: normalizedLoginEmail,
+              emailsMatch: normalizedStoredEmail === normalizedLoginEmail
+            })
           }
         }
         
@@ -285,7 +317,10 @@ export default function AuthPage() {
                 const metadataRole = data.user.user_metadata?.role
                 const storedEmail = localStorage.getItem('user_email')
                 const storedRole = localStorage.getItem('user_role')
-                const localStorageRole = (storedEmail === formData.email && storedRole) ? storedRole : null
+                // Normalize emails for comparison
+                const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+                const normalizedLoginEmail = formData.email.toLowerCase().trim()
+                const localStorageRole = (normalizedStoredEmail === normalizedLoginEmail && storedRole) ? storedRole : null
                 
                 // Priority: metadata > localStorage > default to candidate
                 const recoveryRole = (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole))
@@ -323,7 +358,10 @@ export default function AuthPage() {
                   const metadataRole = data.user.user_metadata?.role
                   const storedEmail = localStorage.getItem('user_email')
                   const storedRole = localStorage.getItem('user_role')
-                  const localStorageRole = (storedEmail === formData.email && storedRole) ? storedRole : null
+                  // Normalize emails for comparison
+                  const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+                  const normalizedLoginEmail = formData.email.toLowerCase().trim()
+                  const localStorageRole = (normalizedStoredEmail === normalizedLoginEmail && storedRole) ? storedRole : null
                   
                   // Priority: metadata > localStorage > default to candidate
                   const recoveryRole = (metadataRole && ['candidate', 'recruiter', 'client'].includes(metadataRole))
@@ -355,11 +393,20 @@ export default function AuthPage() {
           if (!userRole) {
             const storedEmail = localStorage.getItem('user_email')
             const storedRole = localStorage.getItem('user_role')
-            if (storedEmail === formData.email && storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
+            // Normalize emails for comparison
+            const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+            const normalizedLoginEmail = formData.email.toLowerCase().trim()
+            console.log('🔍 Final fallback: Checking localStorage again:', {
+              storedEmail: normalizedStoredEmail,
+              loginEmail: normalizedLoginEmail,
+              storedRole,
+              emailsMatch: normalizedStoredEmail === normalizedLoginEmail
+            })
+            if (normalizedStoredEmail === normalizedLoginEmail && storedRole && ['candidate', 'recruiter', 'client'].includes(storedRole)) {
               userRole = storedRole as UserRole
-              console.log('Using localStorage role as final fallback:', userRole)
+              console.log('✅ Using localStorage role as final fallback:', userRole)
             } else {
-              console.warn('Using default candidate role as last resort')
+              console.warn('⚠️ Using default candidate role as last resort - no matching role found in localStorage')
               userRole = 'candidate'
               // Still save to localStorage so it works next time
               localStorage.setItem('user_role', 'candidate')
@@ -369,12 +416,18 @@ export default function AuthPage() {
         }
         
         // Save role and user info
+        console.log('💾 Login: Saving to localStorage:', {
+          user_role: userRole,
+          user_email: formData.email,
+          user_id: data.user.id
+        })
         localStorage.setItem('user_role', userRole)
         localStorage.setItem('user_email', formData.email)
         localStorage.setItem('user_name', (data.user.user_metadata as any)?.name || formData.email.split('@')[0])
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user_id', data.user.id)
         
+        console.log('🚀 Login: Redirecting to:', roleConfig[userRole].redirectPath)
         toast.success(`Login successful as ${roleConfig[userRole].title}!`)
         setIsLoading(false)
         navigate(roleConfig[userRole].redirectPath)

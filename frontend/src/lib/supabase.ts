@@ -200,8 +200,18 @@ export const signIn = async (email: string, password: string) => {
     // In real app, this would validate against a backend
     const storedEmail = localStorage.getItem('user_email')
     const storedRole = localStorage.getItem('user_role')
+    // Normalize emails for comparison (lowercase, trim)
+    const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+    const normalizedLoginEmail = email.toLowerCase().trim()
     // Only return role if email matches (same user)
-    const roleToUse = (storedEmail === email && storedRole) ? storedRole : null
+    const roleToUse = (normalizedStoredEmail === normalizedLoginEmail && storedRole) ? storedRole : null
+    console.log('🔍 signIn (not configured): Checking localStorage:', {
+      storedEmail: normalizedStoredEmail,
+      loginEmail: normalizedLoginEmail,
+      storedRole,
+      roleToUse,
+      emailsMatch: normalizedStoredEmail === normalizedLoginEmail
+    })
     
     // Return mock success for localStorage-based auth
     // Use stored role if available and email matches, otherwise return null (will be set by AuthPage)
@@ -234,8 +244,18 @@ export const signIn = async (email: string, password: string) => {
       // Fall back to localStorage auth - only use role if email matches
       const storedEmail = localStorage.getItem('user_email')
       const storedRole = localStorage.getItem('user_role')
+      // Normalize emails for comparison (lowercase, trim)
+      const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+      const normalizedLoginEmail = email.toLowerCase().trim()
       // Only return role if email matches (same user)
-      const roleToUse = (storedEmail === email && storedRole) ? storedRole : null
+      const roleToUse = (normalizedStoredEmail === normalizedLoginEmail && storedRole) ? storedRole : null
+      console.log('🔍 signIn fallback: Checking localStorage:', {
+        storedEmail: normalizedStoredEmail,
+        loginEmail: normalizedLoginEmail,
+        storedRole,
+        roleToUse,
+        emailsMatch: normalizedStoredEmail === normalizedLoginEmail
+      })
       return { 
         data: { 
           user: { 
@@ -262,8 +282,18 @@ export const signIn = async (email: string, password: string) => {
       // Fall back to localStorage auth - only use role if email matches
       const storedEmail = localStorage.getItem('user_email')
       const storedRole = localStorage.getItem('user_role')
+      // Normalize emails for comparison (lowercase, trim)
+      const normalizedStoredEmail = storedEmail?.toLowerCase().trim()
+      const normalizedLoginEmail = email.toLowerCase().trim()
       // Only return role if email matches (same user)
-      const roleToUse = (storedEmail === email && storedRole) ? storedRole : null
+      const roleToUse = (normalizedStoredEmail === normalizedLoginEmail && storedRole) ? storedRole : null
+      console.log('🔍 signIn catch fallback: Checking localStorage:', {
+        storedEmail: normalizedStoredEmail,
+        loginEmail: normalizedLoginEmail,
+        storedRole,
+        roleToUse,
+        emailsMatch: normalizedStoredEmail === normalizedLoginEmail
+      })
       return { 
         data: { 
           user: { 
