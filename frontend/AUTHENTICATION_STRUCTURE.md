@@ -141,20 +141,18 @@ The system uses a **JWT (JSON Web Token) approach** that integrates with the bac
 
 **Signup Flow:**
 1. Validate form inputs
-2. Call `supabaseSignUp()` with role
+2. Call `authService.register()` with role
 3. Save to localStorage
 4. Create/update user profile in database
-5. Update Supabase metadata
+5. Store user data in localStorage
 6. Redirect to role-specific dashboard
 
 **Login Flow:**
 1. Validate credentials
-2. Call `supabaseSignIn()`
+2. Call `authService.login()`
 3. Get user role from multiple sources (priority order):
-   - `user_profiles` table (most reliable)
-   - User metadata
-   - Fresh user data
-   - localStorage (fallback)
+   - User role from localStorage
+   - Retrieved from backend on login
 4. If role not found, create profile with default role
 5. Save to localStorage
 6. Redirect to role-specific dashboard
@@ -356,7 +354,7 @@ AuthContext → signOut()
 ```javascript
 {
   isAuthenticated: 'true',
-  user_id: 'uuid-from-supabase',
+  user_id: 'backend-generated-id',
   user_email: 'user@example.com',
   user_name: 'John Doe',
   user_role: 'candidate' | 'recruiter' | 'client',
@@ -417,15 +415,10 @@ console.log({ user, userRole, session })
 console.log({
   isAuthenticated: localStorage.getItem('isAuthenticated'),
   user_role: localStorage.getItem('user_role'),
-  user_email: localStorage.getItem('user_email')
+  user_email: localStorage.getItem('user_email'),
+  auth_token: localStorage.getItem('auth_token')
 })
 ```
-
-### **Check Supabase Connection:**
-```javascript
-import { testSupabaseConnection } from './lib/supabase'
-const result = await testSupabaseConnection()
-console.log(result)
 ```
 
 ## 📚 Key Files Reference

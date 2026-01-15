@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 router = APIRouter()
 
 class WorkflowTrigger(BaseModel):
-    candidate_id: int
-    job_id: int
+    candidate_id: str
+    job_id: str
     candidate_name: str
     candidate_email: str
     candidate_phone: Optional[str] = None

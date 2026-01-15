@@ -1,6 +1,6 @@
 """
-Supabase Authentication Module for BHIV HR Platform Backend
-Validates Supabase JWT tokens from frontend
+JWT Authentication Module for BHIV HR Platform Backend
+Validates JWT tokens from frontend
 """
 
 import os
@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 
-# Supabase configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+# JWT configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "")  # Backward compatibility
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")  # Preferred name
+JWT_SECRET_FALLBACK = os.getenv("SUPABASE_JWT_SECRET", "")  # Legacy compatibility
 
 # API Key for service-to-service communication (keep this)
 API_KEY_SECRET = os.getenv("API_KEY_SECRET", "")
@@ -32,34 +32,37 @@ def validate_api_key(api_key: str) -> bool:
     return api_key == API_KEY_SECRET
 
 
-def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
+def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
     """
-    Verify a Supabase JWT token and return the payload.
-    Supabase uses HS256 with the JWT secret from project settings.
+    Verify a JWT token and return the payload.
+    Uses HS256 with the JWT secret from environment settings.
     """
-    if not SUPABASE_JWT_SECRET:
-        logger.error("SUPABASE_JWT_SECRET not configured")
+    # Try different environment variable names for backward compatibility
+    jwt_secret = JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK
+    
+    if not jwt_secret:
+        logger.error("JWT_SECRET_KEY not configured")
         return None
     
     try:
-        # Supabase JWT tokens use HS256 algorithm
+        # JWT tokens use HS256 algorithm
         payload = jwt.decode(
             token,
-            SUPABASE_JWT_SECRET,
+            jwt_secret,
             algorithms=["HS256"],
             audience="authenticated"
         )
         return payload
     except jwt.ExpiredSignatureError:
-        logger.warning("Supabase token expired")
+        logger.warning("JWT token expired")
         return None
     except jwt.InvalidTokenError as e:
-        logger.warning(f"Invalid Supabase token: {e}")
+        logger.warning(f"Invalid JWT token: {e}")
         return None
 
 
 def get_user_from_token(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract user information from Supabase token payload"""
+    """Extract user information from JWT token payload"""
     return {
         "user_id": payload.get("sub"),
         "email": payload.get("email"),
@@ -83,9 +86,9 @@ def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
 
 def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
     """
-    Unified authentication: API key OR Supabase JWT token
+    Unified authentication: API key OR JWT token
     - API keys: For service-to-service communication
-    - Supabase JWT: For authenticated users from frontend
+    - JWT: For authenticated users from frontend
     """
     if not credentials:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -101,12 +104,12 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
             "role": "admin"
         }
     
-    # Try Supabase JWT token
-    payload = verify_supabase_token(token)
+    # Try JWT token
+    payload = verify_jwt_token(token)
     if payload:
         user_info = get_user_from_token(payload)
         return {
-            "type": "supabase_token",
+            "type": "jwt_token",
             "user_id": user_info["user_id"],
             "email": user_info["email"],
             "role": user_info["role"],

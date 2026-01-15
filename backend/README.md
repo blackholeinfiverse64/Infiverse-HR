@@ -191,6 +191,7 @@ Edit `.env` and add your credentials (or use defaults for testing).
 
 ### **Step 3: Start Docker Services**
 ```bash
+cd backend
 docker-compose -f docker-compose.production.yml up --build
 ```
 

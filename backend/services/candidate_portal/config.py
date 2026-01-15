@@ -45,7 +45,7 @@ class Config:
         self.DATABASE_URL = os.getenv("DATABASE_URL", "")
         
         # LangGraph Service URL (optional for candidate portal)
-        self.LANGGRAPH_SERVICE_URL = os.getenv("LANGGRAPH_SERVICE_URL", "http://langgraph:9001")
+        self.LANGGRAPH_SERVICE_URL = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
         
         # Portal Configuration
         self.PORTAL_PORT = int(os.getenv("CANDIDATE_PORTAL_PORT", "8503"))

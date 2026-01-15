@@ -1,0 +1,306 @@
+{
+  "environment": "local",
+  "timestamp": "2026-01-15T12:38:42.542955+00:00",
+  "services": {
+    "gateway": {
+      "service": "gateway",
+      "url": "http://localhost:8000",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8000/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.853670597076416,
+        "error": null,
+        "response_size": 113
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8000/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.345564603805542,
+          "error": null,
+          "response_size": 309
+        },
+        {
+          "endpoint": "/docs",
+          "url": "http://localhost:8000/docs",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.3809664249420166,
+          "error": null,
+          "response_size": 952
+        },
+        {
+          "endpoint": "/v1/jobs",
+          "url": "http://localhost:8000/v1/jobs",
+          "success": true,
+          "status_code": 200,
+          "response_time": 7.964414358139038,
+          "error": null,
+          "response_size": 3098
+        },
+        {
+          "endpoint": "/v1/candidates",
+          "url": "http://localhost:8000/v1/candidates",
+          "success": true,
+          "status_code": 200,
+          "response_time": 1.2144477367401123,
+          "error": null,
+          "response_size": 7373
+        }
+      ],
+      "response_times": [
+        0.345564603805542,
+        0.3809664249420166,
+        7.964414358139038,
+        1.2144477367401123
+      ],
+      "errors": [],
+      "avg_response_time": 2.4763482809066772
+    },
+    "agent": {
+      "service": "agent",
+      "url": "http://localhost:9000",
+      "environment": "local",
+      "status": "unhealthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:9000/health",
+        "success": false,
+        "status_code": 0,
+        "response_time": 0.660660982131958,
+        "error": "Request failed: Server disconnected without sending a response.",
+        "response_size": 0
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:9000/",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.7349379062652588,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        },
+        {
+          "endpoint": "/test-db",
+          "url": "http://localhost:9000/test-db",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.931638240814209,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        },
+        {
+          "endpoint": "/match",
+          "url": "http://localhost:9000/match",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.4250340461730957,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        }
+      ],
+      "response_times": [
+        0.7349379062652588,
+        0.931638240814209,
+        0.4250340461730957
+      ],
+      "errors": [
+        "Endpoint /: Request failed: Server disconnected without sending a response.",
+        "Endpoint /test-db: Request failed: Server disconnected without sending a response.",
+        "Endpoint /match: Request failed: Server disconnected without sending a response."
+      ],
+      "avg_response_time": 0.6972033977508545
+    },
+    "langgraph": {
+      "service": "langgraph",
+      "url": "http://localhost:9001",
+      "environment": "local",
+      "status": "unhealthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:9001/health",
+        "success": false,
+        "status_code": 0,
+        "response_time": 0.8651807308197021,
+        "error": "Request failed: Server disconnected without sending a response.",
+        "response_size": 0
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:9001/",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.4365041255950928,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        },
+        {
+          "endpoint": "/workflows",
+          "url": "http://localhost:9001/workflows",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.6310291290283203,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        },
+        {
+          "endpoint": "/workflows/stats",
+          "url": "http://localhost:9001/workflows/stats",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.5488271713256836,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        }
+      ],
+      "response_times": [
+        0.4365041255950928,
+        0.6310291290283203,
+        0.5488271713256836
+      ],
+      "errors": [
+        "Endpoint /: Request failed: Server disconnected without sending a response.",
+        "Endpoint /workflows: Request failed: Server disconnected without sending a response.",
+        "Endpoint /workflows/stats: Request failed: Server disconnected without sending a response."
+      ],
+      "avg_response_time": 0.5387868086496989
+    },
+    "hr_portal": {
+      "service": "hr_portal",
+      "url": "http://localhost:8501",
+      "environment": "local",
+      "status": "unhealthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8501/health",
+        "success": false,
+        "status_code": 0,
+        "response_time": 2.8810975551605225,
+        "error": "Request failed: Server disconnected without sending a response.",
+        "response_size": 0
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8501/",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.6846535205841064,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        }
+      ],
+      "response_times": [
+        0.6846535205841064
+      ],
+      "errors": [
+        "Endpoint /: Request failed: Server disconnected without sending a response."
+      ],
+      "avg_response_time": 0.6846535205841064
+    },
+    "client_portal": {
+      "service": "client_portal",
+      "url": "http://localhost:8502",
+      "environment": "local",
+      "status": "unhealthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8502/health",
+        "success": false,
+        "status_code": 0,
+        "response_time": 0.5130584239959717,
+        "error": "Request failed: Server disconnected without sending a response.",
+        "response_size": 0
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8502/",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.47885894775390625,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        }
+      ],
+      "response_times": [
+        0.47885894775390625
+      ],
+      "errors": [
+        "Endpoint /: Request failed: Server disconnected without sending a response."
+      ],
+      "avg_response_time": 0.47885894775390625
+    },
+    "candidate_portal": {
+      "service": "candidate_portal",
+      "url": "http://localhost:8503",
+      "environment": "local",
+      "status": "unhealthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8503/health",
+        "success": false,
+        "status_code": 0,
+        "response_time": 0.5638768672943115,
+        "error": "Request failed: Server disconnected without sending a response.",
+        "response_size": 0
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8503/",
+          "success": false,
+          "status_code": 0,
+          "response_time": 0.5861084461212158,
+          "error": "Request failed: Server disconnected without sending a response.",
+          "response_size": 0
+        }
+      ],
+      "response_times": [
+        0.5861084461212158
+      ],
+      "errors": [
+        "Endpoint /: Request failed: Server disconnected without sending a response."
+      ],
+      "avg_response_time": 0.5861084461212158
+    }
+  },
+  "routing_tests": {
+    "gateway_to_agent": {},
+    "gateway_to_langgraph": {},
+    "cross_service_communication": {},
+    "routing_errors": []
+  },
+  "integration_tests": {
+    "database": {
+      "gateway_db": {
+        "endpoint": "/v1/test-candidates",
+        "url": "http://localhost:8000/v1/test-candidates",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.4623441696166992,
+        "error": null,
+        "response_size": 137
+      },
+      "agent_db": {},
+      "database_errors": []
+    }
+  },
+  "summary": {
+    "total_services": 6,
+    "healthy_services": 1,
+    "failed_services": 5,
+    "total_endpoints": 13,
+    "working_endpoints": 4,
+    "failed_endpoints": 9,
+    "success_rate": 30.76923076923077
+  }
+}

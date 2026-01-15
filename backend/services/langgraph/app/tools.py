@@ -13,7 +13,7 @@ except ImportError:
     # Fallback for Docker environment
     import os
     class Settings:
-        gateway_url = os.getenv("GATEWAY_SERVICE_URL", "http://gateway:8000")
+        gateway_url = os.getenv("GATEWAY_SERVICE_URL", "http://localhost:8000")
         api_key_secret = os.getenv("API_KEY_SECRET", "")
     settings = Settings()
 from .communication import comm_manager

@@ -1,0 +1,322 @@
+{
+  "environment": "local",
+  "timestamp": "2026-01-15T12:44:13.031113+00:00",
+  "services": {
+    "gateway": {
+      "service": "gateway",
+      "url": "http://localhost:8000",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8000/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.4911525249481201,
+        "error": null,
+        "response_size": 113
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8000/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 1.1185648441314697,
+          "error": null,
+          "response_size": 309
+        },
+        {
+          "endpoint": "/docs",
+          "url": "http://localhost:8000/docs",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.26553988456726074,
+          "error": null,
+          "response_size": 952
+        },
+        {
+          "endpoint": "/v1/jobs",
+          "url": "http://localhost:8000/v1/jobs",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.5508873462677002,
+          "error": null,
+          "response_size": 3098
+        },
+        {
+          "endpoint": "/v1/candidates",
+          "url": "http://localhost:8000/v1/candidates",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.3363478183746338,
+          "error": null,
+          "response_size": 7846
+        }
+      ],
+      "response_times": [
+        1.1185648441314697,
+        0.26553988456726074,
+        0.5508873462677002,
+        0.3363478183746338
+      ],
+      "errors": [],
+      "avg_response_time": 0.5678349733352661
+    },
+    "agent": {
+      "service": "agent",
+      "url": "http://localhost:9000",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:9000/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.8871300220489502,
+        "error": null,
+        "response_size": 105
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:9000/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 1.0387907028198242,
+          "error": null,
+          "response_size": 416
+        },
+        {
+          "endpoint": "/test-db",
+          "url": "http://localhost:9000/test-db",
+          "success": true,
+          "status_code": 403,
+          "response_time": 0.3917062282562256,
+          "error": null,
+          "response_size": 30
+        },
+        {
+          "endpoint": "/match",
+          "url": "http://localhost:9000/match",
+          "success": false,
+          "status_code": 405,
+          "response_time": 0.3629951477050781,
+          "error": "Unexpected status code: 405",
+          "response_size": 31
+        }
+      ],
+      "response_times": [
+        1.0387907028198242,
+        0.3917062282562256,
+        0.3629951477050781
+      ],
+      "errors": [
+        "Endpoint /match: Unexpected status code: 405"
+      ],
+      "avg_response_time": 0.5978306929270426
+    },
+    "langgraph": {
+      "service": "langgraph",
+      "url": "http://localhost:9001",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:9001/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.513002872467041,
+        "error": null,
+        "response_size": 225
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:9001/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.38800597190856934,
+          "error": null,
+          "response_size": 173
+        },
+        {
+          "endpoint": "/workflows",
+          "url": "http://localhost:9001/workflows",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.455474853515625,
+          "error": null,
+          "response_size": 11476
+        },
+        {
+          "endpoint": "/workflows/stats",
+          "url": "http://localhost:9001/workflows/stats",
+          "success": true,
+          "status_code": 401,
+          "response_time": 0.4984910488128662,
+          "error": null,
+          "response_size": 30
+        }
+      ],
+      "response_times": [
+        0.38800597190856934,
+        0.455474853515625,
+        0.4984910488128662
+      ],
+      "errors": [],
+      "avg_response_time": 0.4473239580790202
+    },
+    "hr_portal": {
+      "service": "hr_portal",
+      "url": "http://localhost:8501",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8501/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.4446430206298828,
+        "error": null,
+        "response_size": 1522
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8501/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.4428999423980713,
+          "error": null,
+          "response_size": 1522
+        }
+      ],
+      "response_times": [
+        0.4428999423980713
+      ],
+      "errors": [],
+      "avg_response_time": 0.4428999423980713
+    },
+    "client_portal": {
+      "service": "client_portal",
+      "url": "http://localhost:8502",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8502/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.3995332717895508,
+        "error": null,
+        "response_size": 1522
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8502/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.49271559715270996,
+          "error": null,
+          "response_size": 1522
+        }
+      ],
+      "response_times": [
+        0.49271559715270996
+      ],
+      "errors": [],
+      "avg_response_time": 0.49271559715270996
+    },
+    "candidate_portal": {
+      "service": "candidate_portal",
+      "url": "http://localhost:8503",
+      "environment": "local",
+      "status": "healthy",
+      "health_check": {
+        "endpoint": "/health",
+        "url": "http://localhost:8503/health",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.43395352363586426,
+        "error": null,
+        "response_size": 1522
+      },
+      "endpoint_tests": [
+        {
+          "endpoint": "/",
+          "url": "http://localhost:8503/",
+          "success": true,
+          "status_code": 200,
+          "response_time": 0.5160057544708252,
+          "error": null,
+          "response_size": 1522
+        }
+      ],
+      "response_times": [
+        0.5160057544708252
+      ],
+      "errors": [],
+      "avg_response_time": 0.5160057544708252
+    }
+  },
+  "routing_tests": {
+    "gateway_to_agent": {
+      "endpoint": "/v1/match/1/top",
+      "url": "http://localhost:8000/v1/match/1/top",
+      "success": false,
+      "status_code": 500,
+      "response_time": 0.44453978538513184,
+      "error": "Unexpected status code: 500",
+      "response_size": 21
+    },
+    "gateway_to_langgraph": {
+      "endpoint": "/api/v1/workflows",
+      "url": "http://localhost:8000/api/v1/workflows",
+      "success": true,
+      "status_code": 404,
+      "response_time": 0.5192017555236816,
+      "error": null,
+      "response_size": 22
+    },
+    "cross_service_communication": {},
+    "routing_errors": [
+      "Gateway to Agent routing failed"
+    ]
+  },
+  "integration_tests": {
+    "database": {
+      "gateway_db": {
+        "endpoint": "/v1/test-candidates",
+        "url": "http://localhost:8000/v1/test-candidates",
+        "success": true,
+        "status_code": 200,
+        "response_time": 0.5680997371673584,
+        "error": null,
+        "response_size": 137
+      },
+      "agent_db": {
+        "endpoint": "/test-db",
+        "url": "http://localhost:9000/test-db",
+        "success": false,
+        "status_code": 403,
+        "response_time": 0.4465005397796631,
+        "error": "Unexpected status code: 403",
+        "response_size": 30
+      },
+      "database_errors": [
+        "Agent database connection failed"
+      ]
+    }
+  },
+  "summary": {
+    "total_services": 6,
+    "healthy_services": 6,
+    "failed_services": 0,
+    "total_endpoints": 13,
+    "working_endpoints": 12,
+    "failed_endpoints": 1,
+    "success_rate": 92.3076923076923
+  }
+}

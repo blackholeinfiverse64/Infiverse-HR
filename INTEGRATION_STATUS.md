@@ -194,7 +194,7 @@ Both Client and Candidate sides are **fully integrated** with the backend API an
 
 ### Candidate Authentication:
 - Uses `backend_candidate_id` from localStorage
-- Falls back to Supabase user ID if needed
+- Uses JWT authenticated user ID if available
 - Auto-creates backend candidate ID on first use
 
 ---

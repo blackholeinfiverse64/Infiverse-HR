@@ -12,7 +12,7 @@ export default function AppliedJobs() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
 
-  // Get backend candidate ID (integer) for API calls, fallback to Supabase ID
+  // Get backend candidate ID (integer) for API calls, fallback to user ID
   const backendCandidateId = localStorage.getItem('backend_candidate_id')
   const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 

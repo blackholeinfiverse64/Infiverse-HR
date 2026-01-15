@@ -58,12 +58,12 @@ else:
 
 from fastapi.openapi.utils import get_openapi
 
-# Security setup - Use Supabase authentication
+# Security setup - Use JWT authentication
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
 try:
-    from supabase_auth import (
+    from jwt_auth import (
         security,
         validate_api_key,
         get_api_key,
@@ -155,10 +155,10 @@ else:
     print("INFO: Running in fallback mode without Phase 3 engine")
 
 class MatchRequest(BaseModel):
-    job_id: int
+    job_id: str
 
 class CandidateScore(BaseModel):
-    candidate_id: int
+    candidate_id: str
     name: str
     email: str
     score: float
@@ -168,7 +168,7 @@ class CandidateScore(BaseModel):
     reasoning: str
 
 class MatchResponse(BaseModel):
-    job_id: int
+    job_id: str
     top_candidates: List[CandidateScore]
     total_candidates: int
     processing_time: float
@@ -450,7 +450,7 @@ def match_candidates(request: MatchRequest, auth = Depends(auth_dependency)):
         )
 
 class BatchMatchRequest(BaseModel):
-    job_ids: List[int]
+    job_ids: List[str]
 
 @app.post("/batch-match", tags=["AI Matching Engine"], summary="Batch AI Matching for Multiple Jobs")
 def batch_match_jobs(request: BatchMatchRequest, auth = Depends(auth_dependency)):
@@ -582,7 +582,7 @@ def batch_match_jobs(request: BatchMatchRequest, auth = Depends(auth_dependency)
         raise HTTPException(status_code=500, detail=f"Batch matching failed: {str(e)}")
 
 @app.get("/analyze/{candidate_id}", tags=["Candidate Analysis"], summary="Detailed Candidate Analysis")
-def analyze_candidate(candidate_id: int, auth = Depends(auth_dependency)):
+def analyze_candidate(candidate_id: str, auth = Depends(auth_dependency)): 
     """Detailed candidate analysis"""
     db = None
     try:

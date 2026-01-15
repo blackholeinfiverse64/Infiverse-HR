@@ -7,12 +7,12 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     # API Configuration - Environment Variables
-    gateway_service_url: str = "http://gateway:8000"
-    gateway_url: str = "http://gateway:8000"  # Alias for tools.py
+    gateway_service_url: str = "http://localhost:8000"
+    gateway_url: str = "http://localhost:8000"  # Alias for tools.py
     api_key_secret: str = "<API_KEY_SECRET>"
     
     # Service URLs
-    langgraph_service_url: str = "http://langgraph:9001"
+    langgraph_service_url: str = "http://localhost:9001"
     
     # Database
     database_url: str = "<DATABASE_URL>"

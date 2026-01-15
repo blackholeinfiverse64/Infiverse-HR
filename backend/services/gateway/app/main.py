@@ -236,8 +236,8 @@ class CandidateBulk(BaseModel):
     candidates: List[Dict[str, Any]]
 
 class FeedbackSubmission(BaseModel):
-    candidate_id: int
-    job_id: int
+    candidate_id: str
+    job_id: str
     integrity: int
     honesty: int
     discipline: int
@@ -246,15 +246,15 @@ class FeedbackSubmission(BaseModel):
     comments: Optional[str] = None
 
 class InterviewSchedule(BaseModel):
-    candidate_id: int
-    job_id: int
+    candidate_id: str
+    job_id: str
     interview_date: str
     interviewer: Optional[str] = "HR Team"
     notes: Optional[str] = None
 
 class JobOffer(BaseModel):
-    candidate_id: int
-    job_id: int
+    candidate_id: str
+    job_id: str
     salary: float
     start_date: str
     terms: str
@@ -828,7 +828,7 @@ async def bulk_upload_candidates(candidates: CandidateBulk, api_key: str = Depen
 
 # AI Matching Engine (2 endpoints)
 @app.get("/v1/match/{job_id}/top", tags=["AI Matching Engine"])
-async def get_top_matches(job_id: int, limit: int = 10, api_key: str = Depends(get_api_key)):
+async def get_top_matches(job_id: str, limit: int = 10, api_key: str = Depends(get_api_key)):  # Changed from int to str for MongoDB ObjectId
     """AI-powered semantic candidate matching via Agent Service"""
     if job_id < 1 or limit < 1 or limit > 50:
         raise HTTPException(status_code=400, detail="Invalid parameters")
@@ -897,8 +897,11 @@ async def fallback_matching(job_id: str, limit: int):
         except:
             job_doc = await db.jobs.find_one({"id": job_id})
         
-        job_requirements = (job_doc.get("requirements", "") if job_doc else "").lower()
-        job_location = job_doc.get("location", "") if job_doc else ""
+        if not job_doc:
+            return {"matches": [], "job_id": job_id, "limit": limit, "error": "Job not found", "agent_status": "error"}
+        
+        job_requirements = (job_doc.get("requirements", "") or "").lower()
+        job_location = job_doc.get("location", "") or ""
         
         cursor = db.candidates.find({}).limit(limit)
         candidates_list = await cursor.to_list(length=limit)
@@ -1426,7 +1429,7 @@ async def get_database_schema(api_key: str = Depends(get_api_key)):
         }
 
 @app.get("/v1/reports/job/{job_id}/export.csv", tags=["Analytics & Statistics"])
-async def export_job_report(job_id: int, api_key: str = Depends(get_api_key)):
+async def export_job_report(job_id: str, api_key: str = Depends(get_api_key)):  # Changed from int to str for MongoDB ObjectId
     """Export Job Report"""
     return {
         "message": "Job report export",

@@ -153,9 +153,9 @@ manager = ConnectionManager()
 
 # Pydantic models
 class ApplicationRequest(BaseModel):
-    candidate_id: int
-    job_id: int
-    application_id: int
+    candidate_id: str
+    job_id: str
+    application_id: str
     candidate_email: str
     candidate_phone: str
     candidate_name: str
@@ -177,7 +177,7 @@ class WorkflowStatus(BaseModel):
     completed: bool
 
 class NotificationRequest(BaseModel):
-    candidate_id: int
+    candidate_id: str
     candidate_name: str
     candidate_email: str
     candidate_phone: Optional[str] = None

@@ -1,0 +1,59 @@
+
+================================================================================
+🔍 BHIV HR Platform - Service Connection Validation Report
+================================================================================
+
+Environment: local
+Timestamp: 2026-01-15T12:53:22.688694+00:00
+
+📊 SUMMARY
+Total Services: 6
+Healthy Services: 6 ✅
+Failed Services: 0 ❌
+Total Endpoints: 13
+Working Endpoints: 12 ✅
+Failed Endpoints: 1 ❌
+Success Rate: 92.3%
+
+🔍 SERVICE DETAILS
+  gateway: healthy ✅
+    URL: http://localhost:8000
+    Avg Response Time: 0.577s
+
+  agent: healthy ✅
+    URL: http://localhost:9000
+    Avg Response Time: 2.474s
+    Errors: 1
+      - Endpoint /match: Unexpected status code: 405
+
+  langgraph: healthy ✅
+    URL: http://localhost:9001
+    Avg Response Time: 1.228s
+
+  hr_portal: healthy ✅
+    URL: http://localhost:8501
+    Avg Response Time: 0.496s
+
+  client_portal: healthy ✅
+    URL: http://localhost:8502
+    Avg Response Time: 0.381s
+
+  candidate_portal: healthy ✅
+    URL: http://localhost:8503
+    Avg Response Time: 0.393s
+
+🔄 ROUTING TESTS
+  Gateway → Agent: ❌
+  Gateway → LangGraph: ✅
+  Routing Errors: 1
+
+🗄️ DATABASE TESTS
+  Gateway DB: ✅
+  Agent DB: ✅
+
+💡 RECOMMENDATIONS
+  - Investigate failed endpoints for routing or authentication issues
+  - Fix service routing configurations
+  - Consider investigating failed endpoints for optimization
+
+================================================================================

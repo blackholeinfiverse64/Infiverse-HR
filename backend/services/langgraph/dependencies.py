@@ -1,22 +1,22 @@
 """
 LangGraph Service Authentication Dependencies
-Uses Supabase JWT tokens for user authentication
+Uses JWT tokens for user authentication
 """
 
-# Re-export from shared Supabase auth module
+# Re-export from shared JWT auth module
 import sys
 import os
 
 # Add shared module to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-from supabase_auth import (
+from jwt_auth import (
     security,
     validate_api_key,
     get_api_key,
     get_auth,
     auth_dependency,
-    verify_supabase_token,
+    verify_jwt_token,
     get_user_from_token,
     require_role,
     get_candidate_auth,
@@ -33,7 +33,7 @@ __all__ = [
     "get_api_key",
     "get_auth",
     "auth_dependency",
-    "verify_supabase_token",
+    "verify_jwt_token",
     "get_user_from_token",
     "require_role",
     "get_candidate_auth",

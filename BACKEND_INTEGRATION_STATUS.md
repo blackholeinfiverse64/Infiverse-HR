@@ -171,7 +171,7 @@
 - `/v1/client/*` - Client portal endpoints
 
 ### Notes:
-- All pages handle backend candidate ID (integer) vs Supabase UUID properly
+- All pages handle backend candidate ID (integer) properly
 - Error handling includes graceful fallbacks
 - Auto-refresh implemented for real-time data (30-second intervals)
 - All forms include proper validation and user feedback

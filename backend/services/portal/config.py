@@ -41,7 +41,7 @@ if not GATEWAY_SERVICE_URL:
     raise ValueError("GATEWAY_SERVICE_URL environment variable is required")
 
 # Agent service URL (optional for HR portal - uses gateway)
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent:9000")
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://localhost:9000")
 
 # LangGraph service URL (required for automation)
 LANGGRAPH_SERVICE_URL = os.getenv("LANGGRAPH_SERVICE_URL")

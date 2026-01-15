@@ -2,13 +2,13 @@
 Shared modules for BHIV HR Platform Backend Services
 """
 
-from .supabase_auth import (
+from .jwt_auth import (
     security,
     validate_api_key,
     get_api_key,
     get_auth,
     auth_dependency,
-    verify_supabase_token,
+    verify_jwt_token,
     get_user_from_token,
     require_role,
     get_candidate_auth,
@@ -24,7 +24,7 @@ __all__ = [
     "get_api_key",
     "get_auth",
     "auth_dependency",
-    "verify_supabase_token",
+    "verify_jwt_token",
     "get_user_from_token",
     "require_role",
     "get_candidate_auth",

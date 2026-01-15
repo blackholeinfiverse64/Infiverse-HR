@@ -1,0 +1,44 @@
+2026-01-15 18:14:37,171 - INFO - \U0001f680 Starting comprehensive service connection validation...
+2026-01-15 18:14:37,174 - INFO - \U0001f50d Validating gateway service connection...
+2026-01-15 18:14:37,467 - INFO - HTTP Request: GET http://localhost:8000/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:37,468 - INFO - \u2705 gateway health check passed
+2026-01-15 18:14:37,729 - INFO - HTTP Request: GET http://localhost:8000/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:38,063 - INFO - HTTP Request: GET http://localhost:8000/docs "HTTP/1.1 200 OK"
+2026-01-15 18:14:38,332 - INFO - HTTP Request: GET http://localhost:8000/v1/jobs "HTTP/1.1 200 OK"
+2026-01-15 18:14:38,602 - INFO - HTTP Request: GET http://localhost:8000/v1/candidates "HTTP/1.1 200 OK"
+2026-01-15 18:14:38,602 - INFO - \U0001f50d Validating agent service connection...
+2026-01-15 18:14:38,854 - INFO - HTTP Request: GET http://localhost:9000/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:38,854 - INFO - \u2705 agent health check passed
+2026-01-15 18:14:39,126 - INFO - HTTP Request: GET http://localhost:9000/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:39,374 - INFO - HTTP Request: GET http://localhost:9000/test-db "HTTP/1.1 403 Forbidden"
+2026-01-15 18:14:39,648 - INFO - HTTP Request: GET http://localhost:9000/match "HTTP/1.1 405 Method Not Allowed"
+2026-01-15 18:14:39,649 - INFO - \U0001f50d Validating langgraph service connection...
+2026-01-15 18:14:39,938 - INFO - HTTP Request: GET http://localhost:9001/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:39,938 - INFO - \u2705 langgraph health check passed
+2026-01-15 18:14:40,195 - INFO - HTTP Request: GET http://localhost:9001/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:40,481 - INFO - HTTP Request: GET http://localhost:9001/workflows "HTTP/1.1 200 OK"
+2026-01-15 18:14:40,779 - INFO - HTTP Request: GET http://localhost:9001/workflows/stats "HTTP/1.1 401 Unauthorized"
+2026-01-15 18:14:40,780 - INFO - \U0001f50d Validating hr_portal service connection...
+2026-01-15 18:14:41,093 - INFO - HTTP Request: GET http://localhost:8501/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:41,094 - INFO - \u2705 hr_portal health check passed
+2026-01-15 18:14:41,387 - INFO - HTTP Request: GET http://localhost:8501/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:41,388 - INFO - \U0001f50d Validating client_portal service connection...
+2026-01-15 18:14:41,663 - INFO - HTTP Request: GET http://localhost:8502/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:41,664 - INFO - \u2705 client_portal health check passed
+2026-01-15 18:14:42,023 - INFO - HTTP Request: GET http://localhost:8502/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:42,024 - INFO - \U0001f50d Validating candidate_portal service connection...
+2026-01-15 18:14:42,330 - INFO - HTTP Request: GET http://localhost:8503/health "HTTP/1.1 200 OK"
+2026-01-15 18:14:42,330 - INFO - \u2705 candidate_portal health check passed
+2026-01-15 18:14:42,592 - INFO - HTTP Request: GET http://localhost:8503/ "HTTP/1.1 200 OK"
+2026-01-15 18:14:42,592 - INFO - \U0001f504 Testing service routing and integration...
+2026-01-15 18:14:42,859 - INFO - HTTP Request: GET http://localhost:8000/v1/match/1/top "HTTP/1.1 500 Internal Server Error"
+2026-01-15 18:14:42,860 - WARNING - \u26a0\ufe0f Gateway to Agent routing issues detected
+2026-01-15 18:14:43,175 - INFO - HTTP Request: GET http://localhost:8000/api/v1/workflows "HTTP/1.1 404 Not Found"
+2026-01-15 18:14:43,175 - INFO - \u2705 Gateway to LangGraph routing working
+2026-01-15 18:14:43,175 - INFO - \U0001f5c4\ufe0f Testing database connections...
+2026-01-15 18:14:43,434 - INFO - HTTP Request: GET http://localhost:8000/v1/test-candidates "HTTP/1.1 200 OK"
+2026-01-15 18:14:43,435 - INFO - \u2705 Gateway database connection working
+2026-01-15 18:14:43,728 - INFO - HTTP Request: GET http://localhost:9000/test-db "HTTP/1.1 403 Forbidden"
+2026-01-15 18:14:43,729 - WARNING - \u26a0\ufe0f Agent database connection issues
+2026-01-15 18:14:43,729 - INFO - \u2705 Comprehensive validation completed
+2026-01-15 18:14:43,729 - ERROR - \u274c Validation failed: 'charmap' codec can't encode character '\U0001f50d' in position 84: character maps to <undefined>

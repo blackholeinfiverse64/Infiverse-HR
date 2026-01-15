@@ -70,7 +70,7 @@ export default function CandidateSidebar() {
 
   const handleLogout = async () => {
     try {
-      // Sign out from Supabase
+      // Sign out and clear auth tokens
       await signOut()
       
       // Clear all localStorage items

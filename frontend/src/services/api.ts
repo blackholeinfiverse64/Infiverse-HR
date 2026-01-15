@@ -113,45 +113,65 @@ export const candidateRegister = async (data: CandidateRegisterRequest) => {
   }
 }
 
-// Helper to get or create backend candidate ID for Supabase users
-export const getOrCreateBackendCandidateId = async (supabaseUser: { id: string; email?: string; user_metadata?: { name?: string } }): Promise<string | null> => {
+// Helper to get or create backend candidate ID
+export const getOrCreateBackendCandidateId = async (): Promise<string | null> => {
   // Check if we already have a backend candidate_id stored
   const storedId = localStorage.getItem('backend_candidate_id')
   if (storedId) {
     return storedId
   }
 
-  // Try to register the Supabase user in the backend
+  // Try to create a candidate using the JWT authenticated user data
   try {
+    // Get user info from localStorage (stored after JWT login)
+    const userEmail = localStorage.getItem('user_email');
+    const userName = localStorage.getItem('user_name') || 'User';
+    
+    if (!userEmail) {
+      console.warn('No authenticated user email found');
+      return null;
+    }
+    
     const response = await api.post('/v1/candidate/register', {
-      name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-      email: supabaseUser.email || `${supabaseUser.id}@supabase.user`,
-      password: supabaseUser.id, // Use Supabase ID as password (not used for auth)
-    })
+      name: userName,
+      email: userEmail,
+      // Additional fields can be populated as needed
+      phone: '',
+      location: '',
+      experience_years: 0,
+      technical_skills: '',
+      education_level: '',
+      seniority_level: '',
+    });
     
     if (response.data.candidate_id) {
-      localStorage.setItem('backend_candidate_id', response.data.candidate_id.toString())
-      return response.data.candidate_id.toString()
+      localStorage.setItem('backend_candidate_id', response.data.candidate_id.toString());
+      return response.data.candidate_id.toString();
     }
-    return null
+    return null;
   } catch (error: any) {
     // If user already exists (email conflict), try to login instead
     if (error?.response?.status === 400 || error?.response?.status === 409) {
       try {
+        const userEmail = localStorage.getItem('user_email');
+        if (!userEmail) {
+          console.warn('No authenticated user email found');
+          return null;
+        }
+        
         const loginResponse = await api.post('/v1/candidate/login', {
-          email: supabaseUser.email,
-          password: supabaseUser.id,
-        })
+          email: userEmail,
+        });
         if (loginResponse.data.candidate_id) {
-          localStorage.setItem('backend_candidate_id', loginResponse.data.candidate_id.toString())
-          return loginResponse.data.candidate_id.toString()
+          localStorage.setItem('backend_candidate_id', loginResponse.data.candidate_id.toString());
+          return loginResponse.data.candidate_id.toString();
         }
       } catch (loginError) {
-        console.warn('Could not retrieve backend candidate ID')
+        console.warn('Could not retrieve backend candidate ID');
       }
     }
-    console.error('Error creating backend candidate:', error)
-    return null
+    console.error('Error creating backend candidate:', error);
+    return null;
   }
 }
 
@@ -257,7 +277,7 @@ export const applyForJob = async (jobId: string, candidateId: string, resumeUrl?
 export const getCandidateApplications = async (candidateId: string): Promise<Application[]> => {
   try {
     // Backend expects integer candidate_id, not UUID
-    // If using Supabase UUID, this will fail - return empty for now
+    // If using UUID format, this will fail - return empty for now
     const response = await api.get(`/v1/candidate/applications/${candidateId}`)
     return response.data.applications || response.data || []
   } catch (error: any) {

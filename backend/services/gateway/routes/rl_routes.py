@@ -16,7 +16,7 @@ async def rl_predict_match(
 ):
     """Proxy RL prediction to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://langgraph:9001")
+        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -40,7 +40,7 @@ async def submit_rl_feedback(
 ):
     """Proxy RL feedback to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://langgraph:9001")
+        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -61,7 +61,7 @@ async def submit_rl_feedback(
 async def get_rl_analytics(api_key: str = Depends(get_api_key)):
     """Proxy RL analytics to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://langgraph:9001")
+        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -81,7 +81,7 @@ async def get_rl_analytics(api_key: str = Depends(get_api_key)):
 async def get_rl_performance(api_key: str = Depends(get_api_key)):
     """Proxy RL performance to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://langgraph:9001")
+        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(

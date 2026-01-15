@@ -27,24 +27,24 @@ class ServiceConnectionValidator:
         self.services = {
             "gateway": {
                 "local": "http://localhost:8000",
-                "production": "https://bhiv-hr-gateway-ltg0.onrender.com",
+                "production": "https://bhiv-hr-gateway-l0xp.onrender.com",
                 "health_endpoint": "/health",
                 "test_endpoints": ["/", "/docs", "/v1/jobs", "/v1/candidates"],
-                "expected_status": [200, 401]  # 401 for protected endpoints without auth
+                "expected_status": [200, 401, 403]  # 401/403 for protected endpoints without auth
             },
             "agent": {
                 "local": "http://localhost:9000",
-                "production": "https://bhiv-hr-agent-nhgg.onrender.com",
+                "production": "https://bhiv-hr-agent-cato.onrender.com",
                 "health_endpoint": "/health",
                 "test_endpoints": ["/", "/test-db", "/match"],
-                "expected_status": [200, 401, 422]
+                "expected_status": [200, 401, 403, 422]
             },
             "langgraph": {
                 "local": "http://localhost:9001",
-                "production": "https://bhiv-hr-langgraph.onrender.com",
+                "production": "https://bhiv-hr-langgraph-luy9.onrender.com",
                 "health_endpoint": "/health",
                 "test_endpoints": ["/", "/workflows", "/workflows/stats"],
-                "expected_status": [200, 401]
+                "expected_status": [200, 401, 403]
             },
             "hr_portal": {
                 "local": "http://localhost:8501",
@@ -73,7 +73,7 @@ class ServiceConnectionValidator:
         self.environment = self._detect_environment()
         
         # API key for authenticated requests
-        self.api_key = os.getenv("API_KEY_SECRET")
+        self.api_key = os.getenv("API_KEY_SECRET", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")  # Use default test key if not set
         
         # Results storage
         self.results = {
@@ -103,7 +103,7 @@ class ServiceConnectionValidator:
 
     async def validate_service_connection(self, service_name: str, service_config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate connection to a specific service"""
-        logger.info(f"🔍 Validating {service_name} service connection...")
+        logger.info(f"Validating {service_name} service connection...")
         
         # Get service URL based on environment
         service_url = service_config.get(self.environment, service_config.get("local"))
@@ -132,11 +132,11 @@ class ServiceConnectionValidator:
             if health_result["success"]:
                 result["status"] = "healthy"
                 self.results["summary"]["healthy_services"] += 1
-                logger.info(f"✅ {service_name} health check passed")
+                logger.info(f"{service_name} health check passed")
             else:
                 result["status"] = "unhealthy"
                 self.results["summary"]["failed_services"] += 1
-                logger.warning(f"⚠️ {service_name} health check failed")
+                logger.warning(f"{service_name} health check failed")
             
             # Test additional endpoints
             for endpoint in service_config["test_endpoints"]:
@@ -167,7 +167,7 @@ class ServiceConnectionValidator:
             result["status"] = "error"
             result["errors"].append(f"Connection validation failed: {str(e)}")
             self.results["summary"]["failed_services"] += 1
-            logger.error(f"❌ {service_name} validation failed: {e}")
+            logger.error(f"{service_name} validation failed: {e}")
         
         return result
 
@@ -193,7 +193,7 @@ class ServiceConnectionValidator:
             headers = {}
             
             # Add authentication for protected endpoints
-            if self.api_key and ("/v1/" in endpoint or endpoint in ["/match", "/workflows"]):
+            if self.api_key and ("/v1/" in endpoint or endpoint in ["/match", "/workflows", "/test-db"]):
                 headers["Authorization"] = f"Bearer {self.api_key}"
             
             async with httpx.AsyncClient(timeout=30) as client:
@@ -223,7 +223,7 @@ class ServiceConnectionValidator:
 
     async def test_service_routing(self) -> Dict[str, Any]:
         """Test routing between services"""
-        logger.info("🔄 Testing service routing and integration...")
+        logger.info("Testing service routing and integration...")
         
         routing_results = {
             "gateway_to_agent": {},
@@ -249,9 +249,9 @@ class ServiceConnectionValidator:
                 routing_results["gateway_to_agent"] = routing_test
                 
                 if routing_test["success"]:
-                    logger.info("✅ Gateway to Agent routing working")
+                    logger.info("Gateway to Agent routing working")
                 else:
-                    logger.warning("⚠️ Gateway to Agent routing issues detected")
+                    logger.warning("Gateway to Agent routing issues detected")
                     routing_results["routing_errors"].append("Gateway to Agent routing failed")
             
             # Test Gateway to LangGraph routing
@@ -270,19 +270,19 @@ class ServiceConnectionValidator:
                 routing_results["gateway_to_langgraph"] = routing_test
                 
                 if routing_test["success"]:
-                    logger.info("✅ Gateway to LangGraph routing working")
+                    logger.info("Gateway to LangGraph routing working")
                 else:
-                    logger.info("ℹ️ Gateway to LangGraph routing not configured (expected)")
+                    logger.info("Gateway to LangGraph routing not configured (expected)")
             
         except Exception as e:
             routing_results["routing_errors"].append(f"Routing test failed: {str(e)}")
-            logger.error(f"❌ Routing test failed: {e}")
+            logger.error(f"Routing test failed: {e}")
         
         return routing_results
 
     async def test_database_connections(self) -> Dict[str, Any]:
         """Test database connectivity through services"""
-        logger.info("🗄️ Testing database connections...")
+        logger.info("Testing database connections...")
         
         db_results = {
             "gateway_db": {},
@@ -304,9 +304,9 @@ class ServiceConnectionValidator:
                 db_results["gateway_db"] = db_test
                 
                 if db_test["success"]:
-                    logger.info("✅ Gateway database connection working")
+                    logger.info("Gateway database connection working")
                 else:
-                    logger.warning("⚠️ Gateway database connection issues")
+                    logger.warning("Gateway database connection issues")
                     db_results["database_errors"].append("Gateway database connection failed")
             
             # Test Agent database connection
@@ -322,20 +322,20 @@ class ServiceConnectionValidator:
                 db_results["agent_db"] = db_test
                 
                 if db_test["success"]:
-                    logger.info("✅ Agent database connection working")
+                    logger.info("Agent database connection working")
                 else:
-                    logger.warning("⚠️ Agent database connection issues")
+                    logger.warning("Agent database connection issues")
                     db_results["database_errors"].append("Agent database connection failed")
                     
         except Exception as e:
             db_results["database_errors"].append(f"Database test failed: {str(e)}")
-            logger.error(f"❌ Database test failed: {e}")
+            logger.error(f"Database test failed: {e}")
         
         return db_results
 
     async def validate_all_connections(self) -> Dict[str, Any]:
         """Run comprehensive validation of all service connections"""
-        logger.info("🚀 Starting comprehensive service connection validation...")
+        logger.info("Starting comprehensive service connection validation...")
         
         # Validate each service
         for service_name, service_config in self.services.items():
@@ -354,7 +354,7 @@ class ServiceConnectionValidator:
             max(self.results["summary"]["total_endpoints"], 1) * 100
         )
         
-        logger.info("✅ Comprehensive validation completed")
+        logger.info("Comprehensive validation completed")
         return self.results
 
     def generate_report(self) -> str:
@@ -466,12 +466,12 @@ class ServiceConnectionValidator:
             filename = f"service_validation_{timestamp}.json"
         
         try:
-            with open(filename, 'w', encoding='utf-8') as f:
+            with open(filename, 'w', encoding='utf-8', errors='replace') as f:
                 json.dump(self.results, f, indent=2, default=str)
             
-            logger.info(f"📄 Results saved to {filename}")
+            logger.info(f"Results saved to {filename}")
         except Exception as e:
-            logger.error(f"❌ Failed to save results: {e}")
+            logger.error(f"Failed to save results: {e}")
 
 async def main():
     """Main function to run service connection validation"""
@@ -489,10 +489,10 @@ async def main():
         await validator.save_results()
         
         # Save report
-        with open("service_validation_report.txt", "w", encoding="utf-8") as f:
+        with open("service_validation_report.txt", "w", encoding="utf-8", errors="replace") as f:
             f.write(report)
         
-        logger.info("📄 Report saved to service_validation_report.txt")
+        logger.info("Report saved to service_validation_report.txt")
         
         # Return exit code based on results
         if results["summary"]["failed_services"] == 0:

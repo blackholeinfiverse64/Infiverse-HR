@@ -6,8 +6,10 @@ Final verification that Gateway → LangGraph integration is fixed
 import sys
 import os
 
-# Set up environment
-os.environ['DATABASE_URL'] = 'postgresql://test:test@localhost:5432/test'
+# Set up environment for MongoDB
+os.environ['DATABASE_URL'] = 'mongodb://localhost:27017/bhiv_hr'
+os.environ['MONGODB_URI'] = 'mongodb://localhost:27017/bhiv_hr'
+os.environ['MONGODB_DB_NAME'] = 'bhiv_hr'
 os.environ['API_KEY_SECRET'] = 'test_api_key_12345'
 os.environ['JWT_SECRET'] = 'test_jwt_secret_12345'
 os.environ['CANDIDATE_JWT_SECRET'] = 'test_candidate_jwt_12345'
