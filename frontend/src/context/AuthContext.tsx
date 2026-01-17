@@ -59,12 +59,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await authService.login(email, password);
       
       if (result.success && result.token && result.user) {
-        // Store the JWT token and user data
-        localStorage.setItem('auth_token', result.token);
-        localStorage.setItem('user_data', JSON.stringify(result.user));
-        
-        // Set the user in state
-        setUser(result.user);
+        // Extract role from JWT token (token contains role in payload)
+        try {
+          const payload = JSON.parse(atob(result.token.split('.')[1]));
+          const role = payload.role || result.user.role || 'candidate';
+          
+          // Store the JWT token and user data
+          localStorage.setItem('auth_token', result.token);
+          localStorage.setItem('user_data', JSON.stringify(result.user));
+          localStorage.setItem('user_role', role);  // Store role from token
+          localStorage.setItem('user_email', result.user.email || email);
+          localStorage.setItem('user_name', result.user.name || '');
+          localStorage.setItem('isAuthenticated', 'true');
+          
+          // Update user object with role
+          const userWithRole = { ...result.user, role };
+          setUser(userWithRole);
+        } catch (tokenError) {
+          // If token parsing fails, use role from user object or default
+          const role = result.user.role || 'candidate';
+          localStorage.setItem('auth_token', result.token);
+          localStorage.setItem('user_data', JSON.stringify(result.user));
+          localStorage.setItem('user_role', role);
+          setUser(result.user);
+        }
         
         // Set the auth token in axios defaults
         const axios = (await import('axios')).default;
