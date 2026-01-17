@@ -3,8 +3,27 @@ from typing import Dict, Any
 import httpx
 import os
 import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# CRITICAL: Set up paths BEFORE importing dependencies
+# Render's Root Directory is: backend/services/gateway
+# __file__ is at: backend/services/gateway/routes/rl_routes.py
+gateway_dir = os.path.dirname(os.path.dirname(__file__))
+gateway_dir = os.path.abspath(gateway_dir)  # Make absolute for Render deployment
+
+# Ensure shared directory is accessible BEFORE importing dependencies
+# shared is at: backend/services/shared (sibling to gateway)
+# When Render root is backend/services/gateway, we need to go up one level
+services_dir = os.path.dirname(gateway_dir)
+shared_dir = os.path.abspath(os.path.join(services_dir, 'shared'))
+
+# Add paths in correct order (shared must come first so jwt_auth can be found)
+if shared_dir not in sys.path and os.path.exists(shared_dir):
+    sys.path.insert(0, shared_dir)
+
+if gateway_dir not in sys.path:
+    sys.path.insert(0, gateway_dir)
+
+# Now dependencies can be imported safely (it will import jwt_auth from shared)
 from dependencies import get_api_key
 
 router = APIRouter(prefix="/rl", tags=["RL + Feedback Agent"])

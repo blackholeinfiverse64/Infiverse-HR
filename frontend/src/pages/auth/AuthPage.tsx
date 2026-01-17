@@ -72,7 +72,7 @@ export default function AuthPage() {
     }
   }
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, userRole } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,6 +108,8 @@ export default function AuthPage() {
         const { error } = await signUp(formData.email, formData.password, {
           name: formData.fullName,
           role: selectedRole,
+          company: formData.company || undefined,
+          phone: formData.phone || undefined
         })
         
         if (error) {
@@ -126,14 +128,13 @@ export default function AuthPage() {
           return
         }
         
-        // Set role in localStorage
-        localStorage.setItem('user_role', selectedRole)
-        localStorage.setItem('user_email', formData.email)
-        localStorage.setItem('user_name', formData.fullName)
+        // Role is already stored by AuthContext - just verify
+        const storedRole = localStorage.getItem('user_role') || selectedRole
         
-        toast.success(`Account created successfully as ${roleConfig[selectedRole].title}!`)
+        console.log('✅ Signup successful! Role:', storedRole, 'Redirecting to:', roleConfig[storedRole as UserRole]?.redirectPath)
+        toast.success(`Account created successfully as ${roleConfig[storedRole as UserRole]?.title || selectedRole}!`)
         setIsLoading(false)
-        navigate(roleConfig[selectedRole].redirectPath)
+        navigate(roleConfig[storedRole as UserRole]?.redirectPath || roleConfig[selectedRole].redirectPath)
       } else {
         // LOGIN: Authenticate and redirect based on user's role
         const { error } = await signIn(formData.email, formData.password)
@@ -144,13 +145,23 @@ export default function AuthPage() {
           return
         }
         
-        // Get user's role from localStorage
-        const userRole: UserRole = localStorage.getItem('user_role') as UserRole || 'candidate'
+        // Get user's role from JWT token (stored by AuthContext during login)
+        // AuthContext extracts role from token and stores it in localStorage
+        const roleFromStorage = localStorage.getItem('user_role') as UserRole
+        const roleFromContext = userRole as UserRole
         
-        console.log('🚀 Login: Redirecting to:', roleConfig[userRole].redirectPath)
-        toast.success(`Login successful as ${roleConfig[userRole].title}!`)
+        // Use role from context (from JWT token) or localStorage, then default to candidate
+        const finalRole: UserRole = (roleFromContext || roleFromStorage || 'candidate') as UserRole
+        
+        // Ensure role is valid (must be one of the three roles)
+        const validRole: UserRole = (['candidate', 'recruiter', 'client'].includes(finalRole) 
+          ? finalRole 
+          : 'candidate') as UserRole
+        
+        console.log('🚀 Login: User role from token:', validRole, 'Redirecting to:', roleConfig[validRole].redirectPath)
+        toast.success(`Login successful as ${roleConfig[validRole].title}!`)
         setIsLoading(false)
-        navigate(roleConfig[userRole].redirectPath)
+        navigate(roleConfig[validRole].redirectPath)
       }
     } catch (err: any) {
       toast.error(err.message || 'An error occurred')

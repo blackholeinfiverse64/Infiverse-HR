@@ -82,7 +82,7 @@ export default function JobSearch() {
       // Ensure we have a backend candidate ID before applying
       let actualCandidateId = localStorage.getItem('backend_candidate_id')
       if (user && !actualCandidateId) {
-        actualCandidateId = await getOrCreateBackendCandidateId(user)
+        actualCandidateId = await getOrCreateBackendCandidateId()
         if (!actualCandidateId) {
           toast.error('Please complete your profile setup before applying')
           setApplying(null)
