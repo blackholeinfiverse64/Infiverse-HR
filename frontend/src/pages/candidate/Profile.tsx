@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
+import { useLocation } from 'react-router-dom'
 import { updateCandidateProfile, getCandidateProfile } from '../../services/api'
 import FormInput from '../../components/FormInput'
 import { useAuth } from '../../context/AuthContext'
 
 export default function CandidateProfile() {
   const { user } = useAuth()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -23,19 +25,7 @@ export default function CandidateProfile() {
     resume: null as File | null,
   })
 
-  useEffect(() => {
-    // Get backend candidate ID (integer) for API calls
-    const backendCandidateId = localStorage.getItem('backend_candidate_id')
-    const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id')
-    console.log('Profile: Using candidate ID:', candidateId, '(backend_id:', backendCandidateId, ')')
-    if (candidateId) {
-      loadProfile(candidateId)
-    } else {
-      setProfileLoading(false)
-    }
-  }, [user])
-
-  const loadProfile = async (candidateId: string) => {
+  const loadProfile = useCallback(async (candidateId: string) => {
     try {
       setProfileLoading(true)
       console.log('Profile: Loading profile for candidate:', candidateId)
@@ -55,13 +45,59 @@ export default function CandidateProfile() {
           expectedSalary: data.expectedSalary?.toString() || '',
           resume: null,
         })
+      } else {
+        // If no data returned, clear saved profile
+        setSavedProfile(null)
       }
     } catch (error) {
       console.error('Failed to load profile:', error)
+      // Don't clear savedProfile on error, keep existing data
     } finally {
       setProfileLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    // Get backend candidate ID (integer) for API calls
+    const backendCandidateId = localStorage.getItem('backend_candidate_id')
+    const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id')
+    console.log('Profile: Using candidate ID:', candidateId, '(backend_id:', backendCandidateId, ')')
+    if (candidateId) {
+      loadProfile(candidateId)
+    } else {
+      setProfileLoading(false)
+    }
+  }, [user, location.pathname, loadProfile]) // Reload when route changes or user changes
+
+  // Reload profile when tab becomes visible or window gets focus (user switches back)
+  useEffect(() => {
+    const reloadProfile = () => {
+      const backendCandidateId = localStorage.getItem('backend_candidate_id')
+      const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id')
+      if (candidateId && !isEditing) {
+        console.log('Profile: Reloading profile...')
+        loadProfile(candidateId)
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        reloadProfile()
+      }
+    }
+
+    const handleFocus = () => {
+      reloadProfile()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [user, isEditing, loadProfile])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -115,25 +151,19 @@ export default function CandidateProfile() {
       const response = await updateCandidateProfile(candidateId, cleanedData)
       console.log('Profile Update: Response:', response)
       
-      toast.success('Profile updated successfully!')
-      
-      // Update savedProfile with both frontend display names and backend field names
-      setSavedProfile({
-        ...savedProfile,
-        name: formData.name,
-        phone: formData.phone,
-        location: formData.location,
-        technical_skills: formData.skills,
-        experience_years: formData.totalExperience ? parseInt(formData.totalExperience) : 0,
-        education_level: formData.educationLevel,
-        // Also keep frontend field names for display compatibility
-        skills: formData.skills,
-        totalExperience: formData.totalExperience ? parseInt(formData.totalExperience) : 0,
-        educationLevel: formData.educationLevel,
-        resumeFileName: resumeFileName || savedProfile?.resumeFileName,
-      })
-      
-      setIsEditing(false)
+      // Check if update was successful
+      if (response?.success !== false && !response?.error) {
+        toast.success('Profile updated successfully!')
+        
+        // Reload profile from backend to ensure we have the latest data
+        console.log('Profile: Reloading profile from backend after update...')
+        await loadProfile(candidateId)
+        
+        setIsEditing(false)
+      } else {
+        // Update failed on backend
+        throw new Error(response?.error || 'Profile update failed')
+      }
     } catch (error: any) {
       console.error('Error updating candidate profile:', error)
       
