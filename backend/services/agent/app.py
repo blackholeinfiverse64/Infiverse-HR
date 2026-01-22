@@ -235,7 +235,7 @@ def test_database(auth = Depends(auth_dependency)):
         logger.error(f"Database test failed: {e}")
         return {"status": "failed", "error": str(e)}
 
-@app.post("/match", response_model=MatchResponse, tags=["AI Matching Engine"], summary="AI-Powered Candidate Matching")
+@app.post("/match", tags=["AI Matching Engine"], summary="AI-Powered Candidate Matching")
 async def match_candidates(request: MatchRequest, auth = Depends(auth_dependency)):
     """Phase 3 AI-powered candidate matching"""
     start_time = datetime.now()
