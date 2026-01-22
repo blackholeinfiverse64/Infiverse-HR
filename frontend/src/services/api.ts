@@ -333,9 +333,14 @@ export const applyForJob = async (jobId: string, candidateId: string, resumeUrl?
 
 export const getCandidateApplications = async (candidateId: string): Promise<Application[]> => {
   try {
+    console.log('Fetching applications for candidate_id:', candidateId)
     const response = await api.get(`/v1/candidate/applications/${candidateId}`)
-    return response.data.applications || response.data || []
+    console.log('Applications API response:', response.data)
+    const applications = response.data.applications || response.data || []
+    console.log('Parsed applications:', applications)
+    return applications
   } catch (error: any) {
+    console.error('Error fetching applications:', error)
     // Handle 401 (authentication error)
     if (error?.response?.status === 401) {
       console.warn('Authentication failed when fetching applications. Token may be expired.')
@@ -355,9 +360,9 @@ export const getCandidateApplications = async (candidateId: string): Promise<App
     }
     // Handle 404 (no applications found)
     if (error?.response?.status === 404) {
+      console.log('No applications found (404)')
       return []
     }
-    console.error('Error fetching applications:', error)
     return []
   }
 }

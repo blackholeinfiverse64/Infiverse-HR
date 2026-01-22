@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { getCandidateApplications, type Application } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -18,9 +18,30 @@ export default function AppliedJobs() {
 
   useEffect(() => {
     loadApplications()
-  }, [backendCandidateId])
+  }, [loadApplications])
 
-  const loadApplications = async () => {
+  // Reload applications when component becomes visible or tab is focused
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadApplications()
+      }
+    }
+
+    const handleFocus = () => {
+      loadApplications()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [loadApplications])
+
+  const loadApplications = useCallback(async () => {
     // Check authentication first
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || !!user
     
@@ -30,8 +51,11 @@ export default function AppliedJobs() {
       return
     }
 
+    // Get the latest backend_candidate_id from localStorage
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    
     // If authenticated but no candidate ID, show empty state
-    if (!backendCandidateId) {
+    if (!currentBackendId) {
       setApplications([])
       setLoading(false)
       return
@@ -39,16 +63,18 @@ export default function AppliedJobs() {
 
     try {
       setLoading(true)
+      console.log('Loading applications for candidate:', currentBackendId)
       // Use backend_candidate_id for applications
-      const data = await getCandidateApplications(backendCandidateId)
-      setApplications(data)
+      const data = await getCandidateApplications(currentBackendId)
+      console.log('Loaded applications:', data)
+      setApplications(data || [])
     } catch (error) {
       console.error('Failed to load applications:', error)
       setApplications([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { color: string; label: string }> = {

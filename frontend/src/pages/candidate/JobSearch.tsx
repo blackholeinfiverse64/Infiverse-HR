@@ -30,10 +30,17 @@ export default function JobSearch() {
   }, [backendCandidateId])
 
   const fetchAppliedJobs = async () => {
-    if (!backendCandidateId) return
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    if (!currentBackendId) {
+      console.log('No backend_candidate_id found, skipping fetch')
+      return
+    }
     try {
-      const applications = await getCandidateApplications(backendCandidateId)
+      console.log('Fetching applied jobs for candidate:', currentBackendId)
+      const applications = await getCandidateApplications(currentBackendId)
+      console.log('Fetched applications:', applications)
       const appliedIds = new Set(applications.map(app => app.job_id))
+      console.log('Applied job IDs:', Array.from(appliedIds))
       setAppliedJobIds(appliedIds)
     } catch (error) {
       console.error('Error fetching applied jobs:', error)
@@ -101,12 +108,25 @@ export default function JobSearch() {
         }
       }
       
-      await applyForJob(job.id, actualCandidateId)
-      toast.success(`Successfully applied for ${job.title}!`)
+      console.log('Applying for job:', job.id, 'with candidate_id:', actualCandidateId)
+      const response = await applyForJob(job.id, actualCandidateId)
+      console.log('Apply response:', response)
       
-      // Add to applied jobs immediately
-      setAppliedJobIds(prev => new Set([...prev, job.id]))
-      setSelectedJob(null)
+      // Check if application was successful
+      if (response?.success !== false && !response?.error) {
+        toast.success(`Successfully applied for ${job.title}!`)
+        
+        // Add to applied jobs immediately
+        setAppliedJobIds(prev => new Set([...prev, job.id]))
+        setSelectedJob(null)
+        
+        // Refresh applied jobs list after a short delay to ensure backend has processed
+        setTimeout(() => {
+          fetchAppliedJobs()
+        }, 500)
+      } else {
+        throw new Error(response?.error || 'Failed to apply for job')
+      }
     } catch (error: any) {
       console.error('Error applying for job:', error)
       

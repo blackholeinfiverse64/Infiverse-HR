@@ -2342,25 +2342,49 @@ async def apply_for_job(application: JobApplication, auth = Depends(get_auth)):
     try:
         db = await get_mongo_db()
         
-        # Check if already applied
-        existing = await db.job_applications.find_one({
-            "candidate_id": application.candidate_id,
-            "job_id": application.job_id
-        })
+        # Normalize candidate_id to string for consistency
+        candidate_id_str = str(application.candidate_id)
+        job_id_str = str(application.job_id)
+        
+        print(f"Applying for job - candidate_id: {candidate_id_str}, job_id: {job_id_str}")
+        
+        # Check if already applied - try multiple formats
+        existing = None
+        try:
+            # Try string match first
+            existing = await db.job_applications.find_one({
+                "candidate_id": candidate_id_str,
+                "job_id": job_id_str
+            })
+            
+            # If not found, try ObjectId match
+            if not existing:
+                try:
+                    candidate_obj_id = ObjectId(candidate_id_str)
+                    existing = await db.job_applications.find_one({
+                        "candidate_id": str(candidate_obj_id),
+                        "job_id": job_id_str
+                    })
+                except:
+                    pass
+        except Exception as e:
+            print(f"Error checking existing application: {e}")
         
         if existing:
             return {"success": False, "error": "Already applied for this job"}
         
-        # Insert application
+        # Insert application with normalized IDs
         document = {
-            "candidate_id": application.candidate_id,
-            "job_id": application.job_id,
+            "candidate_id": candidate_id_str,  # Store as string for consistency
+            "job_id": job_id_str,
             "cover_letter": application.cover_letter,
             "status": "applied",
             "applied_date": datetime.now(timezone.utc)
         }
         result = await db.job_applications.insert_one(document)
         application_id = str(result.inserted_id)
+        
+        print(f"Application inserted successfully - application_id: {application_id}")
         
         return {
             "success": True,
@@ -2376,14 +2400,38 @@ async def get_candidate_applications(candidate_id: str, auth = Depends(get_auth)
     try:
         db = await get_mongo_db()
         
-        # Use aggregation for JOIN-like query
-        pipeline = [
-            {"$match": {"candidate_id": candidate_id}},
-            {"$sort": {"applied_date": -1}}
-        ]
+        # Try multiple query strategies to find applications
+        applications_list = []
         
-        cursor = db.job_applications.aggregate(pipeline)
-        applications_list = await cursor.to_list(length=None)
+        # Strategy 1: Direct string match
+        try:
+            cursor = db.job_applications.find({"candidate_id": candidate_id}).sort("applied_date", -1)
+            applications_list = await cursor.to_list(length=None)
+            print(f"Found {len(applications_list)} applications with string match for candidate_id: {candidate_id}")
+        except Exception as e:
+            print(f"String match error: {e}")
+        
+        # Strategy 2: Try ObjectId conversion and match
+        if not applications_list:
+            try:
+                candidate_object_id = ObjectId(candidate_id)
+                # Try matching with ObjectId as string
+                cursor = db.job_applications.find({"candidate_id": str(candidate_object_id)}).sort("applied_date", -1)
+                applications_list = await cursor.to_list(length=None)
+                print(f"Found {len(applications_list)} applications with ObjectId string match")
+            except Exception as e:
+                print(f"ObjectId match error: {e}")
+        
+        # Strategy 3: Try all variations (for debugging)
+        if not applications_list:
+            # Get all applications and filter manually (fallback)
+            all_apps = await db.job_applications.find({}).to_list(length=100)
+            print(f"Total applications in DB: {len(all_apps)}")
+            for app in all_apps:
+                app_candidate_id = str(app.get("candidate_id", ""))
+                if app_candidate_id == candidate_id or app_candidate_id == str(candidate_id):
+                    applications_list.append(app)
+            print(f"Found {len(applications_list)} applications with manual filter")
         
         applications = []
         for doc in applications_list:
