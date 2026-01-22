@@ -35,7 +35,7 @@ BHIV HR PLATFORM/
 ### **Microservices Overview (112 Total Endpoints)**
 ```
 services/
-├── 🚪 gateway/           # API Gateway (81 endpoints) - Core API
+├── 🚪 gateway/           # API Gateway (77 endpoints) - Core API
 ├── 🤖 agent/             # AI Agent (6 endpoints) - ML/RL Engine
 ├── 🔄 langgraph/         # Automation (25 endpoints) - Workflow Engine
 ├── 🎯 portal/            # HR Portal (Docker only) - Streamlit UI (Reference)

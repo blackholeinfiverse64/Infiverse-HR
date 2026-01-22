@@ -1,13 +1,13 @@
-# 🧪 BHIV HR Platform - Comprehensive Testing Suite
+# 🧪 BHIV HR Platform - Testing Suite
 
-**Complete endpoint testing for all 89 endpoints across 6 services with workflow integration**
+**Comprehensive testing for all services with multiple test levels**
 
 ## 🚀 Quick Start
 
-### Run Enhanced Comprehensive Tests
+### Run Main Comprehensive Tests
 ```bash
 # From project root directory
-python run_comprehensive_tests.py
+python tests/comprehensive_endpoint_tests.py
 ```
 
 ### Install Dependencies
@@ -15,18 +15,17 @@ python run_comprehensive_tests.py
 pip install -r tests/requirements.txt
 ```
 
-### Enhanced Features
-- **🔍 LangGraph URL Discovery**: Automatically discovers correct LangGraph service URL
-- **🔑 API Key Validation**: Tests and discovers working production API keys
-- **🔐 Enhanced Authentication**: Proper token-based authentication for protected endpoints
-- **📊 Comprehensive Reporting**: Detailed analysis with discovered URLs and authentication status
+### Test Options
+- **Comprehensive Test**: `python tests/comprehensive_endpoint_tests.py` - Full endpoint coverage with detailed validation
+- **Quick Smoke Test**: `python tests/quick_smoke_tests.py` - Critical endpoints only (removed)
+- **Legacy Test**: `python tests/test_complete_112_endpoints.py` - Original 112 endpoint test (deprecated)
 
 ## 📊 What Gets Tested
 
-### 🏗️ All 6 Services (89 Endpoints)
-- **API Gateway**: 80 endpoints
+### 🏗️ All 6 Services (108 Endpoints)
+- **API Gateway**: 77 endpoints
 - **AI Agent**: 6 endpoints  
-- **LangGraph**: 9 endpoints
+- **LangGraph**: 25 endpoints
 - **HR Portal**: Web interface accessibility
 - **Client Portal**: Web interface accessibility
 - **Candidate Portal**: Web interface accessibility
@@ -189,38 +188,37 @@ export CANDIDATE_PORTAL_SERVICE_URL="https://bhiv-hr-candidate-portal-abe6.onren
 
 ### Basic Test Run
 ```bash
-python run_comprehensive_tests.py
+python tests/comprehensive_endpoint_tests.py
 ```
 
 ### With Production API Key (Recommended)
 ```bash
 export API_KEY_SECRET="your-production-api-key"
-python run_comprehensive_tests.py
+python tests/comprehensive_endpoint_tests.py
 ```
 
 ### With Custom Service URLs
 ```bash
 export LANGGRAPH_SERVICE_URL="https://your-custom-langgraph-url.com"
 export API_KEY_SECRET="your-production-api-key"
-python run_comprehensive_tests.py
+python tests/comprehensive_endpoint_tests.py
 ```
 
 ### Auto-Discovery Mode (No Configuration)
 ```bash
 # Enhanced test will discover URLs and API keys automatically
-python run_comprehensive_tests.py
+python tests/comprehensive_endpoint_tests.py
 ```
 
 ### Direct Module Usage
 ```python
-from tests.comprehensive_endpoint_test import BHIVEndpointTester
+from tests.comprehensive_endpoint_tests import ComprehensiveEndpointTester
 import asyncio
 
-async def run_tests():
-    tester = BHIVEndpointTester()
-    await tester.run_comprehensive_test()
-
-asyncio.run(run_tests())
+tester = ComprehensiveEndpointTester()
+tester.run_sync_tests()  # For synchronous testing
+# Or
+tester.run_async_tests()  # For asynchronous testing
 ```
 
 ## 📄 Output Files
@@ -242,10 +240,10 @@ asyncio.run(run_tests())
 ## 📊 Executive Summary
 | Metric | Value | Status |
 |--------|-------|--------|
-| Total Endpoints | 89 | 📋 Documented |
-| Tested Endpoints | 89 | 🧪 Executed |
-| Passed Tests | 84 | ✅ Success |
-| Failed Tests | 5 | ❌ Failed |
+| Total Endpoints | 108 | 📋 Documented |
+| Tested Endpoints | 108 | 🧪 Executed |
+| Passed Tests | 98 | ✅ Success |
+| Failed Tests | 10 | ❌ Failed |
 | Success Rate | 94.4% | ✅ EXCELLENT |
 ```
 

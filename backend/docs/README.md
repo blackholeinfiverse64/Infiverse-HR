@@ -121,7 +121,7 @@ System analysis and documentation updates.
 - **Connection**: Set `DATABASE_URL` in `.env`
 
 ### **Testing**
-- **Test Suite**: `tests/test_complete_112_endpoints.py`
+- **Test Suite**: `tests/comprehensive_endpoint_tests.py`
 - **Postman**: `handover/postman/postman_collection.json`
 - **Test Results**: `tests/test_results.json`
 

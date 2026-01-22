@@ -2,7 +2,7 @@
 
 **Updated**: January 16, 2026  
 **API Version**: v4.3.0 Production Ready  
-**Total Endpoints**: 112 (81 Gateway + 6 Agent + 25 LangGraph)  
+**Total Endpoints**: 108 (77 Gateway + 6 Agent + 25 LangGraph)  
 **Status**: ✅ 6/6 Services Operational | 112 Endpoints Live | 99.9% Uptime | MongoDB Atlas
 
 ---
@@ -15,7 +15,7 @@
 
 | Service | URL | Endpoints | Status |
 |---------|-----|-----------|--------|
-| **API Gateway** | http://localhost:8000/docs | 81 | ✅ Running |
+| **API Gateway** | http://localhost:8000/docs | 77 | ✅ Running |
 | **AI Engine** | http://localhost:9000/docs | 6 | ✅ Running |
 | **LangGraph Automation** | http://localhost:9001/docs | 25 | ✅ Running |
 | **HR Portal** | Docker only | UI | ✅ Reference |
@@ -93,7 +93,7 @@ Authorization: Bearer <candidate_jwt_token>
 
 ---
 
-## 🚀 Gateway Service API (80 Endpoints)
+## 🚀 Gateway Service API (77 Endpoints)
 
 **Base URL**: http://localhost:8000  
 **Authentication**: API Key (Bearer Token) + Unified Auth Management  
@@ -124,7 +124,7 @@ curl -X GET http://localhost:8000/
   "message": "BHIV HR Platform API Gateway",
   "version": "3.0.0",
   "status": "healthy",
-  "endpoints": 80,
+  "endpoints": 77,
   "documentation": "/docs",
   "monitoring": "/metrics",
   "live_demo": "http://localhost:8501"
@@ -853,13 +853,13 @@ curl https://bhiv-hr-portal-u670.onrender.com/health
 ## 📊 Complete Endpoint Summary (111 Total)
 
 ### **Service Distribution**
-- **Gateway Service**: 80 endpoints (Core API, Auth, Security, Workflows)
+- **Gateway Service**: 77 endpoints (Core API, Auth, Security, Workflows)
 - **AI Agent Service**: 6 endpoints (ML/RL Engine, Semantic Matching)
 - **LangGraph Service**: 25 endpoints (Workflow Automation, Notifications, RL Integration)
-- **Portal Services**: 6 endpoints (HR, Client, Candidate UI interfaces)
-- **Total**: 111 endpoints across 6 microservices
+- **Portal Services**: 0 endpoints (HR, Client, Candidate UI interfaces)
+- **Total**: 108 endpoints across 6 microservices
 
-### **Gateway Service Categories (80 Endpoints)
+### **Gateway Service Categories (77 Endpoints)
 - **Core API**: 3 endpoints (Root, Health, Test DB)
 - **Monitoring**: 3 endpoints (Metrics, Health Detail, Dashboard)
 - **Analytics**: 3 endpoints (Stats, Schema, Export)
@@ -1035,8 +1035,8 @@ fetch(`${BASE_URL}/v1/match/1/top`, { headers })
 
 ---
 
-**BHIV HR Platform API Documentation v3.0.0** - Complete reference with 111 endpoints, RL integration, and production-ready implementation.
+**BHIV HR Platform API Documentation v3.0.0** - Complete reference with 108 endpoints, RL integration, and production-ready implementation.
 
 *Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
 
-**Last Updated**: December 9, 2025 | **Total Endpoints**: 111 | **Status**: ✅ All Operational | **Uptime**: 99.9%
+**Last Updated**: January 22, 2026 | **Total Endpoints**: 108 | **Status**: ✅ All Operational | **Uptime**: 99.9%

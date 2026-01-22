@@ -1,4 +1,4 @@
-AGENT  ENDPOINTS:
+AGENT  ENDPOINTS: (6 total)
 
 
 

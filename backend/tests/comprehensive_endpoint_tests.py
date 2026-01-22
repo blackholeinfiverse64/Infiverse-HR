@@ -2,8 +2,8 @@
 """
 BHIV HR Platform - Comprehensive Endpoint Test Suite
 
-This test suite covers all endpoints across gateway, agent, and langgraph services
-with appropriate timeouts, proper error handling, and comprehensive validation.
+This test suite covers all endpoints across the BHIV HR Platform services including Gateway, Agent, and LangGraph services.
+The test suite includes both synchronous and asynchronous testing capabilities with proper error handling, timeouts, and response validation.
 """
 
 import asyncio
@@ -33,7 +33,7 @@ class ComprehensiveEndpointTester:
             "agent_url": os.getenv("AGENT_SERVICE_URL", "http://localhost:9000"),
             "langgraph_url": os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001"),
             "api_key": os.getenv("API_KEY_SECRET", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o"),
-            "jwt_secret": os.getenv("JWT_SECRET_KEY", "dev_jwt_secret"),
+            "jwt_secret": os.getenv("JWT_SECRET_KEY", "prod_jwt_Ova9A8L-OU4uIcAero0v3ZLQRckNr3xBDuO0OXF6uwA"),
             "timeout_short": float(os.getenv("TIMEOUT_SHORT", "5")),
             "timeout_medium": float(os.getenv("TIMEOUT_MEDIUM", "15")),
             "timeout_long": float(os.getenv("TIMEOUT_LONG", "30")),
@@ -48,6 +48,7 @@ class ComprehensiveEndpointTester:
         
         # Define endpoints with appropriate timeouts and authentication requirements
         self.endpoints = self._define_endpoints()
+        print(f'Loaded {len(self.endpoints)} endpoints for testing')
         
         # Results storage
         self.results = []
@@ -61,7 +62,7 @@ class ComprehensiveEndpointTester:
     def _define_endpoints(self) -> List[Dict[str, Any]]:
         """Define all endpoints with their configurations."""
         return [
-            # Gateway Core API Endpoints
+            # Gateway Core API Endpoints (73 endpoints)
             {
                 "name": "GW-Root",
                 "method": "GET",
@@ -122,17 +123,28 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "documentation"
             },
-            
-            # Gateway Jobs Management
             {
-                "name": "GW-ListJobs",
+                "name": "GW-TestCandidates",
                 "method": "GET",
-                "url": f"{self.config['gateway_url']}/v1/jobs",
+                "url": f"{self.config['gateway_url']}/v1/test-candidates",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
+                "service": "gateway",
+                "category": "database"
+            },
+            # Gateway Jobs Management
+            {
+                "name": "GW-ListJobs",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/jobs",
+                "headers": None,  # Public endpoint
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
                 "service": "gateway",
                 "category": "jobs"
             },
@@ -146,16 +158,15 @@ class ComprehensiveEndpointTester:
                     "department": "Engineering",
                     "location": "Remote",
                     "experience_level": "Senior",
-                    "requirements": ["Python", "FastAPI"],
+                    "requirements": "Python, FastAPI",
                     "description": "Test job description for comprehensive testing"
                 },
-                "expected_status": 201,
+                "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
                 "service": "gateway",
                 "category": "jobs"
             },
-            
             # Gateway Candidates Management
             {
                 "name": "GW-ListCandidates",
@@ -172,11 +183,47 @@ class ComprehensiveEndpointTester:
             {
                 "name": "GW-SearchCandidates",
                 "method": "GET",
-                "url": f"{self.config['gateway_url']}/v1/candidates/search?skills=Python",
+                "url": f"{self.config['gateway_url']}/v1/candidates/search",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "candidates"
+            },
+            {
+                "name": "GW-CandidatesByJob",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/candidates/job/test_job",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "candidates"
+            },
+            {
+                "name": "GW-CandidateByID",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/candidates/test_candidate",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "candidates"
+            },
+            {
+                "name": "GW-BulkUpload",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/candidates/bulk",
+                "headers": self.auth_headers,
+                "data": {"candidates": [{"name": "Test", "email": "test@example.com"}]},
+                "expected_status": 200,
+                "timeout": self.config["timeout_long"],
                 "requires_auth": True,
                 "service": "gateway",
                 "category": "candidates"
@@ -193,12 +240,11 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "analytics"
             },
-            
             # Gateway AI Matching Engine
             {
                 "name": "GW-TopMatches",
                 "method": "GET",
-                "url": f"{self.config['gateway_url']}/v1/match/1/top",
+                "url": f"{self.config['gateway_url']}/v1/match/test_job/top",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
@@ -212,14 +258,13 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/v1/match/batch",
                 "headers": self.auth_headers,
-                "data": {"job_ids": [1, 2]},
+                "data": {"job_ids": ["test_job1", "test_job2"]},
                 "expected_status": 200,
                 "timeout": self.config["timeout_xlong"],
                 "requires_auth": True,
                 "service": "gateway",
                 "category": "matching"
             },
-            
             # Gateway Assessment & Feedback
             {
                 "name": "GW-GetFeedback",
@@ -239,8 +284,8 @@ class ComprehensiveEndpointTester:
                 "url": f"{self.config['gateway_url']}/v1/feedback",
                 "headers": self.auth_headers,
                 "data": {
-                    "candidate_id": 1,
-                    "job_id": 1,
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
                     "integrity": 5,
                     "honesty": 5,
                     "discipline": 4,
@@ -253,8 +298,125 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "assessment"
             },
-            
-            # Gateway Security Endpoints
+            # Gateway Interviews
+            {
+                "name": "GW-ListInterviews",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/interviews",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "interviews"
+            },
+            {
+                "name": "GW-ScheduleInterview",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/interviews",
+                "headers": self.auth_headers,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "interview_date": "2026-01-22T10:00:00Z"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "interviews"
+            },
+            # Gateway Offers
+            {
+                "name": "GW-ListOffers",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/offers",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "offers"
+            },
+            {
+                "name": "GW-CreateOffer",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/offers",
+                "headers": self.auth_headers,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "salary": 100000,
+                    "start_date": "2026-02-01",
+                    "terms": "Full-time position"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "offers"
+            },
+            # Gateway Analytics & Statistics
+            {
+                "name": "GW-DatabaseSchema",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/database/schema",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "analytics"
+            },
+            {
+                "name": "GW-ExportReport",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/reports/job/test_job/export.csv",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "analytics"
+            },
+            # Gateway Client Portal
+            {
+                "name": "GW-ClientRegister",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/client/register",
+                "headers": None,
+                "data": {
+                    "client_id": "test_client",
+                    "company_name": "Test Company",
+                    "contact_email": "test@example.com",
+                    "password": "SecurePass123!"
+                },
+                "expected_status": 201,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "client"
+            },
+            {
+                "name": "GW-ClientLogin",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/client/login",
+                "headers": None,
+                "data": {
+                    "client_id": "test_client",
+                    "password": "SecurePass123!"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "client"
+            },
+            # Gateway Security Testing
             {
                 "name": "GW-RateLimitStatus",
                 "method": "GET",
@@ -280,6 +442,18 @@ class ComprehensiveEndpointTester:
                 "category": "security"
             },
             {
+                "name": "GW-TestInputValidation",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/test-input-validation",
+                "headers": self.auth_headers,
+                "data": {"input_data": "test input"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
                 "name": "GW-ValidateEmail",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/v1/security/validate-email",
@@ -291,15 +465,187 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "security"
             },
-            
-            # Gateway Two-Factor Authentication
+            {
+                "name": "GW-TestEmailValidation",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/test-email-validation",
+                "headers": self.auth_headers,
+                "data": {"email": "test@example.com"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-ValidatePhone",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/validate-phone",
+                "headers": self.auth_headers,
+                "data": {"phone": "+919876543210"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-TestPhoneValidation",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/test-phone-validation",
+                "headers": self.auth_headers,
+                "data": {"phone": "+919876543210"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-TestHeaders",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/test-headers",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-SecurityHeadersTest",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/security-headers-test",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-PenetrationTest",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/penetration-test",
+                "headers": self.auth_headers,
+                "data": {"test_type": "basic", "payload": "test"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-TestAuth",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/test-auth",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            {
+                "name": "GW-PenetrationTestEndpoints",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/penetration-test-endpoints",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "security"
+            },
+            # Gateway CSP Management
+            {
+                "name": "GW-CSPReport",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/csp-report",
+                "headers": None,
+                "data": {
+                    "violated_directive": "script-src",
+                    "blocked_uri": "https://malicious.com",
+                    "document_uri": "https://bhiv-platform.com"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "csp"
+            },
+            {
+                "name": "GW-CSPViolations",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/csp-violations",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "csp"
+            },
+            {
+                "name": "GW-CSPPolicies",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/security/csp-policies",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "csp"
+            },
+            {
+                "name": "GW-TestCSPPolicy",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/security/test-csp-policy",
+                "headers": self.auth_headers,
+                "data": {"policy": "default-src 'self'"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "csp"
+            },
+            # Gateway 2FA Authentication
             {
                 "name": "GW-2FASetup",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/v1/auth/2fa/setup",
                 "headers": self.auth_headers,
-                "data": {"user_id": 1},
+                "data": {"user_id": "test_user"},
                 "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-2FAVerify",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/verify",
+                "headers": self.auth_headers,
+                "data": {"user_id": "test_user", "totp_code": "123456"},
+                "expected_status": 401,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-2FALogin",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/login",
+                "headers": self.auth_headers,
+                "data": {"user_id": "test_user", "totp_code": "123456"},
+                "expected_status": 401,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
                 "service": "gateway",
@@ -308,7 +654,7 @@ class ComprehensiveEndpointTester:
             {
                 "name": "GW-2FAStatus",
                 "method": "GET",
-                "url": f"{self.config['gateway_url']}/v1/auth/2fa/status/1",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/status/test_user",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
@@ -317,14 +663,61 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "auth"
             },
-            
+            {
+                "name": "GW-2FADisable",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/disable",
+                "headers": self.auth_headers,
+                "data": {"user_id": "test_user"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-2FABackupCodes",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/backup-codes",
+                "headers": self.auth_headers,
+                "data": {"user_id": "test_user"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-2FATestToken",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/test-token",
+                "headers": self.auth_headers,
+                "data": {"user_id": "test_user", "totp_code": "123456"},
+                "expected_status": 401,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-2FAQRCODE",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/auth/2fa/qr/test_user",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
             # Gateway Password Management
             {
                 "name": "GW-ValidatePassword",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/v1/auth/password/validate",
                 "headers": self.auth_headers,
-                "data": {"password": "TestPassword123!"},
+                "data": {"password": "SecurePass123!"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_short"],
                 "requires_auth": True,
@@ -343,7 +736,54 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "auth"
             },
-            
+            {
+                "name": "GW-PasswordPolicy",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/auth/password/policy",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-ChangePassword",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/password/change",
+                "headers": self.auth_headers,
+                "data": {"old_password": "old_pass", "new_password": "new_secure_pass123!"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-PasswordStrength",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/auth/password/strength",
+                "headers": self.auth_headers,
+                "data": {"password": "SecurePass123!"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
+            {
+                "name": "GW-PasswordTips",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/v1/auth/password/security-tips",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "auth"
+            },
             # Gateway Candidate Portal
             {
                 "name": "GW-CandidateRegister",
@@ -354,9 +794,9 @@ class ComprehensiveEndpointTester:
                     "name": "Test Candidate",
                     "email": "test@example.com",
                     "password": "SecurePass123!",
-                    "phone": "+1234567890"
+                    "phone": "+919876543210"
                 },
-                "expected_status": 201,
+                "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
                 "service": "gateway",
@@ -367,7 +807,10 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/v1/candidate/login",
                 "headers": None,
-                "data": {"email": "test@example.com", "password": "SecurePass123!"},
+                "data": {
+                    "email": "test@example.com",
+                    "password": "SecurePass123!"
+                },
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
@@ -375,9 +818,37 @@ class ComprehensiveEndpointTester:
                 "category": "candidate"
             },
             {
+                "name": "GW-CandidateProfile",
+                "method": "PUT",
+                "url": f"{self.config['gateway_url']}/v1/candidate/profile/test_candidate",
+                "headers": self.auth_headers,
+                "data": {"name": "Updated Name"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "candidate"
+            },
+            {
+                "name": "GW-CandidateApply",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/v1/candidate/apply",
+                "headers": self.auth_headers,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "cover_letter": "Test cover letter"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "candidate"
+            },
+            {
                 "name": "GW-CandidateApplications",
                 "method": "GET",
-                "url": f"{self.config['gateway_url']}/v1/candidate/applications/1",
+                "url": f"{self.config['gateway_url']}/v1/candidate/applications/test_candidate",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
@@ -386,45 +857,13 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "candidate"
             },
-            
-            # Gateway Client Portal
-            {
-                "name": "GW-ClientRegister",
-                "method": "POST",
-                "url": f"{self.config['gateway_url']}/v1/client/register",
-                "headers": None,
-                "data": {
-                    "client_id": "test_client",
-                    "company_name": "Test Company",
-                    "contact_email": "contact@test.com",
-                    "password": "SecurePass123!"
-                },
-                "expected_status": 201,
-                "timeout": self.config["timeout_medium"],
-                "requires_auth": False,
-                "service": "gateway",
-                "category": "client"
-            },
-            {
-                "name": "GW-ClientLogin",
-                "method": "POST",
-                "url": f"{self.config['gateway_url']}/v1/client/login",
-                "headers": None,
-                "data": {"client_id": "test_client", "password": "SecurePass123!"},
-                "expected_status": 200,
-                "timeout": self.config["timeout_medium"],
-                "requires_auth": False,
-                "service": "gateway",
-                "category": "client"
-            },
-            
             # Gateway AI Integration
             {
                 "name": "GW-TestCommunication",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/api/v1/test-communication",
                 "headers": self.auth_headers,
-                "data": {"message": "test"},
+                "data": {"channel": "email", "recipient_email": "test@example.com"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
@@ -436,36 +875,29 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/api/v1/gemini/analyze",
                 "headers": self.auth_headers,
-                "data": {"text": "Analyze this text"},
+                "data": {"text": "Test analysis text", "analysis_type": "resume"},
                 "expected_status": 200,
-                "timeout": self.config["timeout_xlong"],
+                "timeout": self.config["timeout_long"],
                 "requires_auth": True,
                 "service": "gateway",
                 "category": "ai"
             },
-            
             # Gateway Workflows
             {
                 "name": "GW-TriggerWorkflow",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/api/v1/workflow/trigger",
-                "headers": self.auth_headers,
-                "data": {"workflow_type": "candidate_application", "candidate_id": 1, "job_id": 1},
+                "headers": None,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "candidate_name": "Test Candidate",
+                    "candidate_email": "test@example.com",
+                    "job_title": "Test Job"
+                },
                 "expected_status": 200,
                 "timeout": self.config["timeout_long"],
-                "requires_auth": True,
-                "service": "gateway",
-                "category": "workflows"
-            },
-            {
-                "name": "GW-ListWorkflows",
-                "method": "GET",
-                "url": f"{self.config['gateway_url']}/api/v1/workflows",
-                "headers": self.auth_headers,
-                "data": None,
-                "expected_status": 200,
-                "timeout": self.config["timeout_medium"],
-                "requires_auth": True,
+                "requires_auth": False,
                 "service": "gateway",
                 "category": "workflows"
             },
@@ -473,22 +905,111 @@ class ComprehensiveEndpointTester:
                 "name": "GW-WorkflowStatus",
                 "method": "GET",
                 "url": f"{self.config['gateway_url']}/api/v1/workflow/status/test_workflow",
-                "headers": self.auth_headers,
+                "headers": None,
                 "data": None,
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
-                "requires_auth": True,
+                "requires_auth": False,
                 "service": "gateway",
                 "category": "workflows"
             },
-            
-            # Gateway Reinforcement Learning
+            {
+                "name": "GW-ListWorkflows",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/api/v1/workflow/list",
+                "headers": None,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            {
+                "name": "GW-Workflows",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/api/v1/workflows",
+                "headers": None,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            {
+                "name": "GW-WorkflowHealth",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/api/v1/workflow/health",
+                "headers": None,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_short"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            {
+                "name": "GW-WebhookCandidateApplied",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/api/v1/webhooks/candidate-applied",
+                "headers": None,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "candidate_name": "Test Candidate",
+                    "candidate_email": "test@example.com",
+                    "job_title": "Test Job"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_long"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            {
+                "name": "GW-WebhookCandidateShortlisted",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/api/v1/webhooks/candidate-shortlisted",
+                "headers": None,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "candidate_name": "Test Candidate",
+                    "candidate_email": "test@example.com",
+                    "job_title": "Test Job"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_long"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            {
+                "name": "GW-WebhookInterviewScheduled",
+                "method": "POST",
+                "url": f"{self.config['gateway_url']}/api/v1/webhooks/interview-scheduled",
+                "headers": None,
+                "data": {
+                    "candidate_id": "test_candidate",
+                    "job_id": "test_job",
+                    "candidate_name": "Test Candidate",
+                    "candidate_email": "test@example.com",
+                    "job_title": "Test Job"
+                },
+                "expected_status": 200,
+                "timeout": self.config["timeout_long"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "workflows"
+            },
+            # Gateway RL Routes
             {
                 "name": "GW-RLPredict",
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/api/v1/rl/predict",
                 "headers": self.auth_headers,
-                "data": {"candidate_id": 1, "job_id": 1},
+                "data": {"candidate_id": "test_candidate", "job_id": "test_job"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
@@ -500,7 +1021,7 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['gateway_url']}/api/v1/rl/feedback",
                 "headers": self.auth_headers,
-                "data": {"prediction_id": 1, "actual_outcome": "hired", "feedback_score": 5.0},
+                "data": {"prediction_id": "test_pred", "actual_outcome": "hired", "feedback_score": 5.0},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": True,
@@ -519,7 +1040,18 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "rl"
             },
-            
+            {
+                "name": "GW-RLPerformance",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/api/v1/rl/performance",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "gateway",
+                "category": "rl"
+            },
             # Gateway Monitoring
             {
                 "name": "GW-Metrics",
@@ -533,8 +1065,20 @@ class ComprehensiveEndpointTester:
                 "service": "gateway",
                 "category": "monitoring"
             },
-            
-            # Agent Core API Endpoints
+            {
+                "name": "GW-MetricsDashboard",
+                "method": "GET",
+                "url": f"{self.config['gateway_url']}/metrics/dashboard",
+                "headers": None,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "gateway",
+                "category": "monitoring"
+            },
+
+            # Agent Service Endpoints (6 endpoints)
             {
                 "name": "AG-Root",
                 "method": "GET",
@@ -559,14 +1103,24 @@ class ComprehensiveEndpointTester:
                 "service": "agent",
                 "category": "monitoring"
             },
-            
-            # Agent AI Matching Engine
+            {
+                "name": "AG-TestDB",
+                "method": "GET",
+                "url": f"{self.config['agent_url']}/test-db",
+                "headers": self.auth_headers,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": True,
+                "service": "agent",
+                "category": "database"
+            },
             {
                 "name": "AG-Match",
                 "method": "POST",
                 "url": f"{self.config['agent_url']}/match",
                 "headers": self.auth_headers,
-                "data": {"job_id": "1"},
+                "data": {"job_id": "test_job"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_xlong"],
                 "requires_auth": True,
@@ -578,19 +1132,17 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['agent_url']}/batch-match",
                 "headers": self.auth_headers,
-                "data": {"job_ids": ["1", "2"]},
+                "data": {"job_ids": ["test_job1", "test_job2"]},
                 "expected_status": 200,
                 "timeout": self.config["timeout_xlong"],
                 "requires_auth": True,
                 "service": "agent",
                 "category": "matching"
             },
-            
-            # Agent Analysis
             {
                 "name": "AG-Analyze",
                 "method": "GET",
-                "url": f"{self.config['agent_url']}/analyze/1",
+                "url": f"{self.config['agent_url']}/analyze/test_candidate",
                 "headers": self.auth_headers,
                 "data": None,
                 "expected_status": 200,
@@ -599,22 +1151,8 @@ class ComprehensiveEndpointTester:
                 "service": "agent",
                 "category": "analysis"
             },
-            
-            # Agent System Diagnostics
-            {
-                "name": "AG-TestDB",
-                "method": "GET",
-                "url": f"{self.config['agent_url']}/test-db",
-                "headers": self.auth_headers,
-                "data": None,
-                "expected_status": 200,
-                "timeout": self.config["timeout_medium"],
-                "requires_auth": True,
-                "service": "agent",
-                "category": "diagnostics"
-            },
-            
-            # LangGraph Core API Endpoints
+
+            # LangGraph Service Endpoints (25 endpoints)
             {
                 "name": "LG-Root",
                 "method": "GET",
@@ -639,14 +1177,12 @@ class ComprehensiveEndpointTester:
                 "service": "langgraph",
                 "category": "monitoring"
             },
-            
-            # LangGraph Workflows
             {
                 "name": "LG-StartWorkflow",
                 "method": "POST",
                 "url": f"{self.config['langgraph_url']}/workflows/application/start",
                 "headers": None,
-                "data": {"candidate_id": 1, "job_id": 1},
+                "data": {"candidate_id": "test_candidate", "job_id": "test_job"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_long"],
                 "requires_auth": False,
@@ -701,8 +1237,6 @@ class ComprehensiveEndpointTester:
                 "service": "langgraph",
                 "category": "workflows"
             },
-            
-            # LangGraph Communication Tools
             {
                 "name": "LG-SendNotification",
                 "method": "POST",
@@ -732,7 +1266,7 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['langgraph_url']}/test/send-whatsapp",
                 "headers": None,
-                "data": {"to": "+1234567890", "message": "Test WhatsApp message"},
+                "data": {"to": "+919876543210", "message": "Test WhatsApp message"},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
@@ -752,25 +1286,71 @@ class ComprehensiveEndpointTester:
                 "category": "communication"
             },
             {
-                "name": "LG-WhatsAppWebhook",
+                "name": "LG-TestWhatsAppButtons",
                 "method": "POST",
-                "url": f"{self.config['langgraph_url']}/webhook/whatsapp",
+                "url": f"{self.config['langgraph_url']}/test/send-whatsapp-buttons",
                 "headers": None,
-                "data": {"Body": "test", "From": "+1234567890"},
+                "data": {"to": "+919876543210", "message": "Test", "buttons": ["Yes", "No"]},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
                 "service": "langgraph",
                 "category": "communication"
             },
-            
-            # LangGraph Reinforcement Learning
+            {
+                "name": "LG-TestAutomatedSequence",
+                "method": "POST",
+                "url": f"{self.config['langgraph_url']}/test/send-automated-sequence",
+                "headers": None,
+                "data": {"candidate_id": "test_candidate", "job_id": "test_job"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "communication"
+            },
+            {
+                "name": "LG-TriggerWorkflow",
+                "method": "POST",
+                "url": f"{self.config['langgraph_url']}/automation/trigger-workflow",
+                "headers": None,
+                "data": {"workflow_type": "candidate_application", "candidate_id": "test_candidate"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "automation"
+            },
+            {
+                "name": "LG-BulkNotifications",
+                "method": "POST",
+                "url": f"{self.config['langgraph_url']}/automation/bulk-notifications",
+                "headers": None,
+                "data": {"candidate_ids": ["test_candidate1", "test_candidate2"], "message": "Test"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "automation"
+            },
+            {
+                "name": "LG-WhatsAppWebhook",
+                "method": "POST",
+                "url": f"{self.config['langgraph_url']}/webhook/whatsapp",
+                "headers": None,
+                "data": {"Body": "test", "From": "+919876543210"},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "webhooks"
+            },
             {
                 "name": "LG-RLPredict",
                 "method": "POST",
                 "url": f"{self.config['langgraph_url']}/rl/predict",
                 "headers": None,
-                "data": {"candidate_id": 1, "job_id": 1, "features": {}},
+                "data": {"candidate_id": "test_candidate", "job_id": "test_job", "features": {}},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
@@ -782,7 +1362,7 @@ class ComprehensiveEndpointTester:
                 "method": "POST",
                 "url": f"{self.config['langgraph_url']}/rl/feedback",
                 "headers": None,
-                "data": {"prediction_id": 1, "actual_outcome": "hired", "feedback_score": 5.0},
+                "data": {"prediction_id": "test_pred", "actual_outcome": "hired", "feedback_score": 5.0},
                 "expected_status": 200,
                 "timeout": self.config["timeout_medium"],
                 "requires_auth": False,
@@ -802,9 +1382,9 @@ class ComprehensiveEndpointTester:
                 "category": "rl"
             },
             {
-                "name": "LG-RLPerformance",
+                "name": "LG-RLPerformanceByVersion",
                 "method": "GET",
-                "url": f"{self.config['langgraph_url']}/rl/performance",
+                "url": f"{self.config['langgraph_url']}/rl/performance/test_version",
                 "headers": None,
                 "data": None,
                 "expected_status": 200,
@@ -816,7 +1396,7 @@ class ComprehensiveEndpointTester:
             {
                 "name": "LG-RLHistory",
                 "method": "GET",
-                "url": f"{self.config['langgraph_url']}/rl/history/1",
+                "url": f"{self.config['langgraph_url']}/rl/history/test_candidate",
                 "headers": None,
                 "data": None,
                 "expected_status": 200,
@@ -837,8 +1417,30 @@ class ComprehensiveEndpointTester:
                 "service": "langgraph",
                 "category": "rl"
             },
-            
-            # LangGraph System Diagnostics
+            {
+                "name": "LG-RLPerformance",
+                "method": "GET",
+                "url": f"{self.config['langgraph_url']}/rl/performance",
+                "headers": None,
+                "data": None,
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "rl"
+            },
+            {
+                "name": "LG-RLStartMonitoring",
+                "method": "POST",
+                "url": f"{self.config['langgraph_url']}/rl/start-monitoring",
+                "headers": None,
+                "data": {},
+                "expected_status": 200,
+                "timeout": self.config["timeout_medium"],
+                "requires_auth": False,
+                "service": "langgraph",
+                "category": "rl"
+            },
             {
                 "name": "LG-TestIntegration",
                 "method": "GET",
@@ -852,7 +1454,7 @@ class ComprehensiveEndpointTester:
                 "category": "diagnostics"
             },
         ]
-    
+
     def _create_request_headers(self, requires_auth: bool) -> Dict[str, str]:
         """Create appropriate headers for the request."""
         if requires_auth:

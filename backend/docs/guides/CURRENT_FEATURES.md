@@ -195,12 +195,12 @@ notifications          # Multi-channel notification log
 ## 🛠️ Complete API Reference (111 Endpoints)
 
 ### **Endpoint Distribution**
-- **Gateway Service**: 80 endpoints (Core API)
+- **Gateway Service**: 77 endpoints (Core API)
 - **AI Agent Service**: 6 endpoints (Matching Engine)
-- **LangGraph Service**: 9 endpoints (Workflow Automation)
-- **Portal Services**: 22 endpoints (UI Interfaces)
+- **LangGraph Service**: 25 endpoints (Workflow Automation)
+- **Portal Services**: 0 endpoints (UI Interfaces)
 
-### **API Gateway (80 Endpoints)**
+### **API Gateway (77 Endpoints)**
 
 ### **Candidate Management**
 ```bash
@@ -320,8 +320,8 @@ GET /v1/system/status              # Overall system status
 ### **Enterprise Project Architecture**
 ```
 BHIV HR PLATFORM/
-├── services/                    # 6 microservices (111 total endpoints)
-│   ├── gateway/                 # API Gateway (80 endpoints)
+├── services/                    # 6 microservices (108 total endpoints)
+│   ├── gateway/                 # API Gateway (77 endpoints)
 │   │   ├── app/                 # FastAPI application
 │   │   ├── routes/              # API route definitions
 │   │   ├── auth/                # Authentication middleware
@@ -330,7 +330,7 @@ BHIV HR PLATFORM/
 │   │   ├── semantic_engine/     # Phase 3 matching engine
 │   │   ├── rl_integration/      # Reinforcement learning
 │   │   └── models/              # ML model storage
-│   ├── langgraph/               # Workflow Automation (9 endpoints)
+│   ├── langgraph/               # Workflow Automation (25 endpoints)
 │   │   ├── app/                 # LangGraph application
 │   │   ├── workflows/           # Automation workflows
 │   │   ├── tools/               # Communication tools
@@ -383,7 +383,7 @@ BHIV HR PLATFORM/
 ## 🧪 Testing & Validation
 
 ### **Comprehensive Test Coverage**
-- **112 Endpoints**: 100% tested and functional (81 Gateway + 6 Agent + 25 LangGraph)
+- **108 Endpoints**: 100% tested and functional (77 Gateway + 6 Agent + 25 LangGraph)
 - **Security Tests**: Triple authentication, input validation, security headers
 - **Integration Tests**: Cross-service communication and data flow
 - **Performance Tests**: Load testing, stress testing, and scalability
@@ -447,8 +447,8 @@ GET /v1/reports/summary            # Comprehensive system summary
 ## 🚀 Latest Updates (December 2025)
 
 ### **System Enhancements**
-- ✅ **Endpoint Expansion**: Increased from 89 to 111 total endpoints
-- ✅ **Portal Enhancement**: Added 22 dedicated portal endpoints for improved UI functionality
+- ✅ **Endpoint Expansion**: Increased from 89 to 108 total endpoints
+- ✅ **Portal Enhancement**: Streamlined portal functionality with improved UI accessibility
 - ✅ **Performance Optimization**: Improved API response times by 15%
 - ✅ **Monitoring Enhancement**: Advanced real-time monitoring and analytics
 - ✅ **Documentation Update**: Complete system documentation refresh
@@ -516,6 +516,6 @@ GET /v1/reports/summary            # Comprehensive system summary
 
 *Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
 
-**Status**: ✅ Production Ready | **Services**: 6/6 Live | **Endpoints**: 111 Total | **Uptime**: 99.95% | **Cost**: $0/month
+**Status**: ✅ Production Ready | **Services**: 6/6 Live | **Endpoints**: 108 Total | **Uptime**: 99.95% | **Cost**: $0/month
 
 **Last Updated**: December 9, 2025 (Post-Enhancement)

@@ -11,7 +11,7 @@
 | **Platform Version** | v4.3.0 |
 | **Last Updated** | January 16, 2026 |
 | **Services** | 3 Microservices (Gateway, Agent, LangGraph) |
-| **Total Endpoints** | 112 |
+| **Total Endpoints** | 108 |
 | **Database** | MongoDB Atlas (fully migrated) |
 | **Security Rating** | A+ |
 | **Status** | ✅ Production Ready |
@@ -23,7 +23,7 @@
 | Service | URL | Endpoints | Status |
 |---------|-----|-----------|--------|
 | **Frontend (React)** | http://localhost:3000 | Web UI | ✅ Running |
-| **API Gateway** | http://localhost:8000/docs | 81 | ✅ Running |
+| **API Gateway** | http://localhost:8000/docs | 77 | ✅ Running |
 | **AI Agent** | http://localhost:9000/docs | 6 | ✅ Running |
 | **LangGraph** | http://localhost:9001/docs | 25 | ✅ Running |
 
@@ -391,7 +391,7 @@ backend/
 ## 🔧 Services Architecture
 
 ### 1. API Gateway (Port 8000)
-**Main API entry point with 81 endpoints**
+**Main API entry point with 77 endpoints**
 
 **Key Features:**
 - Job management
@@ -491,7 +491,7 @@ TELEGRAM_BOT_TOKEN_SECRET_KEY=<your-telegram-token>
 ### Run Complete Test Suite
 ```bash
 cd tests
-python test_complete_112_endpoints.py
+python comprehensive_endpoint_tests.py
 ```
 
 ### Test Individual Services
@@ -627,7 +627,7 @@ curl http://localhost:8000/metrics/dashboard
 
 2. **Test Changes**
    ```bash
-   python tests/test_complete_112_endpoints.py
+   python tests/comprehensive_endpoint_tests.py
    ```
 
 3. **Restart Services**
@@ -646,7 +646,7 @@ curl http://localhost:8000/metrics/dashboard
 - **PostgreSQL:** Legacy reference in `services/db/`, not in use (historical only)
 - **Ishan's Folder:** Integration reference, completed, not active
 - **Runtime Core:** Legacy reference, not active
-- **Total Endpoints:** 112 (80 Gateway + 6 Agent + 26 LangGraph)
+- **Total Endpoints**: 108 (77 Gateway + 6 Agent + 25 LangGraph)
 
 ---
 

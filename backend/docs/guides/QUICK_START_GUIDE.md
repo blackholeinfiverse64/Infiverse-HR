@@ -353,7 +353,7 @@ docker-compose -f docker-compose.production.yml down  # Docker
 ### **Testing Commands**
 ```bash
 # Run Complete Test Suite (112 endpoints)
-python tests/test_complete_112_endpoints.py
+python tests/comprehensive_endpoint_tests.py
 
 # Test Individual Services
 curl http://localhost:8000/health

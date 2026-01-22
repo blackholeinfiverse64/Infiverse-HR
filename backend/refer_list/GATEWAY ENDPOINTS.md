@@ -1,4 +1,4 @@
-GATEWAY ENDPOINTS:
+GATEWAY ENDPOINTS: (77 total)
 
 
 **AI Integration:-**
