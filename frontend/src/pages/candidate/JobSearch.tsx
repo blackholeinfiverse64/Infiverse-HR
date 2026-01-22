@@ -81,16 +81,27 @@ export default function JobSearch() {
     try {
       // Ensure we have a backend candidate ID before applying
       let actualCandidateId = localStorage.getItem('backend_candidate_id')
-      if (user && !actualCandidateId) {
+      
+      if (!actualCandidateId) {
+        // Try to get or create backend candidate ID
         actualCandidateId = await getOrCreateBackendCandidateId()
+        
         if (!actualCandidateId) {
-          toast.error('Please complete your profile setup before applying')
+          // If still no candidate ID, redirect to profile
+          toast.error('Please complete your profile setup before applying for jobs', {
+            duration: 4000,
+            icon: '⚠️',
+          })
+          // Optionally navigate to profile page
+          setTimeout(() => {
+            window.location.href = '/candidate/profile'
+          }, 2000)
           setApplying(null)
           return
         }
       }
       
-      await applyForJob(job.id, actualCandidateId || candidateId)
+      await applyForJob(job.id, actualCandidateId)
       toast.success(`Successfully applied for ${job.title}!`)
       
       // Add to applied jobs immediately
@@ -98,7 +109,20 @@ export default function JobSearch() {
       setSelectedJob(null)
     } catch (error: any) {
       console.error('Error applying for job:', error)
-      toast.error(error?.message || 'Failed to apply for job')
+      
+      // Provide more specific error messages
+      if (error?.response?.status === 422) {
+        toast.error('Please complete your profile setup before applying. Redirecting to profile...', {
+          duration: 4000,
+        })
+        setTimeout(() => {
+          window.location.href = '/candidate/profile'
+        }, 2000)
+      } else if (error?.response?.status === 401) {
+        toast.error('Please login again to apply for jobs')
+      } else {
+        toast.error(error?.message || 'Failed to apply for job. Please try again.')
+      }
     } finally {
       setApplying(null)
     }

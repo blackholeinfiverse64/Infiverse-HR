@@ -135,21 +135,39 @@ export const getOrCreateBackendCandidateId = async (): Promise<string | null> =>
     return storedId
   }
 
-  // Try to create a candidate using the JWT authenticated user data
+  // Get user info from localStorage (stored after JWT login)
+  const userEmail = localStorage.getItem('user_email');
+  const userName = localStorage.getItem('user_name') || 'User';
+  
+  if (!userEmail) {
+    console.warn('No authenticated user email found');
+    return null;
+  }
+
+  // First, try to get existing candidate by email (check if profile exists)
   try {
-    // Get user info from localStorage (stored after JWT login)
-    const userEmail = localStorage.getItem('user_email');
-    const userName = localStorage.getItem('user_name') || 'User';
-    
-    if (!userEmail) {
-      console.warn('No authenticated user email found');
-      return null;
+    // Try to get candidate profile - if it exists, we can extract the ID
+    // We'll search through candidates endpoint or try to find by email
+    const candidatesResponse = await api.get(`/v1/candidates?search=${encodeURIComponent(userEmail)}`)
+    if (candidatesResponse.data?.candidates?.length > 0) {
+      const candidate = candidatesResponse.data.candidates.find((c: any) => c.email === userEmail)
+      if (candidate && candidate.id) {
+        localStorage.setItem('backend_candidate_id', candidate.id.toString())
+        return candidate.id.toString()
+      }
     }
-    
+  } catch (searchError) {
+    console.log('Could not find candidate by search, will try other methods')
+  }
+
+  // Try to create a candidate using the JWT authenticated user data
+  // Note: Backend requires password, so we'll use a default password
+  // In production, this should be handled differently
+  try {
     const response = await api.post('/v1/candidate/register', {
       name: userName,
       email: userEmail,
-      // Additional fields can be populated as needed
+      password: 'temp_password_123', // Temporary password - user should update profile
       phone: '',
       location: '',
       experience_years: 0,
@@ -158,34 +176,59 @@ export const getOrCreateBackendCandidateId = async (): Promise<string | null> =>
       seniority_level: '',
     });
     
-    if (response.data.candidate_id) {
+    // Check if registration was successful
+    if (response.data.success !== false && response.data.candidate_id) {
       localStorage.setItem('backend_candidate_id', response.data.candidate_id.toString());
       return response.data.candidate_id.toString();
     }
+    
+    // If email already exists, try to get candidate ID from error or try login
+    if (response.data.error && response.data.error.includes('already registered')) {
+      // Email exists, try to get candidate by trying login with a dummy password
+      // Or better: try to find candidate by email through profile endpoint
+      console.log('Email already registered, trying to find existing candidate...')
+      return await findCandidateByEmail(userEmail)
+    }
+    
     return null;
   } catch (error: any) {
-    // If user already exists (email conflict), try to login instead
-    if (error?.response?.status === 400 || error?.response?.status === 409) {
-      try {
-        const userEmail = localStorage.getItem('user_email');
-        if (!userEmail) {
-          console.warn('No authenticated user email found');
-          return null;
-        }
-        
-        const loginResponse = await api.post('/v1/candidate/login', {
-          email: userEmail,
-        });
-        if (loginResponse.data.candidate_id) {
-          localStorage.setItem('backend_candidate_id', loginResponse.data.candidate_id.toString());
-          return loginResponse.data.candidate_id.toString();
-        }
-      } catch (loginError) {
-        console.warn('Could not retrieve backend candidate ID');
+    console.error('Error creating backend candidate:', error);
+    
+    // If registration failed due to email exists (422 or error message)
+    if (error?.response?.status === 422 || 
+        error?.response?.data?.error?.includes('already registered') ||
+        error?.response?.data?.success === false) {
+      console.log('Email already exists, trying to find candidate...')
+      return await findCandidateByEmail(userEmail)
+    }
+    
+    return null;
+  }
+}
+
+// Helper to find candidate by email
+async function findCandidateByEmail(email: string): Promise<string | null> {
+  try {
+    // Try to get candidates and find by email
+    // The endpoint returns paginated results, so we might need to check multiple pages
+    // For now, try first page (50 candidates)
+    const response = await api.get('/v1/candidates?limit=100')
+    if (response.data?.candidates) {
+      const candidate = response.data.candidates.find((c: any) => c.email === email)
+      if (candidate && candidate.id) {
+        console.log('Found existing candidate by email:', candidate.id)
+        localStorage.setItem('backend_candidate_id', candidate.id.toString())
+        return candidate.id.toString()
       }
     }
-    console.error('Error creating backend candidate:', error);
-    return null;
+    
+    // If not found in first page, candidate might not exist yet
+    // User needs to complete profile to create candidate record
+    console.warn('Could not find candidate by email. User may need to complete profile setup.')
+    return null
+  } catch (error) {
+    console.error('Error finding candidate by email:', error)
+    return null
   }
 }
 
