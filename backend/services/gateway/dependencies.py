@@ -3,6 +3,11 @@ Gateway Authentication Dependencies
 Uses JWT tokens for user authentication
 """
 
+# Add current directory to path for local imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 # Re-export from local JWT auth module
 from jwt_auth import (
     security,
