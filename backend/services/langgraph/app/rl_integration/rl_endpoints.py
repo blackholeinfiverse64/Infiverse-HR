@@ -4,6 +4,12 @@ from typing import Dict, List, Optional
 from datetime import datetime
 import logging
 
+# Add parent directory to path for accessing dependencies from parent directory
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) 
+
+from dependencies import get_api_key
 from .decision_engine import DecisionEngine, EventTimeline
 # MongoDB migration: Using mongodb_adapter instead of postgres_adapter
 from .mongodb_adapter import mongodb_adapter as db_adapter
@@ -41,7 +47,7 @@ event_timeline = EventTimeline(db_adapter)
 router = APIRouter(prefix="/rl", tags=["RL + Feedback Agent"])
 
 @router.post("/predict", response_model=RLResponse)
-async def rl_predict_match(request: RLPredictionRequest):
+async def rl_predict_match(request: RLPredictionRequest, api_key: str = Depends(get_api_key)):
     """RL-Enhanced Candidate Matching Prediction"""
     try:
         # Get feedback history for RL enhancement
@@ -96,7 +102,7 @@ async def rl_predict_match(request: RLPredictionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/feedback", response_model=RLResponse)
-async def submit_rl_feedback(request: RLFeedbackRequest):
+async def submit_rl_feedback(request: RLFeedbackRequest, api_key: str = Depends(get_api_key)):
     """Submit Feedback for RL Learning"""
     try:
         # Calculate reward signal
@@ -137,7 +143,7 @@ async def submit_rl_feedback(request: RLFeedbackRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/analytics", response_model=RLResponse)
-async def get_rl_analytics():
+async def get_rl_analytics(api_key: str = Depends(get_api_key)):
     """Get RL System Analytics and Performance Metrics"""
     try:
         # Get database analytics
@@ -161,7 +167,7 @@ async def get_rl_analytics():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/performance/{model_version}")
-async def get_rl_performance(model_version: str = "v1.0.0"):
+async def get_rl_performance(model_version: str = "v1.0.0", api_key: str = Depends(get_api_key)):
     """Get RL Model Performance Metrics"""
     try:
         analytics = db_adapter.get_rl_analytics()
@@ -184,7 +190,7 @@ async def get_rl_performance(model_version: str = "v1.0.0"):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history/{candidate_id}")
-async def get_candidate_rl_history(candidate_id: int):
+async def get_candidate_rl_history(candidate_id: int, api_key: str = Depends(get_api_key)):
     """Get RL Decision History for Candidate"""
     try:
         history = db_adapter.get_candidate_rl_history(candidate_id)
