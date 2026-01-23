@@ -4,6 +4,11 @@ import httpx
 import os
 import sys
 
+# Add parent directory to path for accessing dependencies from parent directory
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 # Now dependencies can be imported safely (using local jwt_auth from dependencies)
 from dependencies import get_api_key
 

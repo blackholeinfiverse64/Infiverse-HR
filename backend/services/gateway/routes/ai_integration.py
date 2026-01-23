@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict
 import httpx
 import os
+import sys
+
+# Add parent directory to path for accessing dependencies from parent directory
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from dependencies import get_api_key
 
 from pydantic import BaseModel
