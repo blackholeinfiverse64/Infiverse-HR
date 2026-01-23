@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 import httpx
-import os
 import sys
+import os
 
 # Add parent directory to path for accessing dependencies from parent directory
-import sys
-import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Now dependencies can be imported safely (using local jwt_auth from dependencies)

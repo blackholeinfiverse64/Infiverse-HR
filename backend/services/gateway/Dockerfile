@@ -12,6 +12,7 @@ COPY langgraph_integration.py ./
 COPY monitoring.py ./
 COPY config.py ./
 COPY dependencies.py ./
+COPY jwt_auth.py ./
 COPY routes/ ./routes/
 
 # Expose port
