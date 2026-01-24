@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  sar-runtime:
+    build: .
+    container_name: sar-runtime
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
+      - API_KEY_SECRET=your-api-key-secret
+      - AUDIT_LOGGING_ENABLED=true
+      - AUDIT_STORAGE_BACKEND=file
+      - TENANT_ISOLATION_ENABLED=true
+      - WORKFLOW_STORAGE_BACKEND=memory
+      - DATABASE_URL=postgresql://user:password@db:5432/sar_db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./audit_logs:/app/audit_logs
+      - ./config:/app/config
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - sar-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: sar-postgres
+    environment:
+      - POSTGRES_DB=sar_db
+      - POSTGRES_USER=sar_user
+      - POSTGRES_PASSWORD=sar_password
+    volumes:
+      - sar_db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - sar-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: sar-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - sar_redis_data:/data
+    restart: unless-stopped
+    networks:
+      - sar-network
+
+volumes:
+  sar_db_data:
+  sar_redis_data:
+
+networks:
+  sar-network:
+    driver: bridge

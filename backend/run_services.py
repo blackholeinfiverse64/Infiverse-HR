@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+"""
+BHIV HR Platform - Backend Services Launcher (No Docker Required)
+==================================================================
+This script starts all backend services locally without Docker.
+
+Services:
+  - Gateway:   Port 8000 (Main API)
+  - Agent:     Port 9000 (AI Matching)
+  - LangGraph: Port 9001 (Workflow Automation)
+
+Usage:
+  python run_services.py           # Start all services
+  python run_services.py gateway   # Start only gateway
+  python run_services.py agent     # Start only agent
+  python run_services.py langgraph # Start only langgraph
+"""
+
+import subprocess
+import sys
+import os
+import time
+import signal
+from pathlib import Path
+
+# Service configurations
+SERVICES = {
+    "gateway": {
+        "name": "BHIV HR Gateway",
+        "port": 8000,
+        "dir": "services/gateway",
+        "command": ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+        "health_url": "http://localhost:8000/health"
+    },
+    "agent": {
+        "name": "BHIV HR Agent",
+        "port": 9000,
+        "dir": "services/agent",
+        "command": ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "9000", "--reload"],
+        "health_url": "http://localhost:9000/health"
+    },
+    "langgraph": {
+        "name": "BHIV HR LangGraph",
+        "port": 9001,
+        "dir": "services/langgraph",
+        "command": ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001", "--reload"],
+        "health_url": "http://localhost:9001/health"
+    }
+}
+
+# Environment variables for all services
+COMMON_ENV = {
+    "DATABASE_URL": "mongodb+srv://blackholeinfiverse56_db_user:Blackhole%40056@cluster0.gx7tlvm.mongodb.net/bhiv_hr?retryWrites=true&w=majority",
+    "API_KEY_SECRET": "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o",
+    "JWT_SECRET_KEY": "bhiv_jwt_secret_key_12345",
+    "CANDIDATE_JWT_SECRET_KEY": "bhiv_candidate_jwt_secret_key_12345",
+    "GATEWAY_SECRET_KEY": "bhiv_gateway_secret_key_12345",
+    "GATEWAY_SERVICE_URL": "http://localhost:8000",
+    "AGENT_SERVICE_URL": "http://localhost:9000",
+    "LANGGRAPH_SERVICE_URL": "http://localhost:9001",
+    "ENVIRONMENT": "development",
+    "LOG_LEVEL": "INFO",
+    "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", "AIzaSyC8vbb0qAgcFlHw6fA14Ta6Nr7zsG5ELIs"),
+    "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-pro"),
+}
+
+# Track running processes
+processes = []
+
+
+def get_backend_dir():
+    """Get the backend directory path."""
+    return Path(__file__).parent.resolve()
+
+
+def load_env_file():
+    """Load environment variables from .env file if exists."""
+    env_path = get_backend_dir() / ".env"
+    if env_path.exists():
+        print(f"📄 Loading environment from {env_path}")
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if value and not value.startswith("<"):
+                        COMMON_ENV[key] = value
+    return COMMON_ENV
+
+
+def check_port(port):
+    """Check if a port is available."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) != 0
+
+
+def start_service(name, service_config, env_vars):
+    """Start a single service."""
+    backend_dir = get_backend_dir()
+    service_dir = backend_dir / service_config["dir"]
+    
+    if not service_dir.exists():
+        print(f"❌ Service directory not found: {service_dir}")
+        return None
+    
+    port = service_config["port"]
+    if not check_port(port):
+        print(f"⚠️  Port {port} is already in use. {service_config['name']} may already be running.")
+        return None
+    
+    print(f"\n🚀 Starting {service_config['name']} on port {port}...")
+    print(f"   📁 Directory: {service_dir}")
+    print(f"   🔧 Command: {' '.join(service_config['command'])}")
+    
+    # Merge environment variables
+    service_env = os.environ.copy()
+    service_env.update(env_vars)
+    
+    # Start the process
+    try:
+        process = subprocess.Popen(
+            service_config["command"],
+            cwd=service_dir,
+            env=service_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+            universal_newlines=True,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+        )
+        print(f"   ✅ Started with PID: {process.pid}")
+        return process
+    except Exception as e:
+        print(f"   ❌ Failed to start: {e}")
+        return None
+
+
+def stream_output(process, name):
+    """Stream output from a process."""
+    try:
+        for line in iter(process.stdout.readline, ''):
+            if line:
+                print(f"[{name}] {line.rstrip()}")
+    except:
+        pass
+
+
+def stop_all_services():
+    """Stop all running services."""
+    print("\n\n🛑 Stopping all services...")
+    for process, name in processes:
+        try:
+            if os.name == 'nt':
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                process.terminate()
+            process.wait(timeout=5)
+            print(f"   ✅ Stopped {name}")
+        except Exception as e:
+            print(f"   ⚠️  Force killing {name}")
+            process.kill()
+    processes.clear()
+
+
+def signal_handler(sig, frame):
+    """Handle Ctrl+C."""
+    stop_all_services()
+    sys.exit(0)
+
+
+def check_health(url, timeout=30):
+    """Check service health."""
+    import urllib.request
+    import urllib.error
+    
+    print(f"   🔍 Checking health: {url}")
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        try:
+            response = urllib.request.urlopen(url, timeout=5)
+            if response.status == 200:
+                print(f"   ✅ Service is healthy!")
+                return True
+        except:
+            time.sleep(1)
+    
+    print(f"   ⚠️  Health check timeout after {timeout}s")
+    return False
+
+
+def main():
+    """Main entry point."""
+    print("=" * 60)
+    print("🏢 BHIV HR Platform - Backend Services Launcher")
+    print("=" * 60)
+    print(f"📂 Backend Directory: {get_backend_dir()}")
+    
+    # Parse arguments
+    services_to_start = sys.argv[1:] if len(sys.argv) > 1 else list(SERVICES.keys())
+    
+    # Validate service names
+    for svc in services_to_start:
+        if svc not in SERVICES:
+            print(f"❌ Unknown service: {svc}")
+            print(f"   Available: {', '.join(SERVICES.keys())}")
+            sys.exit(1)
+    
+    # Load environment
+    env_vars = load_env_file()
+    print(f"\n📋 Database: MongoDB Atlas (bhiv_hr)")
+    print(f"📋 Environment: {env_vars.get('ENVIRONMENT', 'development')}")
+    
+    # Register signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    if os.name == 'nt':
+        signal.signal(signal.SIGBREAK, signal_handler)
+    
+    # Start services
+    print(f"\n🎯 Starting services: {', '.join(services_to_start)}")
+    
+    for svc_name in services_to_start:
+        config = SERVICES[svc_name]
+        process = start_service(svc_name, config, env_vars)
+        if process:
+            processes.append((process, config["name"]))
+    
+    if not processes:
+        print("\n❌ No services started!")
+        sys.exit(1)
+    
+    # Wait a bit then check health
+    print("\n⏳ Waiting for services to initialize...")
+    time.sleep(3)
+    
+    for svc_name in services_to_start:
+        config = SERVICES[svc_name]
+        check_health(config["health_url"], timeout=30)
+    
+    # Print summary
+    print("\n" + "=" * 60)
+    print("✨ Services Running:")
+    for svc_name in services_to_start:
+        config = SERVICES[svc_name]
+        print(f"   • {config['name']}: http://localhost:{config['port']}")
+    print("=" * 60)
+    print("\n📌 Press Ctrl+C to stop all services\n")
+    
+    # Keep running and stream output
+    import threading
+    for process, name in processes:
+        thread = threading.Thread(target=stream_output, args=(process, name))
+        thread.daemon = True
+        thread.start()
+    
+    # Wait for processes
+    try:
+        while processes:
+            for process, name in processes[:]:
+                if process.poll() is not None:
+                    print(f"\n⚠️  {name} exited with code {process.returncode}")
+                    processes.remove((process, name))
+            time.sleep(1)
+    except KeyboardInterrupt:
+        stop_all_services()
+
+
+if __name__ == "__main__":
+    main()
