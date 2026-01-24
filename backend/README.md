@@ -347,44 +347,444 @@ Open your browser and navigate to: **http://localhost:3000**
 
 ---
 
-## 📁 Project Structure
+## 📁 Complete Project Structure
 
 ```
 backend/
-├── services/              # Microservices
-│   ├── gateway/          # API Gateway (Port 8000)
-│   ├── agent/            # AI Agent (Port 9000)
-│   ├── langgraph/        # Workflow Engine (Port 9001)
-│   ├── portal/           # HR Portal (Docker only)
-│   ├── client_portal/    # Client Portal (Docker only)
-│   ├── candidate_portal/ # Candidate Portal (Docker only)
-│   ├── db/               # Database schemas (PostgreSQL - legacy, not used)
-│   └── shared/           # Shared utilities
-├── docs/                 # Documentation
-│   ├── api/             # API documentation
-│   ├── architecture/    # System architecture
-│   ├── database/        # Database documentation
-│   ├── guides/          # User guides
-│   ├── security/        # Security documentation
-│   ├── testing/         # Testing guides
-│   ├── analysis/        # Analysis and updates
-│   └── reports/         # Reports and logs
-├── tests/               # Test suite
-├── tools/               # Utility scripts
-├── config/              # Configuration files
-├── assets/              # Static assets
-│   └── data/            # Data files
-│       └── candidates.csv
-├── handover/            # Handover documentation
-├── Ishan's_AI_HR_System-main/  # Integration reference (legacy, not active)
-├── runtime-core/        # Runtime core (legacy reference, not active)
-├── scripts/             # Build scripts
-├── validation/          # Validation scripts
-├── .env.example         # Environment template
-├── README.md            # This file
-├── requirements.txt     # Python dependencies
-└── run_services.py      # Service launcher
+├── .env.example                    # Example environment variables file
+├── .gitignore                     # Git ignore rules
+├── README.md                      # This file
+├── check_services.bat             # Windows batch script to check service status
+├── comprehensive_test_results.json # JSON file with comprehensive test results
+├── docker-compose.production.yml  # Production Docker Compose configuration
+├── requirements.txt               # Python dependencies
+├── run_services.py                # Main script to run all services
+├── run_test_simple.py             # Simple test runner script
+├── run_with_venv.bat             # Windows batch script to run with virtual environment
+├── seed_mongodb.py               # MongoDB seeding script
+├── setup_venv.bat                # Windows batch script to set up virtual environment
+├── test_mongodb_atlas.py         # MongoDB Atlas connection test script
+├── test_mongodb_setup.py         # MongoDB setup test script
+├── MONGODB_VERIFICATION_REPORT.md # MongoDB connection verification report
+├── __pycache__/                  # Python bytecode cache
+├── Ishan's_AI_HR_System-main/    # Ishan's AI HR system components
+│   ├── app/
+│   │   ├── agents/               # AI agent implementations
+│   │   ├── routers/              # API route definitions
+│   │   ├── utils/                # Utility functions and helpers
+│   │   ├── __init__.py
+│   │   ├── main.py               # Main application entry point
+│   │   └── models.py             # Data models
+│   ├── archive/                  # Archived components
+│   ├── dashboard/                # Dashboard components
+│   ├── docs/                     # Documentation
+│   ├── feedback/                 # Feedback processing components
+│   ├── scripts/                  # Utility scripts
+│   ├── tests/                    # Test suite
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── CLEANUP_SUMMARY.md        # Cleanup summary documentation
+│   ├── DEPLOYMENT_GUIDE.md       # Deployment guide
+│   ├── ENHANCEMENT_SUMMARY.md    # Enhancement summary
+│   ├── INTEGRATION_GUIDE.md      # Integration guide
+│   ├── ISSUES_FIXED_SUMMARY.md   # Issues fixed summary
+│   ├── README.md                 # Ishan's system README
+│   ├── ROBUSTNESS_REPORT.md      # Robustness report
+│   ├── ROBUSTNESS_REPORT_v2.md   # Robustness report v2
+│   ├── RUN_COMMANDS.md          # Run commands documentation
+│   ├── add_sample_data.py       # Sample data addition script
+│   ├── hr_intelligence_brain.py # HR intelligence brain implementation
+│   ├── requirements.txt         # Dependencies for Ishan's system
+│   ├── requirements_minimal.txt # Minimal dependencies for Ishan's system
+│   ├── run_dashboard.bat        # Dashboard run script
+│   ├── run_fastapi.py           # FastAPI run script
+│   ├── simple_test.py           # Simple test implementation
+│   ├── start_enhanced_system.py # Enhanced system startup
+│   ├── start_system.py          # System startup script
+│   ├── start_system_fixed.py    # Fixed system startup script
+│   ├── test_api.py              # API testing script
+│   └── test_robustness.py       # Robustness testing script
+├── Task/                         # Task documentation files
+│   ├── BHIV HR Demo Ready Task 9.md # Task 9 documentation
+│   ├── TAsk 8.md                # Task 8 documentation
+│   └── Task 7.md                # Task 7 documentation
+├── assets/                       # Asset files
+│   └── data/
+│       └── candidates.csv        # Sample candidate data
+├── docs/                         # Comprehensive documentation
+│   ├── README.md                 # Documentation overview
+│   ├── analysis/                 # Analysis documentation
+│   │   ├── CODE_QUALITY_ANALYSIS.md # Code quality analysis
+│   │   └── COMPREHENSIVE_CODEBASE_ANALYSIS.md # Comprehensive analysis
+│   ├── api/                      # API documentation
+│   │   └── API_CONTRACT.md       # API contract documentation
+│   ├── architecture/             # Architecture documentation
+│   │   ├── ARCHITECTURE.md       # Architecture overview
+│   │   ├── SERVICE_DEPENDENCY_GRAPH.md # Service dependency graph
+│   │   └── SYSTEM_ARCHITECTURE.md # System architecture
+│   ├── database/                 # Database documentation
+│   │   ├── DATABASE_DOCUMENTATION.md # Database documentation
+│   │   ├── DATABASE_SCHEMA.md    # Database schema
+│   │   ├── MONGODB_ATLAS_SETUP.md # MongoDB Atlas setup
+│   │   ├── MONGODB_COLLECTIONS.md # MongoDB collections
+│   │   └── POSTGRES_MIGRATION_PLAN.md # PostgreSQL migration plan
+│   ├── demo/                     # Demo documentation
+│   │   └── DEMO_SCOPE.md         # Demo scope definition
+│   ├── framework/                # Framework documentation
+│   │   └── BOUNDARY_DEFINITION.md # Boundary definition
+│   ├── guides/                   # Guides
+│   │   ├── AUTHENTICATION_FLOW.md # Authentication flow
+│   │   ├── BACKEND_INTEGRATION_GUIDE.md # Backend integration guide
+│   │   ├── CLIENT_PORTAL_API_GUIDE.md # Client portal API guide
+│   │   ├── CLOUD_DEPLOYMENT_GUIDE.md # Cloud deployment guide
+│   │   ├── CREATING_NEW_ENDPOINTS.md # Creating new endpoints
+│   │   ├── DEBUGGING_GUIDE.md   # Debugging guide
+│   │   ├── DEVELOPER_ONBOARDING.md # Developer onboarding
+│   │   ├── ENVIRONMENT_SETUP.md # Environment setup
+│   │   ├── FRONTEND_INTEGRATION_GUIDE.md # Frontend integration guide
+│   │   ├── GATEWAY_SERVICE_GUIDE.md # Gateway service guide
+│   │   ├── SERVICES_GUIDE.md    # Services guide
+│   │   ├── SSL_CERTIFICATE_SETUP.md # SSL certificate setup
+│   │   └── TROUBLESHOOTING_GUIDE.md # Troubleshooting guide
+│   ├── reports/                  # Reports
+│   │   ├── BUG_REPORTS.md       # Bug reports
+│   │   └── PERFORMANCE_REPORT.md # Performance report
+│   ├── security/                 # Security documentation
+│   │   ├── API_SECURITY.md       # API security
+│   │   ├── AUTHENTICATION_SECURITY.md # Authentication security
+│   │   ├── SECURITY_AUDIT.md     # Security audit
+│   │   └── SECURITY_IMPLEMENTATION.md # Security implementation
+│   ├── system/                   # System documentation
+│   │   └── CURRENT_REALITY.md    # Current reality assessment
+│   └── testing/                  # Testing documentation
+│       ├── COMPREHENSIVE_TESTING_STRATEGY.md # Comprehensive testing strategy
+│       ├── ENDPOINT_TESTING.md   # Endpoint testing
+│       └── TESTING_APPROACH.md   # Testing approach
+├── handover/                     # Handover documentation
+│   ├── README.md                 # Handover README
+│   ├── api_contract/             # API contract handover
+│   │   ├── AGENT_SERVICE_API_CONTRACT.md # Agent service API contract
+│   │   ├── GATEWAY_SERVICE_API_CONTRACT.md # Gateway service API contract
+│   │   ├── LANGGRAPH_SERVICE_API_CONTRACT.md # LangGraph service API contract
+│   │   ├── PORTAL_SERVICE_API_CONTRACT.md # Portal service API contract
+│   │   └── SERVICE_INTERACTION_API_CONTRACT.md # Service interaction API contract
+│   ├── architecture/             # Architecture handover
+│   │   └── ARCHITECTURE_OVERVIEW.md # Architecture overview
+│   ├── integration_maps/         # Integration maps
+│   │   └── SERVICE_INTEGRATION_MAPS.md # Service integration maps
+│   ├── issues/                   # Issues documentation
+│   │   └── ISSUES_LOG.md         # Issues log
+│   ├── postman/                  # Postman collections
+│   │   ├── Agent.postman_collection.json # Agent service Postman collection
+│   │   ├── Gateway.postman_collection.json # Gateway service Postman collection
+│   │   ├── LangGraph.postman_collection.json # LangGraph service Postman collection
+│   │   ├── Portal.postman_collection.json # Portal service Postman collection
+│   │   └── bhiv_hr_platform.postman_collection.json # Main Postman collection
+│   ├── FAQ.md                    # Frequently asked questions
+│   ├── HOW_TO_TEST.md            # Testing guide
+│   ├── ISOLATION_CHECKLIST.md    # Isolation checklist
+│   ├── KNOWN_GAPS.md             # Known gaps
+│   ├── POSTMAN_README.md         # Postman documentation
+│   ├── QA_CHECKLIST.md           # QA checklist
+│   ├── READ_THIS_FIRST.md        # Initial handover instructions
+│   ├── ROLE_MATRIX.md            # Role matrix
+│   ├── RUNBOOK.md                # Operations runbook
+│   ├── START_HERE.md             # Starting point documentation
+│   ├── SYSTEM_BEHAVIOR.md        # System behavior
+│   ├── TENANT_ASSUMPTIONS.md     # Tenant assumptions
+│   └── generate_totp.py          # TOTP generation utility
+├── refer_list/                   # Reference lists
+│   ├── AGENT  ENDPOINTS.md       # Agent service endpoints
+│   ├── GATEWAY ENDPOINTS.md      # Gateway service endpoints
+│   └── LANGGRAPH  ENDPOINTS.md   # LangGraph service endpoints
+├── runtime-core/                 # Sovereign Application Runtime framework
+│   ├── README.md                 # Runtime-core README
+│   ├── Dockerfile                # Docker configuration
+│   ├── EXECUTIVE_SUMMARY.md      # Executive summary
+│   ├── VALIDATION_REPORT.md      # Validation report
+│   ├── docker-compose.yml        # Docker Compose configuration
+│   ├── main.py                   # Main runtime entry point
+│   ├── requirements.txt          # Runtime dependencies
+│   ├── audit_logging/            # Audit logging module
+│   │   ├── README.md
+│   │   ├── audit_service.py     # Audit service implementation
+│   │   ├── integration.py       # Audit integration
+│   │   └── middleware.py        # Audit middleware
+│   ├── auth/                     # Authentication module
+│   │   ├── README.md
+│   │   ├── auth_service.py      # Authentication service
+│   │   └── router.py            # Authentication router
+│   ├── docs/                     # Runtime documentation
+│   │   ├── README.md
+│   │   ├── IMPLEMENTATION_GUIDE.md # Implementation guide
+│   │   └── OVERVIEW.md          # Overview documentation
+│   ├── framework/                # Framework components
+│   │   ├── README.md
+│   │   ├── framework.py         # Core framework
+│   │   └── registry.py          # Component registry
+│   ├── handover/                 # Runtime handover
+│   │   └── README.md
+│   ├── integration/              # Integration components
+│   │   ├── README.md
+│   │   └── integration_service.py # Integration service
+│   ├── role_enforcement/         # Role enforcement module
+│   │   ├── README.md
+│   │   ├── middleware.py        # Role enforcement middleware
+│   │   ├── rbac_service.py      # RBAC service
+│   │   ├── role_checker.py      # Role checker
+│   │   └── validators.py        # Validators
+│   ├── sovereign/                # Sovereign components
+│   │   └── README.md
+│   ├── tenancy/                  # Tenancy management
+│   │   ├── README.md
+│   │   ├── middleware.py        # Tenancy middleware
+│   │   ├── router.py            # Tenancy router
+│   │   └── tenant_service.py    # Tenant service
+│   ├── test/                     # Runtime tests
+│   │   ├── README.md
+│   │   ├── test_auth.py         # Authentication tests
+│   │   ├── test_audit_logging.py # Audit logging tests
+│   │   ├── test_role_enforcement.py # Role enforcement tests
+│   │   ├── test_sar_core.py     # SAR core tests
+│   │   ├── test_tenancy.py      # Tenancy tests
+│   │   └── test_utils.py        # Test utilities
+│   ├── test_suite/               # Test suite
+│   │   ├── README.md
+│   │   ├── sar_test_client.py   # SAR test client
+│   │   ├── sar_test_runner.py   # SAR test runner
+│   │   └── test_data_generator.py # Test data generator
+│   └── workflow/                 # Workflow module
+│       ├── README.md
+│       ├── state_machine.py     # State machine implementation
+│       ├── workflow_engine.py   # Workflow engine
+│       ├── workflow_executor.py # Workflow executor
+│       └── workflow_registry.py # Workflow registry
+├── scripts/                      # Utility scripts
+│   └── local-deploy.cmd          # Local deployment script
+├── services/                     # Main microservices
+│   ├── README.md                 # Services README
+│   ├── agent/                    # AI Agent Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── app.py               # Main application
+│   │   ├── database.py          # Database connection
+│   │   ├── requirements.txt     # Dependencies
+│   │   └── semantic_engine/     # Semantic engine components
+│   ├── candidate_portal/         # Candidate Portal Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── app.py               # Main application
+│   │   └── requirements.txt     # Dependencies
+│   ├── client_portal/            # Client Portal Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── app.py               # Main application
+│   │   └── requirements.txt     # Dependencies
+│   ├── db/                       # Database Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── consolidated_schema.sql # Database schema
+│   │   ├── docker-compose.yml   # Docker Compose
+│   │   └── requirements.txt     # Dependencies
+│   ├── gateway/                  # API Gateway Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── app/
+│   │   │   ├── __init__.py
+│   │   │   ├── database.py      # Database connection
+│   │   │   ├── db_helpers.py    # Database helpers
+│   │   │   ├── main.py          # Main application
+│   │   │   └── monitoring.py    # Monitoring utilities
+│   │   ├── config.py            # Configuration
+│   │   ├── docker-compose.yml   # Docker Compose
+│   │   ├── jwt_auth.py          # JWT authentication
+│   │   ├── langgraph_integration.py # LangGraph integration
+│   │   ├── monitoring.py        # Monitoring utilities
+│   │   ├── requirements.txt     # Dependencies
+│   │   └── routes/              # Route definitions
+│   ├── langgraph/                # LangGraph Service
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── app/
+│   │   │   ├── __init__.py
+│   │   │   ├── app.py           # Main application
+│   │   │   ├── communication/   # Communication components
+│   │   │   ├── config.py        # Configuration
+│   │   │   ├── database.py      # Database connection
+│   │   │   ├── mongodb_tracker.py # MongoDB tracker
+│   │   │   ├── rl_database.py   # RL database
+│   │   │   ├── rl_integration/  # RL integration components
+│   │   │   ├── semantic_matcher.py # Semantic matcher
+│   │   │   └── workflows/       # Workflow definitions
+│   │   ├── docker-compose.yml   # Docker Compose
+│   │   └── requirements.txt     # Dependencies
+│   └── portal/                   # Portal Service
+│       ├── Dockerfile
+│       ├── README.md
+│       ├── app.py               # Main application
+│       ├── docker-compose.yml   # Docker Compose
+│       └── requirements.txt     # Dependencies
+├── tests/                        # Comprehensive test suites
+│   ├── README.md                 # Tests README
+│   ├── agent/                    # Agent service tests
+│   ├── api/                      # API tests
+│   ├── database/                 # Database tests
+│   ├── deployment/               # Deployment tests
+│   ├── fixes/                    # Fix verification tests
+│   ├── gateway/                  # Gateway service tests
+│   ├── integration/              # Integration tests
+│   ├── langgraph/                # LangGraph service tests
+│   ├── misc/                     # Miscellaneous tests
+│   ├── portal/                   # Portal service tests
+│   ├── rl_integration/           # RL integration tests
+│   ├── security/                 # Security tests
+│   ├── validation/               # Validation tests
+│   ├── workflows/                # Workflow tests
+│   ├── comprehensive_endpoint_tests.py # Comprehensive endpoint tests
+│   ├── fix_postman_collection.py # Postman collection fixer
+│   └── requirements.txt          # Test dependencies
+├── tools/                        # Development tools
+│   ├── README.md                 # Tools README
+│   ├── analysis/                 # Analysis tools
+│   ├── data/                     # Data tools
+│   ├── database/                 # Database tools
+│   ├── fixes/                    # Fix tools
+│   ├── monitoring/               # Monitoring tools
+│   ├── portal/                   # Portal tools
+│   ├── security/                 # Security tools
+│   ├── utilities/                # Utility tools
+│   ├── requirements.txt          # Tool dependencies
+│   └── setup_advanced_tools.py   # Advanced tools setup
+├── validation/                   # Validation scripts
+│   └── scripts/
+│       ├── final_verification.py # Final verification script
+│       └── verify_auth_and_params.py # Auth and parameters verification
+└── venv/                         # Virtual environment (if exists)
+    └── ...                       # Python virtual environment files
 ```
+
+## 🏗️ Backend Architecture Overview
+
+The BHIV HR Platform backend follows a microservices architecture with a focus on AI-powered recruitment processes. Here's a comprehensive breakdown of each component:
+
+### Root Level Components
+
+- **`.env.example`**: Template containing all required environment variables with placeholder values for database connections, API keys, and service configurations.
+- **`.gitignore`**: Specifies files and Git should ignore, including environment files, cache directories, and local configuration files.
+- **`README.md`**: Main documentation file providing setup instructions, architecture overview, and usage guidelines.
+- **`check_services.bat`**: Windows batch script that verifies the health status of all running backend services.
+- **`comprehensive_test_results.json`**: JSON file containing results from comprehensive integration tests, useful for CI/CD pipelines.
+- **`docker-compose.production.yml`**: Production-ready Docker Compose configuration for deploying all services in a containerized environment.
+- **`requirements.txt`**: Lists all Python dependencies required for the backend services to run properly.
+- **`run_services.py`**: Main orchestration script that starts all backend services with proper configurations and inter-service communication.
+- **`run_test_simple.py`**: Lightweight test runner for basic functionality verification.
+- **`run_with_venv.bat`**: Windows batch script that activates the virtual environment and starts all services.
+- **`seed_mongodb.py`**: Script to populate MongoDB with initial sample data for demonstration and testing purposes.
+- **`setup_venv.bat`**: Windows batch script to create and configure a Python virtual environment with all required dependencies.
+- **`test_mongodb_atlas.py`**: Test script to verify connectivity and basic operations with MongoDB Atlas.
+- **`test_mongodb_setup.py`**: Comprehensive test suite for MongoDB connection and schema validation.
+- **`MONGODB_VERIFICATION_REPORT.md`**: Detailed report of MongoDB connection tests and performance metrics.
+- **`__pycache__`**: Automatically generated directory containing Python bytecode cache files.
+
+### Ishan's AI HR System Components
+
+Legacy integration components from the AI system developed by Ishan:
+
+- **`Ishan's_AI_HR_System-main/`**: Contains the original AI HR system with agents, routers, and utility functions that may still be referenced for AI logic.
+- **`app/agents/`**: AI agent implementations responsible for candidate matching and analysis.
+- **`app/routers/`**: API route definitions from the original AI system.
+- **`hr_intelligence_brain.py`**: Core AI logic for HR intelligence and decision-making.
+- **`start_system.py`**: Original startup script for the AI system.
+
+### Assets Directory
+
+- **`assets/data/candidates.csv`**: Sample candidate data file used for seeding and testing purposes.
+
+### Documentation Directory
+
+Comprehensive documentation system covering all aspects of the platform:
+
+- **`docs/analysis/`**: Code quality and comprehensive analysis reports.
+- **`docs/api/`**: API contract documentation with endpoint specifications.
+- **`docs/architecture/`**: System architecture diagrams, dependency graphs, and structural documentation.
+- **`docs/database/`**: Database schema documentation, MongoDB setup guides, and migration plans.
+- **`docs/demo/`**: Demo scope definitions and safe demo flow documentation.
+- **`docs/framework/`**: Boundary definitions for HR-specific vs reusable platform logic.
+- **`docs/guides/`**: Step-by-step guides for development, deployment, and troubleshooting.
+- **`docs/security/`**: Security implementation details, authentication flows, and audit requirements.
+- **`docs/system/`**: Current reality assessments and system status documentation.
+- **`docs/testing/`**: Comprehensive testing strategies and approach documentation.
+
+### Handover Documentation
+
+Critical operational documentation for system maintenance and transfer:
+
+- **`handover/api_contract/`**: Detailed API contracts for each microservice.
+- **`handover/postman/`**: Complete Postman collections for API testing and validation.
+- **`handover/RUNBOOK.md`**: Operational runbook with procedures for system maintenance.
+- **`handover/START_HERE.md`**: Starting point documentation for new team members.
+- **`handover/SYSTEM_BEHAVIOR.md`**: Detailed documentation of system behaviors and expected responses.
+
+### Runtime Core Framework
+
+The Sovereign Application Runtime (SAR) provides reusable framework components:
+
+- **`runtime-core/auth/`**: Authentication services with JWT and API key management.
+- **`runtime-core/tenancy/`**: Multi-tenancy management with tenant isolation capabilities.
+- **`runtime-core/role_enforcement/`**: Role-based access control and permission management.
+- **`runtime-core/audit_logging/`**: Comprehensive audit trail system for compliance and monitoring.
+- **`runtime-core/workflow/`**: Workflow automation engine for business process orchestration.
+- **`runtime-core/framework/`**: Core framework utilities and common components.
+
+### Services Directory
+
+Core microservices that power the HR platform:
+
+- **`services/gateway/`**: API Gateway service (port 8000) - Main entry point handling authentication, routing, and security.
+  - **`app/main.py`**: Main FastAPI application with all route definitions.
+  - **`jwt_auth.py`**: JWT authentication implementation with dual secret support.
+  - **`routes/`**: Individual route modules for different API domains.
+  - **`database.py`**: MongoDB connection and helper functions.
+
+- **`services/agent/`**: AI Agent service (port 9000) - Handles semantic matching and candidate analysis.
+  - **`semantic_engine/`**: Advanced semantic matching algorithms and NLP processing.
+  - **`app.py`**: AI agent main application with matching endpoints.
+
+- **`services/langgraph/`**: LangGraph service (port 9001) - Workflow automation and reinforcement learning.
+  - **`workflows/`**: Business process workflows with multi-channel communication.
+  - **`rl_integration/`**: Reinforcement learning components for adaptive behavior.
+  - **`communication/`**: Multi-channel notification system (Email, WhatsApp, Telegram).
+
+- **`services/db/`**: Database service configuration and schema definitions.
+  - **`consolidated_schema.sql`**: Database schema definitions (though MongoDB is primary).
+
+- **`services/portal/`**: General portal service for UI rendering.
+
+### Test Suite
+
+Comprehensive testing infrastructure covering all services:
+
+- **`tests/api/`**: API endpoint testing with comprehensive coverage.
+- **`tests/integration/`**: Service-to-service integration tests.
+- **`tests/security/`**: Security vulnerability and authentication tests.
+- **`tests/workflows/`**: Business process and workflow validation.
+- **`comprehensive_endpoint_tests.py`**: Complete end-to-end test suite for all endpoints.
+
+### Tools Directory
+
+Development and operational tools for various purposes:
+
+- **`tools/analysis/`**: Code analysis and quality assessment tools.
+- **`tools/database/`**: Database management and migration tools.
+- **`tools/security/`**: Security scanning and vulnerability assessment tools.
+- **`tools/utilities/`**: General-purpose utilities for development and maintenance.
+
+### Validation Scripts
+
+Pre-deployment validation scripts to ensure system integrity:
+
+- **`validation/scripts/final_verification.py`**: Final system verification before deployment.
+- **`validation/scripts/verify_auth_and_params.py`**: Authentication and parameter validation.
 
 ---
 
