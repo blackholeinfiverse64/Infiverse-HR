@@ -1140,9 +1140,16 @@ async def batch_match_jobs(
 
 # Assessment & Workflow (5 endpoints)
 @app.post("/v1/feedback", tags=["Assessment & Workflow"])
-async def submit_feedback(feedback: FeedbackSubmission, api_key: str = Depends(get_api_key)):
-    """Values Assessment"""
+async def submit_feedback(feedback: FeedbackSubmission, auth = Depends(get_auth)):
+    """Values Assessment (JWT authenticated)"""
     try:
+        # Verify the candidate_id matches the authenticated user (if using JWT token)
+        auth_info = auth
+        if auth_info.get("type") == "jwt_token" and auth_info.get("role") == "candidate":
+            token_candidate_id = str(auth_info.get("user_id", ""))
+            if token_candidate_id and token_candidate_id != str(feedback.candidate_id):
+                raise HTTPException(status_code=403, detail="You can only submit feedback for yourself")
+        
         db = await get_mongo_db()
         avg_score = (feedback.integrity + feedback.honesty + feedback.discipline + 
                     feedback.hard_work + feedback.gratitude) / 5
@@ -1186,13 +1193,24 @@ async def submit_feedback(feedback: FeedbackSubmission, api_key: str = Depends(g
         }
 
 @app.get("/v1/feedback", tags=["Assessment & Workflow"])
-async def get_all_feedback(api_key: str = Depends(get_api_key)):
-    """Get All Feedback Records"""
+async def get_all_feedback(candidate_id: Optional[str] = None, auth = Depends(get_auth)):
+    """Get All Feedback Records (supports filtering by candidate_id)"""
     try:
         db = await get_mongo_db()
         
+        # Build match filter - support candidate_id filtering
+        match_filter = {}
+        if candidate_id:
+            # If JWT auth, verify candidate_id matches authenticated user
+            if auth.get("type") == "jwt_token" and auth.get("role") == "candidate":
+                token_candidate_id = str(auth.get("user_id", ""))
+                if token_candidate_id and token_candidate_id != str(candidate_id):
+                    raise HTTPException(status_code=403, detail="You can only view your own feedback")
+            match_filter["candidate_id"] = candidate_id
+        
         # Use aggregation pipeline for JOIN-like behavior
         pipeline = [
+            {"$match": match_filter} if match_filter else {"$match": {}},
             {"$lookup": {
                 "from": "candidates",
                 "localField": "candidate_id",
