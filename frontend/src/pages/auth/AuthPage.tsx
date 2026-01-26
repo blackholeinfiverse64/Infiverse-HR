@@ -150,18 +150,20 @@ export default function AuthPage() {
         const roleFromStorage = localStorage.getItem('user_role') as UserRole
         const roleFromContext = userRole as UserRole
         
-        // Use role from context (from JWT token) or localStorage, then default to candidate
-        const finalRole: UserRole = (roleFromContext || roleFromStorage || 'candidate') as UserRole
+        // Prioritize role from context (from JWT token), then localStorage
+        // Only default to candidate if neither is available
+        let finalRole: UserRole = (roleFromContext || roleFromStorage) as UserRole
         
         // Ensure role is valid (must be one of the three roles)
-        const validRole: UserRole = (['candidate', 'recruiter', 'client'].includes(finalRole) 
-          ? finalRole 
-          : 'candidate') as UserRole
+        if (!finalRole || !['candidate', 'recruiter', 'client'].includes(finalRole)) {
+          console.warn('⚠️ Invalid or missing role, defaulting to candidate. Role from context:', roleFromContext, 'Role from storage:', roleFromStorage);
+          finalRole = 'candidate';
+        }
         
-        console.log('🚀 Login: User role from token:', validRole, 'Redirecting to:', roleConfig[validRole].redirectPath)
-        toast.success(`Login successful as ${roleConfig[validRole].title}!`)
+        console.log('🚀 Login: User role from token:', finalRole, 'Redirecting to:', roleConfig[finalRole].redirectPath)
+        toast.success(`Login successful as ${roleConfig[finalRole].title}!`)
         setIsLoading(false)
-        navigate(roleConfig[validRole].redirectPath)
+        navigate(roleConfig[finalRole].redirectPath)
       }
     } catch (err: any) {
       toast.error(err.message || 'An error occurred')

@@ -285,7 +285,8 @@ class JobOffer(BaseModel):
     terms: str
 
 class ClientLogin(BaseModel):
-    client_id: str
+    client_id: Optional[str] = None
+    email: Optional[str] = None
     password: str
 
 import uuid
@@ -362,6 +363,7 @@ class CandidateRegister(BaseModel):
     technical_skills: Optional[str] = None
     education_level: Optional[str] = None
     seniority_level: Optional[str] = None
+    role: Optional[str] = "candidate"  # Support recruiter role registration
 
 class CandidateLogin(BaseModel):
     email: str
@@ -1627,12 +1629,22 @@ async def client_register(client_data: ClientRegister):
 
 @app.post("/v1/client/login", tags=["Client Portal API"])
 async def client_login(login_data: ClientLogin):
-    """Client Authentication with Database Integration"""
+    """Client Authentication with Database Integration - Supports both client_id and email"""
     try:
         db = await get_mongo_db()
         
-        # Get client by client_id from clients collection
-        client = await db.clients.find_one({"client_id": login_data.client_id})
+        # Support both client_id and email-based login
+        if not login_data.client_id and not login_data.email:
+            return {"success": False, "error": "Either client_id or email is required"}
+        
+        # Try to find client by client_id first, then by email
+        client = None
+        if login_data.client_id:
+            client = await db.clients.find_one({"client_id": login_data.client_id})
+        
+        if not client and login_data.email:
+            # Try finding by email (stored as 'email' field in clients collection)
+            client = await db.clients.find_one({"email": login_data.email})
         
         if not client:
             return {"success": False, "error": "Invalid credentials"}
@@ -2272,7 +2284,12 @@ async def candidate_register(candidate_data: CandidateRegister):
         # Hash password
         password_hash = bcrypt.hashpw(candidate_data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
-        # Insert candidate with password hash
+        # Get role from request (for recruiters) or default to candidate
+        user_role = candidate_data.role or "candidate"
+        if user_role not in ["candidate", "recruiter"]:
+            user_role = "candidate"  # Ensure valid role
+        
+        # Insert candidate with password hash and role
         document = {
             "name": candidate_data.name,
             "email": candidate_data.email,
@@ -2283,6 +2300,7 @@ async def candidate_register(candidate_data: CandidateRegister):
             "education_level": candidate_data.education_level,
             "seniority_level": candidate_data.seniority_level,
             "password_hash": password_hash,
+            "role": user_role,  # Store role in database (for recruiters)
             "status": "applied",
             "created_at": datetime.now(timezone.utc)
         }
@@ -2318,13 +2336,20 @@ async def candidate_login(login_data: CandidateLogin):
         # Generate JWT token
         jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
         candidate_id_str = str(candidate["_id"])
+        
+        # Get role from database (for recruiters) or default to candidate
+        # Recruiters are stored as candidates but have role field set to "recruiter"
+        user_role = candidate.get("role", "candidate")
+        if user_role not in ["candidate", "recruiter"]:
+            user_role = "candidate"  # Ensure valid role
+        
         token_payload = {
             "sub": candidate_id_str,  # Standard JWT claim for subject/user ID
             "candidate_id": candidate_id_str,  # Keep for backward compatibility
             "user_id": candidate_id_str,  # Also include user_id for jwt_auth.py compatibility
             "email": candidate.get("email"),
             "name": candidate.get("name", ""),
-            "role": "candidate",  # Explicit role for jwt_auth.py
+            "role": user_role,  # Use role from database (supports recruiter)
             "exp": int(datetime.now(timezone.utc).timestamp()) + 86400  # 24 hours
         }
         token = jwt.encode(token_payload, jwt_secret, algorithm="HS256")

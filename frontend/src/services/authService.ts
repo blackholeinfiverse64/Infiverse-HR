@@ -43,38 +43,38 @@ class AuthService {
       let response;
       
       if (userRole === 'client') {
-        // Client login requires client_id (stored in localStorage during signup)
-        const storedUserData = this.getUserData();
-        const client_id = localStorage.getItem('client_id') || storedUserData?.id || null;
-        
-        // Try client login first (if we have client_id)
-        if (client_id) {
-          try {
-            response = await axios.post(`${this.API_BASE_URL}/v1/client/login`, {
-              client_id: client_id,
-              password: password
-            });
-            
-            if (response.data.success && response.data.access_token) {
-              const userData = {
-                id: response.data.client_id,
-                email: email,
-                name: response.data.company_name || '',
-                role: 'client',
-                company: response.data.company_name
-              };
-              this.setAuthToken(response.data.access_token);
-              localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
-              return {
-                success: true,
-                token: response.data.access_token,
-                user: userData
-              };
-            }
-          } catch (clientError: any) {
-            // If client login fails, fall back to candidate login
-            console.log('Client login failed, trying candidate login...');
+        // Try client login with email (backend now supports email-based login)
+        try {
+          response = await axios.post(`${this.API_BASE_URL}/v1/client/login`, {
+            email: email,
+            password: password
+          });
+          
+          if (response.data.success && response.data.access_token) {
+            const userData = {
+              id: response.data.client_id,
+              email: email,
+              name: response.data.company_name || '',
+              role: 'client',
+              company: response.data.company_name
+            };
+            this.setAuthToken(response.data.access_token);
+            localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
+            localStorage.setItem('client_id', response.data.client_id);
+            return {
+              success: true,
+              token: response.data.access_token,
+              user: userData
+            };
           }
+        } catch (clientError: any) {
+          // If client login fails, don't fall back to candidate login
+          // Return error so user knows client login failed
+          console.log('Client login failed:', clientError.response?.data?.error || clientError.message);
+          return {
+            success: false,
+            error: clientError.response?.data?.error || 'Client login failed. Please check your credentials.'
+          };
         }
       }
       
@@ -199,8 +199,7 @@ class AuthService {
           };
         }
       } else if (role === 'recruiter') {
-        // Recruiter registration - use candidate endpoint for now (backend doesn't have recruiter endpoint)
-        // TODO: Create /v1/recruiter/register endpoint in backend
+        // Recruiter registration - use candidate endpoint with role field
         response = await axios.post(`${this.API_BASE_URL}/v1/candidate/register`, {
           email: userData.email,
           password: userData.password,
@@ -210,7 +209,8 @@ class AuthService {
           experience_years: 0,
           technical_skills: '',
           education_level: '',
-          seniority_level: ''
+          seniority_level: '',
+          role: 'recruiter'  // Send role field to backend
         });
         
         // Registration successful - store role but don't auto-login
