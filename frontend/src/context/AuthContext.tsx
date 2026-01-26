@@ -77,16 +77,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Store the JWT token FIRST - this is critical
           console.log('🔐 AuthContext: Storing auth token');
+          console.log('🔐 AuthContext: Token length:', token.length);
+          console.log('🔐 AuthContext: Token first 50 chars:', token.substring(0, 50));
+          
+          // Store token using multiple methods to ensure it's saved
           localStorage.setItem('auth_token', token);
           
-          // Verify token was stored
+          // Verify token was stored immediately
           const storedToken = localStorage.getItem('auth_token');
-          if (!storedToken || storedToken !== token) {
-            console.error('❌ AuthContext: Failed to store token! Trying direct storage...');
-            // Try direct storage as fallback
-            localStorage.setItem('auth_token', token);
+          if (!storedToken) {
+            console.error('❌ AuthContext: CRITICAL - Failed to store token! localStorage may be disabled.');
+            console.error('❌ AuthContext: Available localStorage keys:', Object.keys(localStorage));
+            // Try again with explicit error handling
+            try {
+              localStorage.setItem('auth_token', token);
+              const retryToken = localStorage.getItem('auth_token');
+              if (!retryToken) {
+                console.error('❌ AuthContext: Token storage failed even after retry!');
+              } else {
+                console.log('✅ AuthContext: Token stored successfully on retry');
+              }
+            } catch (e) {
+              console.error('❌ AuthContext: localStorage.setItem threw error:', e);
+            }
+          } else if (storedToken !== token) {
+            console.error('❌ AuthContext: Token stored but value mismatch!');
+            console.error('❌ AuthContext: Expected length:', token.length, 'Stored length:', storedToken.length);
           } else {
             console.log('✅ AuthContext: Token stored successfully');
+            console.log('✅ AuthContext: Token verification passed');
           }
           
           localStorage.setItem('user_data', JSON.stringify(result.user));

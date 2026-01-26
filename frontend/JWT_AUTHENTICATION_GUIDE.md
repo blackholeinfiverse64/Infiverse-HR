@@ -2,7 +2,7 @@
 
 ## Overview
 
-The frontend now uses a JWT-based authentication system that communicates with the backend services. This replaces the previous Supabase authentication system.
+The frontend uses a JWT-based authentication system that communicates with the backend services.
 
 ## Architecture
 
@@ -50,6 +50,6 @@ Common authentication errors:
 - 403 Forbidden: Insufficient permissions for requested action
 - Network errors: Backend service unavailable
 
-## Migration Notes
+## Architecture Notes
 
-This system replaces the previous Supabase authentication approach. All authentication logic now flows through the backend JWT system instead of external providers.
+All authentication logic flows through the backend JWT system. The frontend stores JWT tokens in localStorage and automatically includes them in API requests.

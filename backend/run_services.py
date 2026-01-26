@@ -23,6 +23,31 @@ import time
 import signal
 from pathlib import Path
 
+# Fix Windows console encoding for emojis
+if sys.platform == 'win32':
+    try:
+        # Try to set UTF-8 encoding for Windows console
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except:
+        # Fallback: create safe print function that removes emojis
+        def safe_print(*args, **kwargs):
+            """Print function that handles encoding errors on Windows."""
+            try:
+                print(*args, **kwargs)
+            except UnicodeEncodeError:
+                # Remove emojis and print
+                text = ' '.join(str(arg) for arg in args)
+                # Remove common emoji patterns
+                import re
+                text = re.sub(r'[^\x00-\x7F]+', '', text)  # Remove non-ASCII
+                print(text, **kwargs)
+        
+        # Replace print with safe_print
+        import builtins
+        builtins.print = safe_print
+
 # Service configurations
 SERVICES = {
     "gateway": {
@@ -77,7 +102,7 @@ def load_env_file():
     """Load environment variables from .env file if exists."""
     env_path = get_backend_dir() / ".env"
     if env_path.exists():
-        print(f"📄 Loading environment from {env_path}")
+        print(f"[INFO] Loading environment from {env_path}")
         with open(env_path) as f:
             for line in f:
                 line = line.strip()
@@ -103,17 +128,17 @@ def start_service(name, service_config, env_vars):
     service_dir = backend_dir / service_config["dir"]
     
     if not service_dir.exists():
-        print(f"❌ Service directory not found: {service_dir}")
+        print(f"[ERROR] Service directory not found: {service_dir}")
         return None
     
     port = service_config["port"]
     if not check_port(port):
-        print(f"⚠️  Port {port} is already in use. {service_config['name']} may already be running.")
+        print(f"[WARNING] Port {port} is already in use. {service_config['name']} may already be running.")
         return None
     
-    print(f"\n🚀 Starting {service_config['name']} on port {port}...")
-    print(f"   📁 Directory: {service_dir}")
-    print(f"   🔧 Command: {' '.join(service_config['command'])}")
+    print(f"\n[STARTING] Starting {service_config['name']} on port {port}...")
+    print(f"   Directory: {service_dir}")
+    print(f"   Command: {' '.join(service_config['command'])}")
     
     # Merge environment variables
     service_env = os.environ.copy()
@@ -131,10 +156,10 @@ def start_service(name, service_config, env_vars):
             universal_newlines=True,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
-        print(f"   ✅ Started with PID: {process.pid}")
+        print(f"   [OK] Started with PID: {process.pid}")
         return process
     except Exception as e:
-        print(f"   ❌ Failed to start: {e}")
+        print(f"   [ERROR] Failed to start: {e}")
         return None
 
 
@@ -150,7 +175,7 @@ def stream_output(process, name):
 
 def stop_all_services():
     """Stop all running services."""
-    print("\n\n🛑 Stopping all services...")
+    print("\n\n[STOPPING] Stopping all services...")
     for process, name in processes:
         try:
             if os.name == 'nt':
@@ -158,9 +183,9 @@ def stop_all_services():
             else:
                 process.terminate()
             process.wait(timeout=5)
-            print(f"   ✅ Stopped {name}")
+            print(f"   [OK] Stopped {name}")
         except Exception as e:
-            print(f"   ⚠️  Force killing {name}")
+            print(f"   [WARNING] Force killing {name}")
             process.kill()
     processes.clear()
 
@@ -176,28 +201,28 @@ def check_health(url, timeout=30):
     import urllib.request
     import urllib.error
     
-    print(f"   🔍 Checking health: {url}")
+    print(f"   [CHECK] Checking health: {url}")
     start_time = time.time()
     
     while time.time() - start_time < timeout:
         try:
             response = urllib.request.urlopen(url, timeout=5)
             if response.status == 200:
-                print(f"   ✅ Service is healthy!")
+                print(f"   [OK] Service is healthy!")
                 return True
         except:
             time.sleep(1)
     
-    print(f"   ⚠️  Health check timeout after {timeout}s")
+    print(f"   [WARNING] Health check timeout after {timeout}s")
     return False
 
 
 def main():
     """Main entry point."""
     print("=" * 60)
-    print("🏢 BHIV HR Platform - Backend Services Launcher")
+    print("BHIV HR Platform - Backend Services Launcher")
     print("=" * 60)
-    print(f"📂 Backend Directory: {get_backend_dir()}")
+    print(f"Backend Directory: {get_backend_dir()}")
     
     # Parse arguments
     services_to_start = sys.argv[1:] if len(sys.argv) > 1 else list(SERVICES.keys())
@@ -205,14 +230,14 @@ def main():
     # Validate service names
     for svc in services_to_start:
         if svc not in SERVICES:
-            print(f"❌ Unknown service: {svc}")
+            print(f"[ERROR] Unknown service: {svc}")
             print(f"   Available: {', '.join(SERVICES.keys())}")
             sys.exit(1)
     
     # Load environment
     env_vars = load_env_file()
-    print(f"\n📋 Database: MongoDB Atlas (bhiv_hr)")
-    print(f"📋 Environment: {env_vars.get('ENVIRONMENT', 'development')}")
+    print(f"\n[INFO] Database: MongoDB Atlas (bhiv_hr)")
+    print(f"[INFO] Environment: {env_vars.get('ENVIRONMENT', 'development')}")
     
     # Register signal handler
     signal.signal(signal.SIGINT, signal_handler)
@@ -220,7 +245,7 @@ def main():
         signal.signal(signal.SIGBREAK, signal_handler)
     
     # Start services
-    print(f"\n🎯 Starting services: {', '.join(services_to_start)}")
+    print(f"\n[INFO] Starting services: {', '.join(services_to_start)}")
     
     for svc_name in services_to_start:
         config = SERVICES[svc_name]
@@ -229,11 +254,11 @@ def main():
             processes.append((process, config["name"]))
     
     if not processes:
-        print("\n❌ No services started!")
+        print("\n[ERROR] No services started!")
         sys.exit(1)
     
     # Wait a bit then check health
-    print("\n⏳ Waiting for services to initialize...")
+    print("\n[INFO] Waiting for services to initialize...")
     time.sleep(3)
     
     for svc_name in services_to_start:
@@ -242,12 +267,12 @@ def main():
     
     # Print summary
     print("\n" + "=" * 60)
-    print("✨ Services Running:")
+    print("Services Running:")
     for svc_name in services_to_start:
         config = SERVICES[svc_name]
-        print(f"   • {config['name']}: http://localhost:{config['port']}")
+        print(f"   - {config['name']}: http://localhost:{config['port']}")
     print("=" * 60)
-    print("\n📌 Press Ctrl+C to stop all services\n")
+    print("\n[INFO] Press Ctrl+C to stop all services\n")
     
     # Keep running and stream output
     import threading
@@ -261,7 +286,7 @@ def main():
         while processes:
             for process, name in processes[:]:
                 if process.poll() is not None:
-                    print(f"\n⚠️  {name} exited with code {process.returncode}")
+                    print(f"\n[WARNING] {name} exited with code {process.returncode}")
                     processes.remove((process, name))
             time.sleep(1)
     except KeyboardInterrupt:

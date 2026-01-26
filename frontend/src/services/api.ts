@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 // API Base URL - Gateway service
+// Standardized variable name: VITE_API_BASE_URL (see ENVIRONMENT_VARIABLES.md)
 // Default to localhost for local development, use env var or Render URL for production
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.DEV ? 'http://localhost:8000' : 'https://bhiv-hr-gateway-l0xp.onrender.com')

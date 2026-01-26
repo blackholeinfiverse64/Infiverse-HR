@@ -16,13 +16,11 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 
-# JWT configuration
-JWT_SECRET = os.getenv("JWT_SECRET", "")  # Backward compatibility
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")  # Preferred name
-JWT_SECRET_FALLBACK = os.getenv("SUPABASE_JWT_SECRET", "")  # Legacy compatibility
-CANDIDATE_JWT_SECRET_KEY = os.getenv("CANDIDATE_JWT_SECRET_KEY", "")  # Candidate-specific JWT secret
+# JWT configuration - Standardized variable names (see ENVIRONMENT_VARIABLES.md)
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+CANDIDATE_JWT_SECRET_KEY = os.getenv("CANDIDATE_JWT_SECRET_KEY", "")
 
-# API Key for service-to-service communication (keep this)
+# API Key for service-to-service communication
 API_KEY_SECRET = os.getenv("API_KEY_SECRET", "")
 
 
@@ -39,15 +37,15 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
     Uses HS256 with the JWT secret from environment settings.
     Supports tokens with or without audience claim.
     """
-    # Try different environment variable names for backward compatibility
-    jwt_secret = secret or JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK
+    # Use explicit secret if provided, otherwise use JWT_SECRET_KEY
+    jwt_secret = secret or JWT_SECRET_KEY
     
     if not jwt_secret:
         logger.error("JWT_SECRET_KEY not configured")
         return None
     
     try:
-        # First try with audience validation (for Supabase-compatible tokens)
+        # First try with audience validation
         try:
             payload = jwt.decode(
                 token,
@@ -75,7 +73,7 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
 
 def get_user_from_token(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Extract user information from JWT token payload"""
-    # Support both Supabase-style tokens (sub) and custom tokens (candidate_id, client_id, user_id)
+    # Support both standard JWT tokens (sub) and custom tokens (candidate_id, client_id, user_id)
     user_id = payload.get("sub") or payload.get("candidate_id") or payload.get("client_id") or payload.get("user_id")
     
     return {
@@ -134,7 +132,7 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
             }
     
     # Try client JWT token (JWT_SECRET_KEY)
-    jwt_secret = JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK
+    jwt_secret = JWT_SECRET_KEY
     if jwt_secret:
         payload = verify_jwt_token(token, secret=jwt_secret)
         if payload:

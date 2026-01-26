@@ -13,22 +13,20 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-# Authentication Configuration
+# Authentication Configuration - Standardized variable name (see ENVIRONMENT_VARIABLES.md)
 API_KEY_SECRET = os.getenv("API_KEY_SECRET")
 if not API_KEY_SECRET:
-    raise ValueError("API_KEY_SECRET environment variable is required")
+    raise ValueError("API_KEY_SECRET environment variable is required. See ENVIRONMENT_VARIABLES.md")
 
-# JWT Configuration - Support both JWT_SECRET_KEY and JWT_SECRET
+# JWT Configuration - Standardized variable names (see ENVIRONMENT_VARIABLES.md)
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-JWT_SECRET = os.getenv("JWT_SECRET")
-CLIENT_JWT_SECRET = JWT_SECRET_KEY or JWT_SECRET
-if not CLIENT_JWT_SECRET:
-    raise ValueError("Either JWT_SECRET_KEY or JWT_SECRET environment variable is required")
+if not JWT_SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY environment variable is required. See ENVIRONMENT_VARIABLES.md")
 
-# Candidate JWT Configuration
+# Candidate JWT Configuration - Standardized variable name (see ENVIRONMENT_VARIABLES.md)
 CANDIDATE_JWT_SECRET_KEY = os.getenv("CANDIDATE_JWT_SECRET_KEY")
 if not CANDIDATE_JWT_SECRET_KEY:
-    raise ValueError("CANDIDATE_JWT_SECRET_KEY environment variable is required")
+    raise ValueError("CANDIDATE_JWT_SECRET_KEY environment variable is required. See ENVIRONMENT_VARIABLES.md")
 
 # Logging Configuration
 def setup_logging():
@@ -63,8 +61,8 @@ def validate_config():
         if not os.getenv(var):
             missing_vars.append(var)
     
-    if not (JWT_SECRET_KEY or JWT_SECRET):
-        missing_vars.append("JWT_SECRET_KEY or JWT_SECRET")
+    if not JWT_SECRET_KEY:
+        missing_vars.append("JWT_SECRET_KEY")
     
     if missing_vars:
         raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
@@ -79,7 +77,7 @@ __all__ = [
     "OBSERVABILITY_ENABLED",
     "DATABASE_URL",
     "API_KEY_SECRET",
-    "CLIENT_JWT_SECRET",
+    "JWT_SECRET_KEY",
     "CANDIDATE_JWT_SECRET_KEY",
     "setup_logging",
     "validate_config"

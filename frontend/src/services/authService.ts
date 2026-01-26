@@ -30,6 +30,7 @@ class AuthService {
   private USER_KEY = 'user_data';
 
   constructor() {
+    // Standardized variable name: VITE_API_BASE_URL (see ENVIRONMENT_VARIABLES.md)
     this.API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   }
 
@@ -101,16 +102,27 @@ class AuthService {
         
         // Store token FIRST - this is critical
         console.log('🔐 Storing auth token after login');
-        this.setAuthToken(token);
+        console.log('🔐 Token length:', token.length);
+        console.log('🔐 Token first 50 chars:', token.substring(0, 50));
         
-        // Verify token was stored
+        // Store token using multiple methods to ensure it's saved
+        this.setAuthToken(token);
+        localStorage.setItem(this.TOKEN_KEY, token); // Direct storage as backup
+        localStorage.setItem('auth_token', token); // Also store with explicit key
+        
+        // Verify token was stored immediately
         const storedToken = localStorage.getItem(this.TOKEN_KEY);
-        if (!storedToken || storedToken !== token) {
-          console.error('❌ Failed to store token! Stored:', storedToken ? 'exists but different' : 'missing');
-          // Try direct storage as fallback
-          localStorage.setItem(this.TOKEN_KEY, token);
+        const storedTokenDirect = localStorage.getItem('auth_token');
+        
+        if (!storedToken && !storedTokenDirect) {
+          console.error('❌ CRITICAL: Failed to store token! localStorage may be disabled or full.');
+          console.error('❌ Available localStorage keys:', Object.keys(localStorage));
+        } else if (storedToken !== token && storedTokenDirect !== token) {
+          console.error('❌ Token stored but value mismatch!');
+          console.error('❌ Expected length:', token.length, 'Stored length:', storedToken?.length || storedTokenDirect?.length);
         } else {
           console.log('✅ Token stored successfully');
+          console.log('✅ Token verification: Stored token matches');
         }
         
         localStorage.setItem(this.USER_KEY, JSON.stringify(userWithRole));

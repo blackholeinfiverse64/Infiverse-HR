@@ -85,10 +85,10 @@ If it works locally but not on Vercel, it's likely an environment variable issue
 - Verify `vercel.json` exists in `frontend` directory
 - Ensure rewrites are configured correctly
 
-### Fix 3: Supabase Configuration
-If you're using Supabase:
-- Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel
-- Or remove Supabase if not needed (app will use localStorage auth)
+### Fix 3: API Configuration
+Ensure API environment variables are set:
+- Add `VITE_API_BASE_URL` to Vercel environment variables
+- Verify the backend API is accessible
 
 ### Fix 4: Rebuild Deployment
 1. Go to Vercel Dashboard

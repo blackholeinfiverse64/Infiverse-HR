@@ -16,13 +16,11 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 
-# JWT configuration
-JWT_SECRET = os.getenv("JWT_SECRET", "")  # Backward compatibility
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")  # Preferred name
-JWT_SECRET_FALLBACK = os.getenv("SUPABASE_JWT_SECRET", "")  # Legacy compatibility
-CANDIDATE_JWT_SECRET_KEY = os.getenv("CANDIDATE_JWT_SECRET_KEY", "")  # Candidate-specific JWT secret
+# JWT configuration - Standardized variable names (see ENVIRONMENT_VARIABLES.md)
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+CANDIDATE_JWT_SECRET_KEY = os.getenv("CANDIDATE_JWT_SECRET_KEY", "")
 
-# API Key for service-to-service communication (keep this)
+# API Key for service-to-service communication
 API_KEY_SECRET = os.getenv("API_KEY_SECRET", "")
 
 
@@ -39,8 +37,8 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
     Uses HS256 with the JWT secret from environment settings.
     Supports tokens with or without audience claim.
     """
-    # Try different environment variable names for backward compatibility
-    jwt_secret = secret or JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK
+    # Use explicit secret if provided, otherwise use JWT_SECRET_KEY
+    jwt_secret = secret or JWT_SECRET_KEY
     
     if not jwt_secret:
         logger.error("JWT_SECRET_KEY not configured")
@@ -51,8 +49,26 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
         return None
     
     try:
-        # First try with audience validation (for Supabase-compatible tokens)
+        # First try without audience validation (for custom tokens without aud claim)
+        # This is more efficient and handles tokens created by our login endpoints
+        payload = jwt.decode(
+            token,
+            jwt_secret,
+            algorithms=["HS256"],
+            options={"verify_aud": False}
+        )
+        logger.debug("JWT token verified successfully without audience validation")
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("JWT token expired")
+        return None
+    except jwt.InvalidSignatureError as e:
+        logger.error(f"[ERROR] JWT token signature invalid: {e}. Secret mismatch or wrong secret used.")
+        logger.error(f"Secret provided: {bool(jwt_secret)}, Secret length: {len(jwt_secret) if jwt_secret else 0}")
+        logger.error(f"Token (first 50 chars): {token[:50] if token else 'None'}...")
+        # Try with audience validation as fallback
         try:
+            logger.debug("Attempting verification with audience validation as fallback")
             payload = jwt.decode(
                 token,
                 jwt_secret,
@@ -61,9 +77,13 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
             )
             logger.debug("JWT token verified successfully with audience validation")
             return payload
-        except jwt.InvalidAudienceError:
-            # If audience validation fails, try without audience (for custom tokens)
-            logger.debug("JWT token audience validation failed, trying without audience")
+        except Exception as e2:
+            logger.debug(f"Fallback verification with audience also failed: {e2}")
+            return None
+    except jwt.InvalidAudienceError:
+        # Token has aud claim but it doesn't match - try without audience validation
+        logger.debug("JWT token audience mismatch, trying without audience validation")
+        try:
             payload = jwt.decode(
                 token,
                 jwt_secret,
@@ -72,20 +92,27 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
             )
             logger.debug("JWT token verified successfully without audience validation")
             return payload
-    except jwt.ExpiredSignatureError:
-        logger.warning("JWT token expired")
-        return None
-    except jwt.InvalidSignatureError as e:
-        logger.error(f"❌ JWT token signature invalid: {e}. Secret mismatch or wrong secret used.")
-        logger.error(f"Secret provided: {bool(jwt_secret)}, Secret length: {len(jwt_secret) if jwt_secret else 0}")
-        logger.error(f"Token (first 50 chars): {token[:50] if token else 'None'}...")
-        return None
+        except Exception as e2:
+            logger.debug(f"Verification without audience also failed: {e2}")
+            return None
     except jwt.DecodeError as e:
         logger.warning(f"JWT token decode error: {e}")
         return None
     except jwt.InvalidTokenError as e:
-        logger.warning(f"Invalid JWT token: {e}")
-        return None
+        # Token might be missing aud claim - try without audience validation
+        logger.debug(f"JWT token validation error (possibly missing aud claim): {e}, trying without audience")
+        try:
+            payload = jwt.decode(
+                token,
+                jwt_secret,
+                algorithms=["HS256"],
+                options={"verify_aud": False}
+            )
+            logger.debug("JWT token verified successfully without audience validation")
+            return payload
+        except Exception as e2:
+            logger.warning(f"Invalid JWT token even without audience validation: {e2}")
+            return None
     except Exception as e:
         logger.error(f"Unexpected error verifying JWT token: {e}")
         return None
@@ -93,7 +120,7 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
 
 def get_user_from_token(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Extract user information from JWT token payload"""
-    # Support both Supabase-style tokens (sub) and custom tokens (candidate_id, client_id, user_id)
+    # Support both standard JWT tokens (sub) and custom tokens (candidate_id, client_id, user_id)
     user_id = payload.get("sub") or payload.get("candidate_id") or payload.get("client_id") or payload.get("user_id")
     
     return {
@@ -123,6 +150,7 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
     - API keys: For service-to-service communication
     - JWT: For authenticated users from frontend
     Supports both client JWT tokens (JWT_SECRET_KEY) and candidate JWT tokens (CANDIDATE_JWT_SECRET_KEY)
+    See ENVIRONMENT_VARIABLES.md for standardized variable names.
     """
     if not credentials:
         logger.warning("No credentials provided in Authorization header")
@@ -134,7 +162,7 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
         logger.warning("Empty token in credentials")
         raise HTTPException(status_code=401, detail="Authentication token is empty")
     
-    logger.info(f"🔐 Attempting authentication with token (first 30 chars): {token[:30]}...")
+    logger.info(f"[AUTH] Attempting authentication with token (first 30 chars): {token[:30]}...")
     
     # Try API key first (for service-to-service)
     if validate_api_key(token):
@@ -152,7 +180,7 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
         payload = verify_jwt_token(token, secret=CANDIDATE_JWT_SECRET_KEY)
         if payload:
             user_info = get_user_from_token(payload)
-            logger.info(f"✅ Authentication successful: Candidate JWT token for user {user_info.get('user_id')}")
+            logger.info(f"[OK] Authentication successful: Candidate JWT token for user {user_info.get('user_id')}")
             return {
                 "type": "jwt_token",
                 "user_id": user_info["user_id"],
@@ -161,13 +189,13 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
                 "name": user_info["name"],
             }
         else:
-            logger.error(f"❌ Candidate JWT token validation failed. Token (first 50 chars): {token[:50] if token else 'None'}...")
+            logger.error(f"[ERROR] Candidate JWT token validation failed. Token (first 50 chars): {token[:50] if token else 'None'}...")
             logger.error(f"Secret configured: {bool(CANDIDATE_JWT_SECRET_KEY)}, Secret length: {len(CANDIDATE_JWT_SECRET_KEY) if CANDIDATE_JWT_SECRET_KEY else 0}")
     else:
-        logger.error("❌ CANDIDATE_JWT_SECRET_KEY not configured")
+        logger.error("[ERROR] CANDIDATE_JWT_SECRET_KEY not configured")
     
     # Try client JWT token (JWT_SECRET_KEY)
-    jwt_secret = JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK
+    jwt_secret = JWT_SECRET_KEY
     if jwt_secret:
         logger.debug(f"Attempting client JWT validation with secret (exists: {bool(jwt_secret)})")
         payload = verify_jwt_token(token, secret=jwt_secret)

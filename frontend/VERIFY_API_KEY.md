@@ -2,7 +2,7 @@
 
 ## ⚠️ Important: Check Your API Configuration
 
-The system now uses JWT-based authentication with backend API services instead of Supabase.
+The system uses JWT-based authentication with backend API services.
 
 ### Authentication Components:
 
