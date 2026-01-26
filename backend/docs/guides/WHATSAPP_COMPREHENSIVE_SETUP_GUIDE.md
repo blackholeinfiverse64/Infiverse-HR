@@ -1,7 +1,7 @@
 # 📱 BHIV HR Platform - WhatsApp Integration Setup Guide
 
 **Complete WhatsApp Business Integration**  
-**Updated**: December 16, 2025  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
 **Integration**: Twilio WhatsApp Business API  
 **Multi-Channel**: Email, WhatsApp, Telegram notifications
@@ -54,11 +54,9 @@ WHATSAPP_ENABLED=true
 ```
 
 ### **Service Integration**
-- **LangGraph Service**: `/tools/send-notification` endpoint
-- **Gateway Service**: WhatsApp notification endpoints
-- **HR Portal**: Communication testing interface
-- **Client Portal**: Automated candidate notifications
-- **Candidate Portal**: Application status updates
+- **LangGraph Service**: `/tools/send-notification` endpoint (Port 9001)
+- **Gateway Service**: WhatsApp notification endpoints (Port 8000)
+- **API Integration**: Cross-service communication via HTTP
 
 ---
 
@@ -96,8 +94,8 @@ Response: "You are all set! You can now send messages to this WhatsApp number."
 ### **Step 3: Test Integration**
 ```bash
 # Test via API endpoint
-curl -X POST "https://bhiv-hr-langgraph.onrender.com/tools/send-notification" \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST "http://localhost:9001/tools/send-notification" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "type": "whatsapp",

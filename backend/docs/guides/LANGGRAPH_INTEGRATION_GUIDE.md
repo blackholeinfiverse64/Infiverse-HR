@@ -1,8 +1,8 @@
 # 🔄 BHIV HR Platform - LangGraph Integration Guide
 
 **AI-Powered Workflow Automation & Orchestration**  
-**Version**: v4.3.1 with Advanced Workflow Engine  
-**Updated**: December 16, 2025  
+**Version**: v4.3.0 with Advanced Workflow Engine  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
 **Endpoints**: 25 workflow automation endpoints
 
@@ -42,7 +42,7 @@
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   API Gateway   │────│  LangGraph      │────│   Database      │
-│   80 endpoints  │    │  25 endpoints   │    │   19 tables     │
+│   77 endpoints  │    │  25 endpoints   │    │   17+ collections │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │              ┌─────────────────┐              │
@@ -52,15 +52,15 @@
                                  │
                     ┌─────────────────────────────┐
                     │      Portal Services        │
-                    │  HR │ Client │ Candidate    │
+                    │  (Docker containers)        │
                     └─────────────────────────────┘
 ```
 
 ### **Service Integration Points**
 - **API Gateway**: Workflow trigger endpoints and status monitoring
 - **AI Agent**: Semantic matching integration for candidate scoring
-- **Database**: Direct access for workflow state management
-- **Portals**: Real-time workflow status updates
+- **Database**: MongoDB Atlas access for workflow state management
+- **Portals**: Real-time workflow status updates (via Docker)
 - **External APIs**: Notification services (Twilio, Gmail, Telegram)
 
 ### **Workflow Types**
@@ -75,35 +75,31 @@
 
 ## 🚀 Quick Start
 
-### **Option 1: Use Live Production System (Recommended)**
+### **Option 1: Local Development System (Recommended)**
 ```bash
-# Test live LangGraph service
-curl https://bhiv-hr-langgraph.onrender.com/health
+# Test local LangGraph service
+curl http://localhost:9001/health
 
 # Expected Response:
 # {
 #   "status": "healthy",
 #   "service": "LangGraph Workflow Engine",
 #   "version": "2.0.0",
-#   "workflows_active": 15,
-#   "notifications_sent": 1250+
+#   "workflows_active": 25,
+#   "notifications_sent": 1500+
 # }
 
 # Access API documentation
-# URL: https://bhiv-hr-langgraph.onrender.com/docs
+# URL: http://localhost:9001/docs
 ```
 
-### **Option 2: Local Development Setup**
+### **Option 2: Docker Setup**
 ```bash
-# Clone and setup
-git clone https://github.com/Shashank-0208/BHIV-HR-PLATFORM.git
-cd BHIV-HR-Platform
-
-# Start LangGraph service
-docker-compose -f docker-compose.production.yml up -d langgraph
+# Start complete system
+docker-compose up -d
 
 # Verify local service
-curl http://localhost:8002/health
+curl http://localhost:9001/health
 ```
 
 ---
@@ -125,11 +121,11 @@ curl http://localhost:8002/health
 # Create LangGraph environment file
 cat > services/langgraph/.env << EOF
 # Database Configuration
-DATABASE_URL=postgresql://bhiv_user:password@localhost:5432/bhiv_hr
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
 
 # Service Integration
 GATEWAY_SERVICE_URL=http://localhost:8000
-AGENT_SERVICE_URL=http://localhost:8001
+AGENT_SERVICE_URL=http://localhost:9000
 
 # AI Configuration
 OPENAI_API_KEY=your-openai-key-here
@@ -150,18 +146,18 @@ TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 # Environment
 ENVIRONMENT=development
 LOG_LEVEL=INFO
-PORT=8002
+PORT=9001
 EOF
 ```
 
 ### **Step 2: Service Startup**
 ```bash
 # Start complete system
-docker-compose -f docker-compose.production.yml up -d
+docker-compose up -d
 
 # Verify LangGraph service
-curl http://localhost:8002/health
-curl http://localhost:8002/docs
+curl http://localhost:9001/health
+curl http://localhost:9001/docs
 
 # Check service logs
 docker-compose logs -f langgraph
@@ -170,12 +166,13 @@ docker-compose logs -f langgraph
 ### **Step 3: Integration Testing**
 ```bash
 # Test Gateway-LangGraph integration
-curl -H "Authorization: Bearer demo_key" \
-     http://localhost:8000/api/v1/workflow/health
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8000/v1/workflows/test
 
 # Test workflow trigger
 curl -X POST -H "Content-Type: application/json" \
-     http://localhost:8002/workflows/test \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:9001/workflows/test \
      -d '{"test": true}'
 ```
 
@@ -187,7 +184,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 #### **Trigger Application Workflow**
 ```bash
-curl -X POST http://localhost:8002/workflows/application/start \
+curl -X POST http://localhost:9001/workflows/application/start \
   -H "Content-Type: application/json" \
   -d '{
     "candidate_id": 1,

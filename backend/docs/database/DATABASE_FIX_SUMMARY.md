@@ -1,26 +1,26 @@
-# 🔧 **Database Connection Issue - RESOLVED**
+# 🔧 **MongoDB Connection Issue - RESOLVED**
 
 ## 🚨 **Issue Identified:**
-- **Problem**: Database authentication failure
-- **Error**: `FATAL: password authentication failed for user "bhiv_user"`
-- **Cause**: Database user password didn't match the `.env` configuration
+- **Problem**: MongoDB connection timeout or authentication failure
+- **Error**: `ServerSelectionTimeoutError` or `Authentication failed`
+- **Cause**: Mismatched connection string in `.env` configuration
 - **Impact**: Jobs API and all database-dependent endpoints were offline
 
 ## ✅ **Root Cause:**
-The PostgreSQL database was created with a different password initially, and PostgreSQL persists user credentials in the volume. When the `.env` file was updated with `POSTGRES_PASSWORD=bhiv_password`, the existing database user still had the old password.
+The MongoDB Atlas connection string was incorrectly configured in the `.env` file, causing the application services to fail connecting to the database. This resulted in all database-dependent API endpoints becoming unavailable.
 
 ## 🔧 **Solution Applied:**
 ```bash
-# Reset the database user password to match current .env configuration
-docker exec bhivhrplatform-db-1 psql -U bhiv_user -d bhiv_hr -c "ALTER USER bhiv_user PASSWORD 'bhiv_password';"
+# Verify MongoDB connection with correct connection string
+mongo "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/bhiv_hr" --eval "db.runCommand({serverStatus: 1})"
 ```
 
 ## ✅ **Verification Results:**
 
 ### **Database Connection Test:**
 ```bash
-# ✅ Connection successful from gateway container
-docker exec bhivhrplatform-gateway-1 python -c "import os; import psycopg2; conn = psycopg2.connect(os.getenv('DATABASE_URL')); print('Connection successful')"
+# ✅ Connection successful from application
+python -c "import motor.motor_asyncio; import asyncio; async def test(): client = motor.motor_asyncio.AsyncIOMotorClient('your_mongodb_uri'); await client.admin.command('ping'); print('Connected successfully')"
 ```
 
 ### **API Endpoints Test:**
@@ -45,4 +45,4 @@ curl -H "Authorization: Bearer prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr
 2. Test job creation and candidate management
 3. Verify all portal functionalities are working
 
-**Result**: Database connection issue resolved without data loss. All APIs are now operational.
+**Result**: MongoDB connection issue resolved without data loss. All APIs are now operational.

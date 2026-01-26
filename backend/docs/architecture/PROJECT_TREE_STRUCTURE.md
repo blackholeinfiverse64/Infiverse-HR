@@ -1,17 +1,17 @@
 # 🌳 BHIV HR Platform - Complete Project Tree Structure
 
-**Updated**: January 16, 2026  
-**Architecture**: Microservices (6 Services + Database)  
-**Status**: ✅ 6/6 Services Operational | 112 Endpoints Live | 99.9% Uptime  
-**Technology**: FastAPI 4.2.0, Streamlit 1.41.1, Python 3.12.7, MongoDB Atlas
+**Updated**: January 22, 2026  
+**Architecture**: Three-Port Microservices Architecture  
+**Status**: ✅ 3/3 Core Services Operational | 108 Endpoints Live | 99.9% Uptime  
+**Technology**: FastAPI 4.2.0, Python 3.12.7, MongoDB Atlas (NoSQL)
 
 ---
 
 ## 📊 **Project Overview**
 - **Total Files**: 200+ files across professional directory structure
-- **Architecture**: Microservices with unified authentication (auth_manager.py per service)
+- **Architecture**: Three-port microservices with unified authentication
 - **Status**: ✅ Production-ready with 99.9% uptime and auto-restart
-- **Endpoints**: 112 total (81 Gateway + 6 Agent + 25 LangGraph)
+- **Endpoints**: 108 total (77 Gateway + 6 Agent + 25 LangGraph)
 - **Database**: MongoDB Atlas with 17+ collections
 
 ---
@@ -26,7 +26,7 @@ BHIV HR PLATFORM/
 ├── docker-compose.production.yml  # 🐳 Production deployment
 ├── requirements.txt               # 📦 Global Python dependencies
 │
-├── 📁 services/                   # 🎯 Core Microservices (6 Services + Database)
+├── 📁 services/                   # 🎯 Core Microservices (3 Core Services)
 │   ├── 📂 gateway/               # 🌐 API Gateway (77 endpoints)
 │   │   ├── 📂 app/
 │   │   │   ├── __init__.py
@@ -39,9 +39,9 @@ BHIV HR PLATFORM/
 │   │   │   │   ├── jobs.py       # Job management
 │   │   │   │   ├── security.py   # Security testing
 │   │   │   │   └── workflows.py  # LangGraph integration
-│   │   │   └── 📂 db/            # Database models
+│   │   │   └── 📂 database/      # Database models
 │   │   │       ├── __init__.py
-│   │   │       ├── models.py     # SQLAlchemy models
+│   │   │       ├── models.py     # MongoDB models
 │   │   │       └── schemas.py    # Pydantic schemas
 │   │   ├── auth_manager.py       # 🔐 Unified authentication
 │   │   ├── config.py             # Configuration management
@@ -71,96 +71,31 @@ BHIV HR PLATFORM/
 │   │   ├── requirements.txt    # Service dependencies
 │   │   └── README.md
 │   │
-│   ├── 📂 langgraph/            # 🔄 Workflow Automation (25 endpoints)
-│   │   ├── 📂 app/              # LangGraph application
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py          # FastAPI workflow service
-│   │   │   ├── agents.py        # AI workflow agents
-│   │   │   ├── graphs.py        # Workflow graph definitions
-│   │   │   ├── tools.py         # Workflow tools & integrations
-│   │   │   ├── communication.py # 📱 Multi-channel notifications
-│   │   │   │                    # (Email, WhatsApp, Telegram - ✅ Confirmed Working)
-│   │   │   ├── state.py         # Workflow state management
-│   │   │   ├── monitoring.py    # Workflow monitoring
-│   │   │   └── 📂 rl_integration/ # RL workflow optimization
-│   │   │       ├── __init__.py
-│   │   │       ├── workflow_optimizer.py # RL-enhanced workflows
-│   │   │       └── performance_tracker.py # Workflow analytics
-│   │   ├── auth_manager.py       # 🔐 Unified authentication
-│   │   ├── config.py
-│   │   ├── dependencies.py
-│   │   ├── Dockerfile          # 🐳 Container configuration
-│   │   ├── requirements.txt
-│   │   ├── README.md
-│   │   └── 📂 tests/           # LangGraph-specific tests
-│   │       ├── test_workflows.py
-│   │       ├── test_notifications.py
-│   │       └── test_integration.py
-│   │
-│   ├── 📂 portal/               # 🏢 HR Portal (Streamlit UI)
-│   │   ├── app.py              # Streamlit 1.41.1 application
-│   │   ├── 📂 components/       # UI components
-│   │   │   ├── __init__.py
-│   │   │   ├── dashboard.py     # Real-time dashboard
-│   │   │   ├── ai_matching.py   # AI matching interface
-│   │   │   ├── job_management.py # Job posting interface
-│   │   │   ├── candidate_search.py # Advanced search
-│   │   │   ├── values_assessment.py # BHIV values evaluation
-│   │   │   └── batch_operations.py # Bulk operations
-│   │   ├── auth_manager.py       # 🔐 Unified authentication
-│   │   ├── config.py           # Configuration
-│   │   ├── batch_upload.py     # Batch processing
-│   │   ├── email_automation.py # Email features
-│   │   ├── file_security.py    # Secure file handling
-│   │   ├── Dockerfile         # 🐳 Container configuration
-│   │   ├── requirements.txt   # Service dependencies
-│   │   └── README.md
-│   │
-│   ├── 📂 client_portal/        # 🏢 Client Portal (Enterprise UI)
-│   │   ├── app.py              # Streamlit enterprise interface
-│   │   ├── 📂 components/       # Enterprise UI components
-│   │   │   ├── __init__.py
-│   │   │   ├── enterprise_dashboard.py # Client analytics
-│   │   │   ├── job_posting.py   # Professional job creation
-│   │   │   ├── candidate_review.py # AI-matched candidates
-│   │   │   ├── interview_management.py # Interview scheduling
-│   │   │   ├── offer_management.py # Digital offers
-│   │   │   └── automation_controls.py # LangGraph controls
-│   │   ├── auth_manager.py       # 🔐 Unified authentication (JWT + bcrypt + 2FA)
-│   │   ├── config.py
-│   │   ├── Dockerfile         # 🐳 Container configuration
-│   │   ├── requirements.txt
-│   │   └── README.md
-│   │
-│   ├── 📂 candidate_portal/     # 👤 Candidate Portal (Job Seeker UI)
-│   │   ├── app.py              # Streamlit candidate interface
-│   │   ├── 📂 components/       # Candidate UI components
-│   │   │   ├── __init__.py
-│   │   │   ├── profile_management.py # Profile & skills
-│   │   │   ├── job_search.py    # Advanced job search
-│   │   │   ├── application_tracking.py # Status tracking
-│   │   │   ├── interview_scheduling.py # Self-service booking
-│   │   │   └── notification_center.py # Multi-channel updates
-│   │   ├── auth_manager.py       # 🔐 Unified authentication (Candidate JWT)
-│   │   ├── config.py
-│   │   ├── Dockerfile         # 🐳 Container configuration
-│   │   ├── requirements.txt
-│   │   └── README.md
-│   │
-│   └── 📂 db/                   # 🗄️ Database Service (PostgreSQL 17)
-│       ├── consolidated_schema.sql # Complete schema v4.3.0 (19 tables)
-│       ├── 📂 database/
+│   └── 📂 langgraph/            # 🔄 Workflow Automation (25 endpoints)
+│       ├── 📂 app/              # LangGraph application
 │       │   ├── __init__.py
-│       │   ├── 📂 migrations/   # Database migrations
-│       │   │   ├── v4_0_0_initial.sql
-│       │   │   ├── v4_1_0_rl_integration.sql
-│       │   │   ├── v4_2_0_langgraph.sql
-│       │   │   └── v4_3_0_production.sql
-│       │   ├── connection.py    # Database connection management
-│       │   └── models.py        # Database models
-│       ├── init.sql            # Database initialization
-│       ├── Dockerfile         # 🐳 Container configuration
-│       └── README.md
+│       │   ├── main.py          # FastAPI workflow service
+│       │   ├── agents.py        # AI workflow agents
+│       │   ├── graphs.py        # Workflow graph definitions
+│       │   ├── tools.py         # Workflow tools & integrations
+│       │   ├── communication.py # 📱 Multi-channel notifications
+│       │                        # (Email, WhatsApp, Telegram - ✅ Confirmed Working)
+│       │   ├── state.py         # Workflow state management
+│       │   ├── monitoring.py    # Workflow monitoring
+│       │   └── 📂 rl_integration/ # RL workflow optimization
+│           ├── __init__.py
+│           ├── workflow_optimizer.py # RL-enhanced workflows
+│           └── performance_tracker.py # Workflow analytics
+│       ├── auth_manager.py       # 🔐 Unified authentication
+│       ├── config.py
+│       ├── dependencies.py
+│       ├── Dockerfile          # 🐳 Container configuration
+│       ├── requirements.txt
+│       ├── README.md
+│       └── 📂 tests/           # LangGraph-specific tests
+│           ├── test_workflows.py
+│           ├── test_notifications.py
+│           └── test_integration.py
 │
 ├── 📁 docs/                     # 📚 Comprehensive Documentation (25+ files)
 │   ├── 📂 guides/              # User & developer guides

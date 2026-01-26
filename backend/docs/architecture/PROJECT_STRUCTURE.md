@@ -1,9 +1,9 @@
 # 🏗️ BHIV HR Platform - Project Structure
 
 **Complete Architecture and Organization Guide**  
-**Updated**: January 16, 2026  
+**Updated**: January 22, 2026  
 **Version**: v4.3.0 Production Ready  
-**Status**: ✅ 6/6 Services Operational | 112 Endpoints Live | 99.9% Uptime
+**Status**: ✅ 3/3 Core Services Operational | 108 Endpoints Live | 99.9% Uptime
 
 ---
 
@@ -32,30 +32,24 @@ BHIV HR PLATFORM/
 
 ## 🚀 Services Architecture
 
-### **Microservices Overview (112 Total Endpoints)**
+### **Microservices Overview (108 Total Endpoints)**
 ```
 services/
 ├── 🚪 gateway/           # API Gateway (77 endpoints) - Core API
 ├── 🤖 agent/             # AI Agent (6 endpoints) - ML/RL Engine
 ├── 🔄 langgraph/         # Automation (25 endpoints) - Workflow Engine
-├── 🎯 portal/            # HR Portal (Docker only) - Streamlit UI (Reference)
-├── 🏢 client_portal/     # Client Portal (Docker only) - Enterprise UI (Reference)
-├── 👤 candidate_portal/  # Candidate Portal (Docker only) - Applicant UI (Reference)
-└── 🗄️ db/               # Database Schema (PostgreSQL - Legacy Reference Only)
+└── 🗄️ shared/            # Shared Components & Utilities
 ```
 
 ### **Production Service Status**
-| Service | URL | Endpoints | Technology | Status |
-|---------|-----|-----------|------------|--------|
-| **API Gateway** | http://localhost:8000/docs | 80 | FastAPI 4.2.0 | ✅ Local |
-| **AI Agent** | http://localhost:9000/docs | 6 | FastAPI + ML | ✅ Local |
-| **LangGraph** | http://localhost:9001/docs | 25 | FastAPI + RL | ✅ Local |
-| **HR Portal** | Docker only | UI | Streamlit 1.41.1 | ✅ Reference |
-| **Client Portal** | Docker only | UI | Streamlit 1.41.1 | ✅ Reference |
-| **Candidate Portal** | Docker only | UI | Streamlit 1.41.1 | ✅ Reference |
-| **TOTAL** | **6 Services** | **112** | **Mixed Stack** | **✅ 100%** |
+| Service | Port | Endpoints | Technology | Status |
+|---------|------|-----------|------------|--------|
+| **API Gateway** | 8000 | 77 | FastAPI 4.2.0 | ✅ Local |
+| **AI Agent** | 9000 | 6 | FastAPI + ML | ✅ Local |
+| **LangGraph** | 9001 | 25 | FastAPI + RL | ✅ Local |
+| **TOTAL** | **3 Services** | **108** | **FastAPI Stack** | **✅ 100%** |
 
-**Note:** Streamlit portals (HR, Client, Candidate) are available via Docker only and are for reference/updates. The main platform uses the 3 core services (Gateway, Agent, LangGraph).
+**Note:** The main platform uses the 3 core services (Gateway, Agent, LangGraph) with MongoDB Atlas as the database backend.
 
 ### **Gateway Service (Port 8000)**
 ```
@@ -207,7 +201,7 @@ System Collections:
 
 ### **Database Features**
 - **MongoDB Atlas**: Cloud-hosted, scalable NoSQL database
-- **Connection Pooling**: Efficient async/sync connections (Motor & PyMongo)
+- **Connection Pooling**: Efficient async connections (Motor driver)
 - **Indexes**: Optimized query performance with compound indexes
 - **Document-based**: Flexible schema for HR data
 - **RL Integration**: ML feedback and learning system
@@ -237,7 +231,7 @@ docs/
 │   ├── DATABASE_DOCUMENTATION.md # Schema documentation
 │   ├── CONNECTION_DIAGRAM.md    # Connection guide
 │   ├── DBEAVER_SETUP_GUIDE.md   # Database client setup
-│   └── QUICK_QUERIES.sql        # Useful SQL queries
+│   └── MONGODB_QUICK_QUERIES.md  # Useful MongoDB queries
 ├── 📁 security/         # Security documentation
 │   ├── SECURITY_AUDIT.md        # Security analysis
 │   ├── API_KEYS_SUMMARY.md      # API key management
@@ -364,7 +358,7 @@ JWT_SECRET_KEY=<YOUR_JWT_SECRET_KEY>
 CANDIDATE_JWT_SECRET_KEY=<YOUR_CANDIDATE_JWT_SECRET_KEY>
 
 # Database
-DATABASE_URL=<YOUR_DATABASE_URL>
+MONGODB_URI=<YOUR_MONGODB_URI>
 
 # Communication Services (LangGraph)
 TWILIO_ACCOUNT_SID=<YOUR_TWILIO_ACCOUNT_SID>
@@ -397,9 +391,9 @@ logs/
 
 ## 🚀 Deployment Structure
 
-```
+````
 # Docker deployment configuration at root level
-├── 📄 docker-compose.production.yml # Production Docker configuration
+├── 📄 docker-compose.yml # Production Docker configuration
 ```
 
 ---

@@ -1,10 +1,10 @@
 # ⚡ BHIV HR Platform - Quick Start Guide
 
 **Get Started in 5 Minutes**  
-**Updated**: January 16, 2026  
+**Updated**: January 22, 2026  
 **Platform**: Production Ready - Local Development  
 **Version**: v4.3.0  
-**Status**: ✅ 3/3 Services Operational | 112 Endpoints Live | MongoDB Atlas
+**Status**: ✅ 3/3 Services Operational | 108 Endpoints Live | MongoDB Atlas
 
 ---
 
@@ -25,15 +25,15 @@
 All services are live and operational - no installation needed!
 
 
-#### **Localhost Service URLs (112 Total Endpoints)**
+#### **Localhost Service URLs (108 Total Endpoints)**
 ```bash
-# API Gateway (80 endpoints - FastAPI 4.2.0)
+# API Gateway (77 endpoints - FastAPI 4.2.0)
 http://localhost:8000/docs
 
 # AI Agent Service (6 endpoints - Semantic Matching + ML)
 http://localhost:9000/docs
 
-# LangGraph Workflow Service (26 endpoints - Automation + Notifications)
+# LangGraph Workflow Service (25 endpoints - Automation + Notifications)
 http://localhost:9001/docs
 
 # Note: Streamlit portals (HR, Client, Candidate) available via Docker only
@@ -42,10 +42,10 @@ http://localhost:9001/docs
 #### **Service Status Overview**
 | Service | Endpoints | Type | Status | Response Time |
 |---------|-----------|------|--------|---------------|
-| **Gateway** | 80 | FastAPI | ✅ Live | <85ms |
+| **Gateway** | 77 | FastAPI | ✅ Live | <85ms |
 | **AI Agent** | 6 | FastAPI | ✅ Live | <15ms |
-| **LangGraph** | 26 | FastAPI | ✅ Live | <120ms |
-| **TOTAL** | **112** | **FastAPI** | **✅ 100%** | **Excellent** |
+| **LangGraph** | 25 | FastAPI | ✅ Live | <120ms |
+| **TOTAL** | **108** | **FastAPI** | **✅ 100%** | **Excellent** |
 
 #### **🔑 Authentication**
 ```bash
@@ -150,14 +150,14 @@ docker-compose -f docker-compose.production.yml down
 ### **🔧 Local Service Configuration**
 ```bash
 # API Services
-Gateway API:      http://localhost:8000    # 80 endpoints
+Gateway API:      http://localhost:8000    # 77 endpoints
 AI Agent API:     http://localhost:9000    # 6 endpoints
-LangGraph API:    http://localhost:9001    # 26 endpoints
+LangGraph API:    http://localhost:9001    # 25 endpoints
 
 # Database
 MongoDB Atlas:    Cloud-hosted              # MongoDB Atlas
 
-# Total Endpoints: 112 (80+6+26)
+# Total Endpoints: 108 (77+6+25)
 ```
 
 ---
