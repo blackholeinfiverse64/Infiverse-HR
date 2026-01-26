@@ -2599,6 +2599,63 @@ async def get_candidate_stats(candidate_id: str, auth = Depends(get_auth)):
             "error": str(e)
         }
 
+@app.get("/v1/recruiter/stats", tags=["Recruiter Portal"])
+async def get_recruiter_stats(auth = Depends(get_auth)):
+    """Get Recruiter Dashboard Statistics"""
+    try:
+        db = await get_mongo_db()
+        
+        # Verify the user is a recruiter
+        auth_info = auth
+        if auth_info.get("type") != "jwt_token" or auth_info.get("role") != "recruiter":
+            raise HTTPException(status_code=403, detail="This endpoint is only available for recruiters")
+        
+        recruiter_id = str(auth_info.get("user_id", ""))
+        
+        # Get total active jobs
+        active_jobs = await db.jobs.count_documents({"status": "active"})
+        
+        # Get total candidates (recruiters can see all candidates)
+        total_candidates = await db.candidates.count_documents({})
+        
+        # Get interviews scheduled (all interviews, not just for specific candidate)
+        interviews_scheduled = await db.interviews.count_documents({
+            "status": "scheduled"
+        })
+        
+        # Get offers made (all offers)
+        offers_made = await db.offers.count_documents({})
+        
+        # Get applications count (all applications)
+        total_applications = await db.job_applications.count_documents({})
+        
+        # Get shortlisted candidates
+        shortlisted_count = await db.job_applications.count_documents({
+            "status": "shortlisted"
+        })
+        
+        return {
+            "active_jobs": active_jobs,
+            "total_candidates": total_candidates,
+            "interviews_scheduled": interviews_scheduled,
+            "offers_made": offers_made,
+            "total_applications": total_applications,
+            "shortlisted_candidates": shortlisted_count,
+            "recruiter_id": recruiter_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {
+            "active_jobs": 0,
+            "total_candidates": 0,
+            "interviews_scheduled": 0,
+            "offers_made": 0,
+            "total_applications": 0,
+            "shortlisted_candidates": 0,
+            "error": str(e)
+        }
+
 @app.get("/v1/candidate/applications/{candidate_id}", tags=["Candidate Portal"])
 async def get_candidate_applications(candidate_id: str, auth = Depends(get_auth)):
     """Get Candidate Applications"""

@@ -38,10 +38,58 @@ class AuthService {
   async login(email: string, password: string, role?: string): Promise<AuthResponse> {
     try {
       // Determine role from parameter or localStorage
-      const userRole = role || localStorage.getItem('user_role') || 'candidate';
+      let userRole = role || localStorage.getItem('user_role') || 'candidate';
       
       let response;
       
+      // If role is not explicitly set, try to detect by attempting both logins
+      // This handles cases where localStorage was cleared but user knows their role
+      if (!role && !localStorage.getItem('user_role')) {
+        // Try client login first
+        try {
+          response = await axios.post(`${this.API_BASE_URL}/v1/client/login`, {
+            email: email,
+            password: password
+          });
+          
+          if (response.data.success && response.data.access_token) {
+            // Client login succeeded - handle it
+            const token = response.data.access_token;
+            
+            if (!token || token.trim() === '') {
+              console.error('❌ Client login response has empty token!');
+              return { success: false, error: 'Invalid token received from server' };
+            }
+            
+            const userData = {
+              id: response.data.client_id,
+              email: email,
+              name: response.data.company_name || '',
+              role: 'client',
+              company: response.data.company_name
+            };
+            
+            console.log('🔐 Storing client auth token after auto-detected login');
+            this.setAuthToken(token);
+            localStorage.setItem(this.TOKEN_KEY, token);
+            localStorage.setItem('auth_token', token);
+            localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
+            localStorage.setItem('client_id', response.data.client_id);
+            localStorage.setItem('user_role', 'client');
+            
+            return {
+              success: true,
+              token: token,
+              user: userData
+            };
+          }
+        } catch (clientError: any) {
+          // Client login failed, will try candidate/recruiter login below
+          console.log('🔐 Client login failed, trying candidate/recruiter login');
+        }
+      }
+      
+      // Handle explicit client login or continue with candidate/recruiter login
       if (userRole === 'client') {
         // Try client login with email (backend now supports email-based login)
         try {
@@ -120,10 +168,69 @@ class AuthService {
       
       // For recruiter and candidate (or client fallback), use candidate login
       // Backend candidate login works for both candidates and recruiters (stored as candidates)
-      response = await axios.post(`${this.API_BASE_URL}/v1/candidate/login`, {
-        email,
-        password
-      });
+      try {
+        response = await axios.post(`${this.API_BASE_URL}/v1/candidate/login`, {
+          email,
+          password
+        });
+      } catch (candidateError: any) {
+        // If candidate login fails with "Invalid credentials", try client login as fallback
+        // This handles cases where user_role was incorrectly set to 'candidate' for a client
+        if (candidateError.response?.status === 401 || 
+            candidateError.response?.data?.error?.includes('Invalid credentials') ||
+            candidateError.response?.data?.error?.includes('Invalid')) {
+          console.log('🔐 Candidate login failed, trying client login as fallback...');
+          
+          try {
+            response = await axios.post(`${this.API_BASE_URL}/v1/client/login`, {
+              email: email,
+              password: password
+            });
+            
+            if (response.data.success && response.data.access_token) {
+              // Client login succeeded - handle it
+              const token = response.data.access_token;
+              
+              if (!token || token.trim() === '') {
+                console.error('❌ Client login response has empty token!');
+                return { success: false, error: 'Invalid token received from server' };
+              }
+              
+              const userData = {
+                id: response.data.client_id,
+                email: email,
+                name: response.data.company_name || '',
+                role: 'client',
+                company: response.data.company_name
+              };
+              
+              console.log('🔐 Storing client auth token after fallback login');
+              this.setAuthToken(token);
+              localStorage.setItem(this.TOKEN_KEY, token);
+              localStorage.setItem('auth_token', token);
+              localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
+              localStorage.setItem('client_id', response.data.client_id);
+              localStorage.setItem('user_role', 'client');
+              
+              return {
+                success: true,
+                token: token,
+                user: userData
+              };
+            }
+          } catch (clientFallbackError: any) {
+            // Both logins failed
+            console.error('❌ Both candidate and client login failed');
+            return {
+              success: false,
+              error: candidateError.response?.data?.error || 'Invalid credentials'
+            };
+          }
+        }
+        
+        // Re-throw if it's not an "Invalid credentials" error
+        throw candidateError;
+      }
 
       // Backend returns 'candidate' but we need to set correct role
       if (response.data.token && response.data.success) {

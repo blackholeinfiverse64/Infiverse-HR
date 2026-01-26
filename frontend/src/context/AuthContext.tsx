@@ -56,19 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignIn = async (email: string, password: string) => {
     try {
       // Get role from localStorage (stored during signup) to determine login endpoint
-      // Try to detect role from email or use stored role
+      // Don't default to 'candidate' - let authService auto-detect if role is not set
+      // This allows fallback to client login if candidate login fails
       let storedRole = localStorage.getItem('user_role');
       
-      // If no stored role, try to detect from email domain or use candidate as default
-      if (!storedRole) {
-        // Could add logic here to detect role from email patterns if needed
-        storedRole = 'candidate';
-      }
-      
-      console.log('🔐 AuthContext: Attempting login with role:', storedRole);
+      // Only use stored role if it exists, otherwise let authService auto-detect
+      // This prevents issues where 'candidate' is incorrectly stored for a client
+      console.log('🔐 AuthContext: Attempting login with role:', storedRole || 'auto-detect');
       
       const authService = (await import('../services/authService')).default;
-      const result = await authService.login(email, password, storedRole);
+      // Pass undefined if no role is stored, so authService can auto-detect
+      const result = await authService.login(email, password, storedRole || undefined);
       
       console.log('🔐 AuthContext: Login result:', { 
         success: result.success, 

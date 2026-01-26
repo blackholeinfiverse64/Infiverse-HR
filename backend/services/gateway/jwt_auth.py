@@ -80,7 +80,7 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
         except Exception as e2:
             logger.debug(f"Fallback verification with audience also failed: {e2}")
             return None
-    except jwt.InvalidAudienceError:
+        except jwt.InvalidAudienceError:
         # Token has aud claim but it doesn't match - try without audience validation
         logger.debug("JWT token audience mismatch, trying without audience validation")
         try:
