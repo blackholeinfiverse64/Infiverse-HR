@@ -44,6 +44,8 @@ try:
     gateway_dir = os.path.dirname(os.path.dirname(__file__))
     sys.path.insert(0, gateway_dir)
     from monitoring import monitor, log_resume_processing, log_matching_performance, log_user_activity, log_error
+    # Import proper JWT authentication functions
+    from jwt_auth import get_auth as jwt_get_auth, get_api_key as jwt_get_api_key, validate_api_key as jwt_validate_api_key
 except ImportError:
     # Fallback if monitoring module is not available
     class MockMonitor:
@@ -58,6 +60,18 @@ except ImportError:
     def log_matching_performance(*args, **kwargs): pass
     def log_user_activity(*args, **kwargs): pass
     def log_error(*args, **kwargs): pass
+    
+    # Fallback: try to import jwt_auth from parent directory
+    try:
+        import sys
+        import os
+        gateway_dir = os.path.dirname(os.path.dirname(__file__))
+        sys.path.insert(0, gateway_dir)
+        from jwt_auth import get_auth as jwt_get_auth, get_api_key as jwt_get_api_key, validate_api_key as jwt_validate_api_key
+    except ImportError:
+        jwt_get_auth = None
+        jwt_get_api_key = None
+        jwt_validate_api_key = None
 
 security = HTTPBearer()
 
@@ -355,41 +369,52 @@ class JobApplication(BaseModel):
 # MongoDB connection is handled by app.database module
 # Use: db = await get_mongo_db() for async database access
 
-def validate_api_key(api_key: str) -> bool:
-    expected_key = os.getenv("API_KEY_SECRET")
-    return api_key == expected_key
+# Use proper JWT authentication from jwt_auth.py module
+# If import failed, define fallback functions
+if jwt_get_auth is not None:
+    # Use the proper authentication functions from jwt_auth.py
+    get_auth = jwt_get_auth
+    get_api_key = jwt_get_api_key
+    validate_api_key = jwt_validate_api_key
+else:
+    # Fallback: define basic functions if import failed
+    def validate_api_key(api_key: str) -> bool:
+        expected_key = os.getenv("API_KEY_SECRET")
+        return api_key == expected_key
 
-def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
-    if not credentials or not validate_api_key(credentials.credentials):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return credentials.credentials
+    def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+        if not credentials or not validate_api_key(credentials.credentials):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        return credentials.credentials
 
-def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Dual authentication: API key or client JWT token"""
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    # Try API key first
-    if validate_api_key(credentials.credentials):
-        return {"type": "api_key", "credentials": credentials.credentials}
-    
-    # Try client JWT token
-    try:
-        jwt_secret = os.getenv("JWT_SECRET_KEY")
-        payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
-        return {"type": "client_token", "client_id": payload.get("client_id")}
-    except:
-        pass
-    
-    # Try candidate JWT token
-    try:
-        candidate_jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
-        payload = jwt.decode(credentials.credentials, candidate_jwt_secret, algorithms=["HS256"])
-        return {"type": "candidate_token", "candidate_id": payload.get("candidate_id")}
-    except:
-        pass
-    
-    raise HTTPException(status_code=401, detail="Invalid authentication")
+    def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
+        """Dual authentication: API key or client JWT token"""
+        if not credentials:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Try API key first
+        if validate_api_key(credentials.credentials):
+            return {"type": "api_key", "credentials": credentials.credentials}
+        
+        # Try client JWT token
+        try:
+            jwt_secret = os.getenv("JWT_SECRET_KEY")
+            if jwt_secret:
+                payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
+                return {"type": "client_token", "client_id": payload.get("client_id")}
+        except Exception as e:
+            pass
+        
+        # Try candidate JWT token
+        try:
+            candidate_jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
+            if candidate_jwt_secret:
+                payload = jwt.decode(credentials.credentials, candidate_jwt_secret, algorithms=["HS256"])
+                return {"type": "candidate_token", "candidate_id": payload.get("candidate_id")}
+        except Exception as e:
+            pass
+        
+        raise HTTPException(status_code=401, detail="Invalid authentication")
 
 # Core API Endpoints (5 endpoints)
 @app.get("/openapi.json", tags=["Core API Endpoints"])
@@ -1564,9 +1589,14 @@ async def client_login(login_data: ClientLogin):
         
         # Generate JWT token using JWT_SECRET_KEY
         jwt_secret = os.getenv("JWT_SECRET_KEY")
+        client_id = client.get("client_id")
         token_payload = {
-            "client_id": client.get("client_id"),
+            "sub": client_id,  # Standard JWT claim for subject/user ID
+            "client_id": client_id,  # Keep for backward compatibility
+            "user_id": client_id,  # Also include user_id for jwt_auth.py compatibility
+            "email": client.get("contact_email", ""),
             "company_name": client.get("company_name"),
+            "role": "client",  # Explicit role for jwt_auth.py
             "exp": int(datetime.now(timezone.utc).timestamp()) + 86400  # 24 hours
         }
         access_token = jwt.encode(token_payload, jwt_secret, algorithm="HS256")
@@ -2207,9 +2237,14 @@ async def candidate_login(login_data: CandidateLogin):
         
         # Generate JWT token
         jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
+        candidate_id_str = str(candidate["_id"])
         token_payload = {
-            "candidate_id": str(candidate["_id"]),
+            "sub": candidate_id_str,  # Standard JWT claim for subject/user ID
+            "candidate_id": candidate_id_str,  # Keep for backward compatibility
+            "user_id": candidate_id_str,  # Also include user_id for jwt_auth.py compatibility
             "email": candidate.get("email"),
+            "name": candidate.get("name", ""),
+            "role": "candidate",  # Explicit role for jwt_auth.py
             "exp": int(datetime.now(timezone.utc).timestamp()) + 86400  # 24 hours
         }
         token = jwt.encode(token_payload, jwt_secret, algorithm="HS256")
@@ -2240,10 +2275,19 @@ async def get_candidate_profile(candidate_id: str, auth = Depends(get_auth)):
     try:
         db = await get_mongo_db()
         
-        # Verify the candidate_id matches the authenticated user (if using candidate token)
+        # Verify the candidate_id matches the authenticated user (if using JWT token)
         auth_info = auth
-        if auth_info.get("type") == "candidate_token":
-            token_candidate_id = str(auth_info.get("candidate_id", ""))
+        # Support both old format (candidate_token) and new format (jwt_token with role)
+        if auth_info.get("type") in ["candidate_token", "jwt_token"]:
+            # Get candidate_id from token - try both old and new formats
+            token_candidate_id = None
+            if auth_info.get("type") == "candidate_token":
+                # Old format
+                token_candidate_id = str(auth_info.get("candidate_id", ""))
+            elif auth_info.get("type") == "jwt_token" and auth_info.get("role") == "candidate":
+                # New format from jwt_auth.py
+                token_candidate_id = str(auth_info.get("user_id", ""))
+            
             # Compare as strings to handle ObjectId vs string differences
             if token_candidate_id and token_candidate_id != str(candidate_id):
                 # Also try ObjectId comparison
