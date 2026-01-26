@@ -76,7 +76,9 @@ def verify_jwt_token(token: str, secret: Optional[str] = None) -> Optional[Dict[
         logger.warning("JWT token expired")
         return None
     except jwt.InvalidSignatureError as e:
-        logger.warning(f"JWT token signature invalid: {e}. Secret mismatch or wrong secret used.")
+        logger.error(f"❌ JWT token signature invalid: {e}. Secret mismatch or wrong secret used.")
+        logger.error(f"Secret provided: {bool(jwt_secret)}, Secret length: {len(jwt_secret) if jwt_secret else 0}")
+        logger.error(f"Token (first 50 chars): {token[:50] if token else 'None'}...")
         return None
     except jwt.DecodeError as e:
         logger.warning(f"JWT token decode error: {e}")
@@ -132,7 +134,7 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
         logger.warning("Empty token in credentials")
         raise HTTPException(status_code=401, detail="Authentication token is empty")
     
-    logger.debug(f"Attempting authentication with token (first 20 chars): {token[:20]}...")
+    logger.info(f"🔐 Attempting authentication with token (first 30 chars): {token[:30]}...")
     
     # Try API key first (for service-to-service)
     if validate_api_key(token):
@@ -146,11 +148,11 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
     
     # Try candidate JWT token first (CANDIDATE_JWT_SECRET_KEY)
     if CANDIDATE_JWT_SECRET_KEY:
-        logger.debug(f"Attempting candidate JWT validation with secret (exists: {bool(CANDIDATE_JWT_SECRET_KEY)})")
+        logger.info(f"Attempting candidate JWT validation with secret (exists: {bool(CANDIDATE_JWT_SECRET_KEY)}, length: {len(CANDIDATE_JWT_SECRET_KEY) if CANDIDATE_JWT_SECRET_KEY else 0})")
         payload = verify_jwt_token(token, secret=CANDIDATE_JWT_SECRET_KEY)
         if payload:
             user_info = get_user_from_token(payload)
-            logger.debug(f"Authentication successful: Candidate JWT token for user {user_info.get('user_id')}")
+            logger.info(f"✅ Authentication successful: Candidate JWT token for user {user_info.get('user_id')}")
             return {
                 "type": "jwt_token",
                 "user_id": user_info["user_id"],
@@ -159,9 +161,10 @@ def get_auth(credentials: HTTPAuthorizationCredentials = Security(security)):
                 "name": user_info["name"],
             }
         else:
-            logger.warning("Candidate JWT token validation failed")
+            logger.error(f"❌ Candidate JWT token validation failed. Token (first 50 chars): {token[:50] if token else 'None'}...")
+            logger.error(f"Secret configured: {bool(CANDIDATE_JWT_SECRET_KEY)}, Secret length: {len(CANDIDATE_JWT_SECRET_KEY) if CANDIDATE_JWT_SECRET_KEY else 0}")
     else:
-        logger.warning("CANDIDATE_JWT_SECRET_KEY not configured")
+        logger.error("❌ CANDIDATE_JWT_SECRET_KEY not configured")
     
     # Try client JWT token (JWT_SECRET_KEY)
     jwt_secret = JWT_SECRET_KEY or JWT_SECRET or JWT_SECRET_FALLBACK

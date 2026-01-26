@@ -19,19 +19,16 @@ api.interceptors.request.use(
     // Get JWT token from localStorage
     let token = localStorage.getItem('auth_token');
     
-    // If token is missing but user is authenticated, try to get it from user_data or clear auth
+    // If token is missing but user is authenticated, don't clear immediately - might be a race condition
     if (!token) {
       const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
       if (isAuthenticated) {
-        // User thinks they're logged in but token is missing - clear auth state
-        console.error('⚠️ Token missing but user is authenticated. Clearing auth state.');
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('user_role');
-        // Don't redirect here - let the app handle it
+        // Only warn, don't clear - might be a timing issue
+        console.warn('⚠️ Token missing but user is authenticated for request:', config.url);
+        console.warn('This might be a race condition. Available localStorage keys:', Object.keys(localStorage));
+      } else {
+        console.warn('⚠️ No auth_token found in localStorage for request:', config.url);
       }
-      console.warn('⚠️ No auth_token found in localStorage for request:', config.url);
-      console.warn('Available localStorage keys:', Object.keys(localStorage));
     } else {
       // Only log for non-health check endpoints to reduce noise
       if (!config.url?.includes('/health')) {
@@ -51,7 +48,28 @@ api.interceptors.response.use(
   async (error) => {
     // Log errors for debugging
     if (error.response) {
-      console.error(`API Error: ${error.response.status} - ${error.config?.url}`)
+      const status = error.response.status;
+      const url = error.config?.url;
+      
+      if (status === 401) {
+        // 401 Unauthorized - token might be invalid or expired
+        console.error(`❌ 401 Unauthorized for: ${url}`);
+        console.error('Response details:', error.response.data);
+        
+        // Check if token exists
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          console.error('Token exists but was rejected. Token (first 50 chars):', token.substring(0, 50));
+          console.error('This suggests the token is invalid, expired, or signed with wrong secret.');
+        } else {
+          console.error('Token is missing from localStorage.');
+        }
+        
+        // Don't clear token immediately - let the app handle it
+        // The token might be valid but the endpoint might require different auth
+      } else {
+        console.error(`API Error: ${status} - ${url}`);
+      }
     } else if (error.request) {
       // Network error - no response received
       console.error(`Network Error: Unable to reach API at ${error.config?.baseURL}${error.config?.url}`)
