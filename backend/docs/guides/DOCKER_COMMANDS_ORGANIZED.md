@@ -1,33 +1,29 @@
 # 🐳 BHIV HR Platform - Docker Management Guide
 
 **Complete Docker Operations & Commands**  
-**Updated**: December 16, 2025  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
-**Services**: 6 microservices + PostgreSQL database  
-**Deployment**: Docker Compose with production configuration | **Database**: Authentication Fixed
+**Services**: 3 core microservices + MongoDB Atlas  
+**Deployment**: Docker Compose with production configuration | **Database**: MongoDB Atlas
 
 ---
 
 ## 📋 Docker Architecture Overview
 
 ### **Container Architecture**
-- **Total Services**: 7 containers (6 microservices + 1 database)
+- **Total Services**: 3 core microservices (no database container - uses MongoDB Atlas)
 - **Orchestration**: Docker Compose with production configuration
 - **Network**: Internal Docker network with service discovery
-- **Volumes**: Persistent PostgreSQL data storage
-- **Port Mapping**: Dynamic port allocation for all services
+- **Volumes**: None (uses cloud MongoDB Atlas)
+- **Port Mapping**: Static port allocation for all services
 - **Health Checks**: Automated health monitoring for all containers
 
 ### **Service Configuration**
 | Service | Container Name | Port | Health Check |
 |---------|---------------|------|--------------|
-| **Gateway** | bhiv-hr-platform-gateway-1 | 8000 | `/health` |
-| **AI Agent** | bhiv-hr-platform-agent-1 | 9000 | `/health` |
-| **LangGraph** | bhiv-hr-platform-langgraph-1 | 7000 | `/health` |
-| **HR Portal** | bhiv-hr-platform-portal-1 | 8501 | `/_stcore/health` |
-| **Client Portal** | bhiv-hr-platform-client-portal-1 | 8502 | `/_stcore/health` |
-| **Candidate Portal** | bhiv-hr-platform-candidate-portal-1 | 8503 | `/_stcore/health` |
-| **Database** | bhiv-hr-platform-db-1 | 5432 | PostgreSQL health |
+| **Gateway** | gateway | 8000 | `/health` |
+| **AI Agent** | agent | 9000 | `/health` |
+| **LangGraph** | langgraph | 9001 | `/health` |
 
 ### **Production Statistics**
 - **Container Uptime**: 99.9% availability
@@ -43,17 +39,17 @@
 
 ### **Essential Operations**
 ```bash
-# 1. STOP (keeps database)
-docker-compose -f docker-compose.production.yml down
+# 1. STOP services
+docker-compose down
 
-# 2. CLEANUP (Safe - keeps database)
+# 2. CLEANUP
 docker builder prune --all --force
 docker container prune -f
 docker image prune -a -f
 docker system df
 
 # 3. REBUILD & START
-docker-compose -f docker-compose.production.yml up -d --build
+docker-compose up -d --build
 
 # View service status
 docker ps
@@ -62,13 +58,13 @@ docker ps
 ### **Build & Deploy**
 ```bash
 # Build and start (fresh deployment)
-docker-compose -f docker-compose.production.yml up -d --build
+docker-compose up -d --build
 
 # Build without cache (clean build)
-docker-compose -f docker-compose.production.yml build --no-cache
+docker-compose build --no-cache
 
 # Build specific service
-docker-compose -f docker-compose.production.yml build gateway
+docker-compose build gateway
 ```
 
 ### **Health Verification**
@@ -76,10 +72,9 @@ docker-compose -f docker-compose.production.yml build gateway
 # Check all service health
 curl http://localhost:8000/health    # Gateway
 curl http://localhost:9000/health    # AI Agent
-curl http://localhost:7000/health    # LangGraph
-curl http://localhost:8501/_stcore/health  # HR Portal
-curl http://localhost:8502/_stcore/health  # Client Portal
-curl http://localhost:8503/_stcore/health  # Candidate Portal
+curl http://localhost:9001/health    # LangGraph
+# Test database connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
 ```
 
 ---
@@ -89,46 +84,41 @@ curl http://localhost:8503/_stcore/health  # Candidate Portal
 ### **Individual Service Operations**
 ```bash
 # Restart specific service
-docker-compose -f docker-compose.production.yml restart gateway
-docker-compose -f docker-compose.production.yml restart agent
-docker-compose -f docker-compose.production.yml restart langgraph
-docker-compose -f docker-compose.production.yml restart portal
-docker-compose -f docker-compose.production.yml restart client-portal
-docker-compose -f docker-compose.production.yml restart candidate-portal
+docker-compose restart gateway
+docker-compose restart agent
+docker-compose restart langgraph
 
 # Update single service
-docker-compose -f docker-compose.production.yml build gateway
-docker-compose -f docker-compose.production.yml up -d gateway
+docker-compose build gateway
+docker-compose up -d gateway
 
 # Stop specific service
-docker-compose -f docker-compose.production.yml stop gateway
+docker-compose stop gateway
 
 # Start specific service
-docker-compose -f docker-compose.production.yml start gateway
+docker-compose start gateway
 ```
 
 ### **Service Scaling**
 ```bash
 # Scale services (if needed)
-docker-compose -f docker-compose.production.yml up -d --scale gateway=2
-docker-compose -f docker-compose.production.yml up -d --scale agent=2
+docker-compose up -d --scale gateway=2
+docker-compose up -d --scale agent=2
 
 # Reset to single instance
-docker-compose -f docker-compose.production.yml up -d --scale gateway=1
+docker-compose up -d --scale gateway=1
 ```
 
 ### **Container Access**
 ```bash
 # Execute commands in containers
-docker exec -it bhiv-hr-platform-gateway-1 bash
-docker exec -it bhiv-hr-platform-agent-1 bash
-docker exec -it bhiv-hr-platform-langgraph-1 bash
-docker exec -it bhiv-hr-platform-portal-1 bash
-docker exec -it bhiv-hr-platform-db-1 psql -U bhiv_user -d bhiv_hr
+docker exec -it gateway bash
+docker exec -it agent bash
+docker exec -it langgraph bash
 
 # Run Python commands in containers
-docker exec -it bhiv-hr-platform-gateway-1 python -c "import sys; print(sys.version)"
-docker exec -it bhiv-hr-platform-agent-1 python -c "from app import app; print('Agent loaded')"
+docker exec -it gateway python -c "import sys; print(sys.version)"
+docker exec -it agent python -c "from app import app; print('Agent loaded')"
 ```
 
 ---
@@ -138,20 +128,15 @@ docker exec -it bhiv-hr-platform-agent-1 python -c "from app import app; print('
 ### **Real-Time Monitoring**
 ```bash
 # View all logs (real-time)
-docker-compose -f docker-compose.production.yml logs -f
+docker-compose logs -f
 
 # Service-specific logs
-docker-compose -f docker-compose.production.yml logs -f gateway
-docker-compose -f docker-compose.production.yml logs -f agent
-docker-compose -f docker-compose.production.yml logs -f langgraph
-docker-compose -f docker-compose.production.yml logs -f portal
-docker-compose -f docker-compose.production.yml logs -f client-portal
-docker-compose -f docker-compose.production.yml logs -f candidate-portal
-docker-compose -f docker-compose.production.yml logs -f db
+docker-compose logs -f gateway
+docker-compose logs -f agent
+docker-compose logs -f langgraph
 
 # Last N lines of logs
-docker-compose -f docker-compose.production.yml logs --tail=100 gateway
-docker-compose -f docker-compose.production.yml logs --tail=50 db
+docker-compose logs --tail=100 gateway
 ```
 
 ### **Performance Monitoring**
@@ -176,28 +161,28 @@ docker system df -v
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 # Detailed health information
-docker inspect bhiv-hr-platform-gateway-1 | grep -A 20 "Health"
+docker inspect gateway | grep -A 20 "Health"
 
 # Service discovery test
-docker exec bhiv-hr-platform-gateway-1 nslookup db
-docker exec bhiv-hr-platform-portal-1 curl http://gateway:8000/health
+docker exec gateway curl http://agent:9000/health
+docker exec gateway curl http://langgraph:9001/health
 ```
 
 ---
 
 ## 🗄️ Database Management
 
-### **Database Operations**
+### **MongoDB Operations**
 ```bash
-# Connect to PostgreSQL
-docker exec -it bhiv-hr-platform-db-1 psql -U bhiv_user -d bhiv_hr
+# Test MongoDB connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
+
+# Check MongoDB status via Python
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb+srv://username:password@cluster.mongodb.net/'); print(client.admin.command('ping'))"
 
 # Database backup
-docker exec bhiv-hr-platform-db-1 pg_dump -U bhiv_user bhiv_hr > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Database restore
-docker exec -i bhiv-hr-platform-db-1 psql -U bhiv_user -d bhiv_hr < backup.sql
-
+# MongoDB Atlas handles automated backups
+```
 # Check database size
 docker exec bhiv-hr-platform-db-1 psql -U bhiv_user -d bhiv_hr -c "SELECT pg_size_pretty(pg_database_size('bhiv_hr'));"
 

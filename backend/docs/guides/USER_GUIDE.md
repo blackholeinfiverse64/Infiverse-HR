@@ -1,9 +1,9 @@
 # 📚 BHIV HR Platform - Complete User Guide
 
 **Enterprise AI-Powered Recruiting Platform with Intelligent Workflow Automation**  
-**Updated**: December 16, 2025  
-**Version**: v4.3.1 Production Ready  
-**Status**: ✅ 6/6 Services Operational | 111 Endpoints Live | 99.95% Uptime | Database Authentication Fixed
+**Updated**: January 22, 2026  
+**Version**: v4.3.0 Production Ready  
+**Status**: ✅ 3/3 Core Services Operational | 108 Endpoints Live | 99.95% Uptime | MongoDB Atlas
 
 ## 🎯 Overview
 
@@ -16,188 +16,204 @@ Welcome to the BHIV HR Platform - an enterprise-grade AI-powered recruiting solu
 - **Internet**: Stable connection (minimum 1 Mbps)
 - **Screen Resolution**: 1280x720 minimum (1920x1080 recommended)
 
-### Production Service Access (111 Total Endpoints)
+### Local Development Service Access (108 Total Endpoints)
 
-**🌐 Live Production Platform:**
-| Service | URL | Endpoints | Type | Status |
-|---------|-----|-----------|------|--------|
-| **HR Portal** | [bhiv-hr-portal-u670.onrender.com](https://bhiv-hr-portal-u670.onrender.com/) | 8 | Streamlit | ✅ Live |
-| **Client Portal** | [bhiv-hr-client-portal-3iod.onrender.com](https://bhiv-hr-client-portal-3iod.onrender.com/) | 7 | Streamlit | ✅ Live |
-| **Candidate Portal** | [bhiv-hr-candidate-portal-abe6.onrender.com](https://bhiv-hr-candidate-portal-abe6.onrender.com/) | 7 | Streamlit | ✅ Live |
-| **API Gateway** | [bhiv-hr-gateway-ltg0.onrender.com/docs](https://bhiv-hr-gateway-ltg0.onrender.com/docs) | 74 | FastAPI | ✅ Live |
-| **AI Agent** | [bhiv-hr-agent-nhgg.onrender.com/docs](https://bhiv-hr-agent-nhgg.onrender.com/docs) | 6 | FastAPI | ✅ Live |
-| **LangGraph** | [bhiv-hr-langgraph.onrender.com](https://bhiv-hr-langgraph.onrender.com) | 9 | FastAPI | ✅ Live |
+**🌐 Three-Port Architecture:**
+| Service | Port | Endpoints | Type | Status |
+|---------|------|-----------|------|--------|
+| **API Gateway** | 8000 | 77 | FastAPI | ✅ Live |
+| **AI Agent** | 9000 | 6 | FastAPI | ✅ Live |
+| **LangGraph** | 9001 | 25 | FastAPI | ✅ Live |
 
 **💻 Local Development Environment:**
 | Service | URL | Endpoints | Port | Status |
 |---------|-----|-----------|------|--------|
-| **HR Portal** | http://localhost:8501 | 8 | 8501 | ✅ Ready |
-| **Client Portal** | http://localhost:8502 | 7 | 8502 | ✅ Ready |
-| **Candidate Portal** | http://localhost:8503 | 7 | 8503 | ✅ Ready |
-| **API Gateway** | http://localhost:8000/docs | 74 | 8000 | ✅ Ready |
+| **API Gateway** | http://localhost:8000/docs | 77 | 8000 | ✅ Ready |
 | **AI Agent** | http://localhost:9000/docs | 6 | 9000 | ✅ Ready |
-| **LangGraph** | http://localhost:9001 | 9 | 9001 | ✅ Ready |
+| **LangGraph** | http://localhost:9001/docs | 25 | 9001 | ✅ Ready |
 
-**Performance Metrics**: 99.95% Uptime | <85ms API Response | <1.8s Portal Load | $0/month Cost
+**Performance Metrics**: 99.95% Uptime | <85ms API Response | <50ms Database Queries | $0/month Cost
 
 ---
 
-## 👥 HR Portal Guide (Port 8501)
+## 🌐 API Gateway Guide (Port 8000)
 
-### 🔐 Login & Authentication
+### 🔐 API Access & Authentication
 
-**Step 1: Access HR Portal**
+**Step 1: Access API Gateway**
 ```
-Production: https://bhiv-hr-portal-u670.onrender.com/
-Local Dev:  http://localhost:8501
+Local Dev:  http://localhost:8000/docs
 ```
 
 **Visual Reference**: 
 ```
 ┌─────────────────────────────────────┐
-│  🎯 BHIV HR Portal                  │
-│  Values-Driven Recruiting Platform │
+│  🌐 BHIV HR API Gateway             │
+│  Enterprise API Management          │
 │                                     │
-│  🔄 Connected to Client Portal      │
-│  📊 Total Jobs: 20+                 │
-│  🏢 Jobs by Client:                 │
-│  • TECH001: 8+ jobs                │
-│  • STARTUP01: 6+ jobs              │
-│  • ENTERPRISE01: 6+ jobs           │
+│  🔑 API Key Authentication          │
+│  📊 Total Endpoints: 77+            │
+│  🔄 Connected to AI Agent (9000)    │
+│  🔄 Connected to LangGraph (9001)   │
 └─────────────────────────────────────┘
 ```
 
-### 📋 Main Navigation Menu
+### 📋 API Gateway Features
 
-**Location**: Left sidebar
-**Options Available**:
-1. 🏢 Create Job
-2. 🔍 Search & Filter Candidates  
-3. 📊 Submit Values Feedback
-4. 📈 View Dashboard
-5. 🎯 View Top-5 Shortlist
-6. 📤 Upload Candidates
-7. 📁 Batch Upload
-8. 📅 Interview Management
-9. 🔄 Live Client Jobs
+**Primary Functions**:
+1. 🔐 Authentication Management
+2. 🔍 Candidate Search & Filtering  
+3. 🏢 Job Management
+4. 📊 Analytics & Metrics
+5. 📤 Bulk Operations
+6. 📝 Feedback Processing
+7. 📅 Interview Scheduling
+8. 📧 Offer Management
+9. 🔐 Security & Rate Limiting
 
 ---
 
-### 🏢 Feature 1: Create Job
+### 🔐 Feature 1: Authentication Management
 
-**Purpose**: Create new job postings for candidate matching
+**Purpose**: Manage API authentication and authorization
 
 **Step-by-Step Process**:
 
-1. **Select "🏢 Create Job" from sidebar**
-
-2. **Fill Job Details Form**:
-   ```
-   Job Title: [e.g., Senior Software Engineer]
-   Department: [Engineering/Marketing/Sales/HR/Operations]
-   Location: [e.g., Remote, New York, London]
-   Experience Level: [Entry/Mid/Senior/Lead]
-   Employment Type: [Full-time/Part-time/Contract/Intern]
-   Client ID: [Numeric ID, default: 1]
+1. **API Key Authentication**:
+   ```bash
+   curl -H "Authorization: Bearer YOUR_API_KEY" \
+        http://localhost:8000/v1/candidates
    ```
 
-3. **Add Descriptions**:
-   ```
-   Job Description: [Detailed role description]
-   Key Requirements: [Essential skills and qualifications]
-   ```
+2. **Endpoint Protection**:
+   - All endpoints require valid API key
+   - Dynamic rate limiting (60-500 requests/minute)
+   - Cross-service authentication
 
-4. **Preview & Submit**:
-   - System shows real-time preview
-   - Click "🚀 Create Job" button
-   - Success message displays with Job ID
+3. **Token Management**:
+   - API keys stored securely in MongoDB
+   - Rate limiting based on usage patterns
+   - Automatic token validation
 
 **Expected Output**:
 ```json
 {
-  "message": "Job created successfully",
-  "job_id": 123,
-  "created_at": "2025-01-15T10:30:00Z"
+  "status": "authenticated",
+  "rate_limit_remaining": 499,
+  "response_time": "25ms"
 }
 ```
 
-**Visual Confirmation**: 
-- ✅ Success message with balloons animation
-- Job appears in "Live Client Jobs" section
-- Job count updates in sidebar
+**Security Features**: 
+- ✅ Triple authentication system
+- API key rotation capability
+- Rate limiting based on CPU usage
 
 ---
 
-### 🔍 Feature 2: Search & Filter Candidates
+### 🔍 Feature 2: Candidate Search & Filtering
 
 **Purpose**: Find and filter candidates using AI-powered search
 
-**Advanced Search Interface**:
+**API Endpoints**:
 
 1. **Basic Search**:
-   ```
-   Search Box: [Enter name, skills, experience, location]
-   Job Filter: [All Jobs/Specific Job ID]
+   ```bash
+   GET /v1/candidates?search={query}
+   
+   Example:
+   curl -H "Authorization: Bearer YOUR_API_KEY" \
+        "http://localhost:8000/v1/candidates?search=python+developer"
    ```
 
 2. **Advanced Filters**:
-   ```
-   Experience Level: [Any/0-2 years/2-5 years/5+ years]
-   Seniority Level: [Entry-level/Mid-level/Senior/Lead]
-   Education Level: [Bachelors/Masters/PhD/Diploma]
-   Location: [Mumbai/Bangalore/Delhi/Pune/Chennai/Remote]
-   Technical Skills: [Python/JavaScript/Java/React/AWS/Docker/SQL]
-   Values Score: [Slider 1.0-5.0, default: 3.0]
-   Status: [Applied/Screened/Interviewed/Offered/Hired]
-   Sort By: [AI Score/Experience/Values Score/Name]
+   ```bash
+   GET /v1/candidates?skills={tech_skills}&experience_min={min_years}&location={city}&education={level}
+   
+   Parameters:
+   - skills: python,javascript,react
+   - experience_min: 2
+   - experience_max: 10
+   - location: remote,bangalore
+   - education: bachelors,masters
+   - sort_by: ai_score,experience,name
+   - page: 1
+   - limit: 20
    ```
 
 3. **Search Execution**:
-   - Click "🔍 Search Candidates"
-   - System processes filters
-   - Results display with match details
+   - Query hits MongoDB with optimized indexes
+   - AI semantic matching applied
+   - Results sorted by relevance
 
-**Search Results Format**:
-```
-👥 [Candidate Name] - Experience: [X] years
-├── Email: [email@domain.com]
-├── Phone: [+1-xxx-xxx-xxxx]  
-├── Location: [City, Country]
-├── Experience: [X] years
-├── Seniority: [Level]
-├── Status: [Current Status]
-└── Technical Skills: [Skill list]
+**Response Format**:
+```json
+{
+  "candidates": [
+    {
+      "id": "123",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "phone": "+91-9876543210",
+      "location": "Bangalore",
+      "experience": 5,
+      "technical_skills": ["Python", "Django", "AWS"],
+      "values_score": 4.2,
+      "ai_match_score": 0.89,
+      "status": "applied"
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "limit": 20
+}
 ```
 
 **Performance**: 
-- Search time: <2 seconds
-- Results: Up to 50 candidates
-- Real-time filtering
+- Search time: <50ms
+- Results: Paginated (20 per page)
+- AI-powered semantic matching
 
 ---
 
-### 📊 Feature 3: Values Assessment
+### 📊 Feature 3: Feedback & Assessment
 
-**Purpose**: Assess candidates on core organizational values
+**Purpose**: Submit and manage candidate feedback
 
-**Assessment Process**:
+**API Endpoints**:
 
-1. **Candidate Information**:
+1. **Submit Feedback**:
+   ```bash
+   POST /v1/feedback
+   
+   curl -X POST http://localhost:8000/v1/feedback \
+        -H "Authorization: Bearer YOUR_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "candidate_id": "123",
+          "job_id": "456",
+          "reviewer_id": "789",
+          "bhiv_values": {
+            "balance": 4.2,
+            "humility": 4.5,
+            "integrity": 4.8,
+            "vision": 4.0
+          },
+          "overall_score": 4.3,
+          "technical_skills": ["Python", "Django", "AWS"],
+          "communication_score": 4.5,
+          "cultural_fit": 4.2,
+          "recommendation": "strong_positive",
+          "feedback_notes": "Strong technical background with excellent communication skills..."
+        }'
    ```
-   Candidate Name: [Full name]
-   Candidate ID: [Numeric ID]
-   Applied Position: [Job title]
-   Reviewer Name: [Your name]
-   Job ID: [Numeric ID]
-   Interview Date: [Date picker]
-   ```
 
-2. **Detailed Feedback**:
-   ```
-   Interview Feedback: [Comprehensive text area]
-   - Technical performance
-   - Communication skills
-   - Cultural fit assessment
+2. **Retrieve Feedback**:
+   ```bash
+   GET /v1/feedback?candidate_id={id}&job_id={id}
+   
+   curl -H "Authorization: Bearer YOUR_API_KEY" \
+        "http://localhost:8000/v1/feedback?candidate_id=123&job_id=456"
    ```
 
 3. **Values Rating (1-5 Scale)**:
@@ -363,90 +379,95 @@ Local Dev:  http://localhost:8501
 
 ---
 
-## 🏢 Client Portal Guide (Port 8502)
+## 🤖 AI Agent Service Guide (Port 9000)
 
-### 🔐 Client Authentication
+### 🔐 AI Agent Access
 
-**Step 1: Access Client Portal**
+**Step 1: Access AI Agent Service**
 ```
-Production: https://bhiv-hr-client-portal-3iod.onrender.com/
-Local Dev:  http://localhost:8502
-```
-
-**Step 2: Login Process**
-
-**Existing Client Login**:
-```
-Client ID: [e.g., TECH001]
-Password: [secure password]
-Button: [🔑 Secure Login]
+Local Dev:  http://localhost:9000/docs
 ```
 
-**Default Test Accounts**:
-```
-TECH001 / demo123 (Production & Local)
-STARTUP01 / startup123 (Local only)
-ENTERPRISE01 / enterprise123 (Local only)
+**Step 2: API Access Process**
+
+**AI Matching Endpoint**:
+```bash
+curl -X POST http://localhost:9000/match \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "job_id": "job_12345",
+       "candidate_ids": ["candidate_67890"],
+       "match_threshold": 0.8
+     }'
 ```
 
-**New Client Registration**:
+**Authentication**:
 ```
-Client ID: [e.g., MYCOMPANY01]
-Company Name: [Your Company Ltd.]
-Contact Email: [admin@yourcompany.com]
-Password: [minimum 8 characters]
-Confirm Password: [same password]
-Button: [📝 Secure Registration]
+API Key: Required for all endpoints
+Rate Limit: 60-500 requests/minute (dynamic)
+Token Format: Bearer YOUR_API_KEY
 ```
 
 **Security Features**:
-- 🔒 bcrypt password encryption
-- 🎫 JWT token authentication
-- 🛡️ Account lockout protection
-- 🔄 Session management
+- 🔐 API Key authentication
+- 🛡️ Rate limiting protection
+- 🔄 Dynamic performance scaling
+- 📊 Request monitoring
 
 ---
 
-### 📝 Feature 1: Job Posting
+### 📝 Feature 1: Job Management
 
-**Purpose**: Post new jobs for candidate matching
+**Purpose**: Manage job postings via API
 
-**Job Posting Form**:
-```
-Basic Information:
-├── Job Title: [e.g., Senior React Developer]
-├── Department: [Engineering/Marketing/Sales/HR/Operations/Finance]
-├── Location: [e.g., San Francisco, CA / Remote]
-├── Experience Level: [Entry/Mid/Senior/Lead]
-├── Employment Type: [Full-time/Part-time/Contract/Intern]
-└── Salary Range: [Optional, e.g., $80k-120k]
+**Job Creation Endpoint**:
+```bash
+POST /v1/jobs
 
-Detailed Description:
-├── Job Description: [150+ characters, detailed role info]
-└── Required Skills: [Natural language, no comma separation needed]
-```
-
-**Real-Time Preview**:
-```
-📋 Job Preview:
-├── Senior React Developer - Engineering | San Francisco | Full-time
-├── Experience: Senior Level
-├── Salary: $80k-120k
-└── Description: [First 200 characters]...
+curl -X POST http://localhost:8000/v1/jobs \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "job_title": "Senior React Developer",
+       "department": "Engineering",
+       "location": "San Francisco, CA",
+       "experience_level": "Senior",
+       "employment_type": "Full-time",
+       "salary_range": "$80k-120k",
+       "job_description": "Detailed job description...",
+       "required_skills": "React, JavaScript, TypeScript, Redux",
+       "client_id": "client_12345",
+       "posted_date": "2026-01-22"
+     }'
 ```
 
-**Submission Process**:
-1. Fill all required fields
-2. Review real-time preview
-3. Click "🚀 Post Job"
-4. Receive confirmation with Job ID
-5. Job becomes visible to HR team
+**Response Format**:
+```json
+{
+  "job_id": "job_12345",
+  "message": "Job created successfully",
+  "created_at": "2026-01-22T10:30:00Z",
+  "status": "active"
+}
+```
+
+**Job Retrieval**:
+```bash
+GET /v1/jobs
+
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     "http://localhost:8000/v1/jobs?limit=10&page=1"
+```
 
 **Success Response**:
-```
-✅ Job posted successfully! Job ID: 456
-📊 This job is now visible to HR team for candidate matching
-🎉 Balloons animation
+```json
+{
+  "jobs": [...],
+  "total": 15,
+  "page": 1,
+  "limit": 10
+}
 ```
 
 ---
@@ -606,11 +627,11 @@ curl http://localhost:8000/health
 # AI Matching Engine  
 curl http://localhost:9000/health
 
-# HR Portal
-curl http://localhost:8501
+# LangGraph Workflow Service
+curl http://localhost:9001/health
 
-# Client Portal
-curl http://localhost:8502
+# Test database connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
 ```
 
 **Expected Responses**:
@@ -628,11 +649,11 @@ curl http://localhost:8502
 **Key Performance Indicators**:
 ```
 📊 System Performance:
-├── Resume Processing: 1-2 seconds/file
-├── API Response: <100ms average
+├── API Response: <85ms average
 ├── AI Matching: <0.02 seconds
-├── Database Queries: <50ms
-└── Concurrent Users: 50+ supported
+├── MongoDB Queries: <50ms
+├── Rate Limiting: Dynamic (60-500 req/min)
+└── Concurrent Requests: 100+ supported
 ```
 
 ### Troubleshooting Guide
@@ -642,40 +663,40 @@ curl http://localhost:8502
 1. **Service Not Starting**:
    ```bash
    # Check Docker status
-   docker-compose -f docker-compose.production.yml ps
+   docker-compose ps
    
    # View logs
-   docker logs bhivhraiplatform-gateway-1 --tail 50
+   docker-compose logs gateway --tail 50
    
    # Restart service
-   docker restart bhivhraiplatform-gateway-1
+   docker-compose restart gateway
    ```
 
-2. **Database Connection Issues**:
+2. **MongoDB Connection Issues**:
    ```bash
    # Test database connectivity
-   python tools/database_sync_manager.py
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
    
-   # Check database status
-   docker exec -it bhivhraiplatform-db-1 psql -U bhiv_user -d bhiv_hr
+   # Check MongoDB status via Python
+   python -c "from pymongo import MongoClient; c = MongoClient('mongodb+srv://...'); print(c.admin.command('ping'))"
    ```
 
 3. **API Authentication Problems**:
    ```bash
    # Test API with correct key
-   curl -H "Authorization: Bearer myverysecureapikey123" \
+   curl -H "Authorization: Bearer YOUR_API_KEY" \
         http://localhost:8000/health
    ```
 
 ---
 
-## 📱 Mobile Responsiveness
+## 📱 API Integration
 
-**Supported Devices**:
-- 📱 Mobile phones (320px+)
-- 📱 Tablets (768px+) 
-- 💻 Laptops (1024px+)
-- 🖥️ Desktops (1920px+)
+**Supported Clients**:
+- 🖥️ Web Applications
+- 📱 Mobile Apps  
+- 🤖 AI Agents
+- 🔄 Third-party Integrations
 
 **Mobile-Optimized Features**:
 - Touch-friendly buttons
@@ -802,15 +823,15 @@ Client Portal:
 ---
 
 **Document Version**: 2.1  
-**Last Updated**: December 16, 2025  
+**Last Updated**: January 22, 2026  
 **Total Pages**: 75+ pages (expanded)  
 **Visual References**: 35+ enhanced diagrams  
 **Video Tutorials**: 6 comprehensive guides (updated)  
 **System Status**: ✅ Production Ready  
-**Deployment**: Render Cloud with 111 endpoints (80 Gateway + 6 Agent + 25 LangGraph) - 6/6 services operational  
-**Performance**: 99.95% Uptime | <85ms Response | <1.8s Load  
+**Deployment**: Three-Port Architecture with 108 endpoints (77 Gateway + 6 Agent + 25 LangGraph) - 3/3 core services operational  
+**Performance**: 99.95% Uptime | <85ms Response | <50ms Database Queries  
 **Features**: Phase 3 AI + RL Integration + LangGraph Automation + Multi-Channel Notifications  
-**Database**: PostgreSQL 17 Authentication Fixed (December 16, 2025)
+**Database**: MongoDB Atlas with 17+ Collections (Fully Migrated from PostgreSQL)
 
 *Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
 

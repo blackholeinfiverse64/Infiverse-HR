@@ -1,10 +1,10 @@
 # 🔧 BHIV HR Platform - Troubleshooting Guide
 
 **Comprehensive Diagnostic & Resolution Framework**  
-**Updated**: December 16, 2025  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
-**Coverage**: 6 microservices + PostgreSQL database  
-**Resolution Rate**: 99.5% automated diagnostics | **Database**: Authentication Fixed
+**Coverage**: 3 core microservices + MongoDB Atlas  
+**Resolution Rate**: 99.5% automated diagnostics | **Database**: MongoDB Atlas
 
 ---
 
@@ -12,57 +12,54 @@
 
 ### **Service Health Check**
 ```bash
-# Verify all services operational
-curl https://bhiv-hr-gateway-ltg0.onrender.com/health
-curl https://bhiv-hr-agent-nhgg.onrender.com/health
-curl https://bhiv-hr-langgraph.onrender.com/health
-curl https://bhiv-hr-portal-u670.onrender.com/_stcore/health
-curl https://bhiv-hr-client-portal-3iod.onrender.com/_stcore/health
-curl https://bhiv-hr-candidate-portal-abe6.onrender.com/_stcore/health
+# Verify all core services operational
+curl http://localhost:8000/health
+curl http://localhost:9000/health
+curl http://localhost:9001/health
+
+# Test database connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
 ```
 
 ### **Critical Issue Triage**
 | Issue Type | Severity | Response Time | Action |
 |------------|----------|---------------|---------|
 | **Service Down** | Critical | <5 minutes | Check health endpoints, restart if needed |
-| **Database Failure** | Critical | <5 minutes | Verify connection, check backup status |
+| **MongoDB Connection** | Critical | <5 minutes | Verify MongoDB Atlas connection, check network |
 | **Authentication Error** | High | <15 minutes | Validate API keys, check JWT tokens |
 | **Performance Degradation** | Medium | <30 minutes | Monitor resources, optimize queries |
-| **Portal Loading Issues** | Medium | <30 minutes | Clear cache, check browser compatibility |
+| **Rate Limiting** | Medium | <30 minutes | Check rate limit status, adjust configuration |
 
 ### **Production Statistics**
 - **System Uptime**: 99.9% availability across all services
 - **Mean Time to Resolution**: <15 minutes for critical issues
 - **Automated Resolution**: 85% of issues self-resolve
 - **Service Recovery**: <2 minutes average restart time
-- **Database Backup**: Automated daily backups with WAL archiving
+- **Database Backup**: MongoDB Atlas automatic backups
 - **Monitoring Coverage**: 100% endpoint monitoring with alerts
 
 ---
 
-## 🔧 Recently Resolved Issues (December 16, 2025)
+## 🔧 Recently Resolved Issues (January 22, 2026)
 
-### **✅ Fixed: Database Authentication Failure**
-**Issue**: PostgreSQL password authentication failed for user "bhiv_user"
-```
-FATAL: password authentication failed for user "bhiv_user"
-Connection matched pg_hba.conf line 100: "host all all all scram-sha-256"
-```
-**Root Cause**: Database user password didn't match .env configuration after environment updates
+### **✅ Fixed: MongoDB Atlas Migration**
+**Issue**: Migration from PostgreSQL to MongoDB Atlas completed successfully
+**Root Cause**: Database modernization for better scalability and performance
 **Resolution**: 
-```sql
-ALTER USER bhiv_user PASSWORD 'bhiv_password';
-```
-**Impact**: All 111 endpoints restored, Jobs API now returns 27 jobs, Candidates API returns 34 candidates
-**Status**: ✅ **RESOLVED** - All APIs fully operational
+- Migrated 17+ collections to MongoDB Atlas
+- Updated all services to use Motor async driver
+- Replaced SQLAlchemy with PyMongo
+**Impact**: All 108 endpoints operational with improved performance
+**Status**: ✅ **RESOLVED** - MongoDB Atlas fully operational
 **Verification**: 
 ```bash
-# Test database connectivity
-curl https://bhiv-hr-gateway-ltg0.onrender.com/v1/jobs
-# Expected: Returns 27 jobs successfully
+# Test MongoDB connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
+# Expected: {"status": "success", "message": "Database connected"}
 
-curl https://bhiv-hr-gateway-ltg0.onrender.com/v1/candidates
-# Expected: Returns 34 candidates successfully
+# Test API endpoints
+curl http://localhost:8000/v1/jobs
+curl http://localhost:8000/v1/candidates
 ```
 
 ### **✅ Fixed: JWT Variable Standardization**
@@ -135,23 +132,23 @@ langgraph-1 | UserWarning: Duplicate Operation ID rl_predict_match
 
 ---
 
-## 🌐 Gateway Service Troubleshooting (80 Endpoints)
+## 🌐 Gateway Service Troubleshooting (77 Endpoints)
 
 ### **Service Unavailability Issues**
 
 #### **Problem: Gateway Returns 503/504 Errors**
 ```bash
 # Diagnostic Commands
-curl -I https://bhiv-hr-gateway-ltg0.onrender.com/health
-curl -v https://bhiv-hr-gateway-ltg0.onrender.com/docs
-curl https://bhiv-hr-gateway-ltg0.onrender.com/metrics
+curl -I http://localhost:8000/health
+curl -v http://localhost:8000/docs
+curl http://localhost:8000/metrics
 
 # Expected healthy response:
 {
   "status": "healthy",
   "service": "BHIV HR Gateway",
   "version": "4.3.0",
-  "endpoints": 80,
+  "endpoints": 77,
   "database": "connected",
   "uptime": "99.9%"
 }
@@ -174,18 +171,17 @@ curl https://bhiv-hr-gateway-ltg0.onrender.com/metrics
    # - Connection pool >90% (queues requests)
    ```
 
-3. **Database Connection Issues**:
+3. **MongoDB Connection Issues**:
    ```bash
-   # Test database connectivity
-   curl https://bhiv-hr-gateway-ltg0.onrender.com/v1/database/health
+   # Test MongoDB connectivity
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
    
    # Expected response:
    {
-     "status": "healthy",
-     "database": "connected",
-     "connection_pool": "active",
-     "query_performance": "<50ms",
-     "schema_version": "4.3.0"
+     "status": "success",
+     "message": "Database connected",
+     "collections": 17,
+     "connection_time": "<50ms"
    }
    ```
 
@@ -194,8 +190,8 @@ curl https://bhiv-hr-gateway-ltg0.onrender.com/metrics
 #### **Problem: 401 Unauthorized Responses**
 ```bash
 # Test API Key Authentication (Highest Priority)
-curl -H "Authorization: Bearer <YOUR_API_KEY>" \
-     https://bhiv-hr-gateway-ltg0.onrender.com/v1/jobs
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8000/v1/jobs
 
 # Test Client JWT Authentication (Medium Priority)
 curl -X POST https://bhiv-hr-gateway-ltg0.onrender.com/v1/client/login \
@@ -276,25 +272,25 @@ curl https://bhiv-hr-gateway-ltg0.onrender.com/metrics
 #### **Problem: AI Matching Returns Empty Results**
 ```bash
 # Test AI service health
-curl https://bhiv-hr-agent-nhgg.onrender.com/health
+curl http://localhost:9000/health
 
 # Test database connectivity
-curl https://bhiv-hr-agent-nhgg.onrender.com/test-db \
-     -H "Authorization: Bearer <YOUR_API_KEY>"
+curl http://localhost:9000/test-db \
+     -H "Authorization: Bearer YOUR_API_KEY"
 
 # Test Phase 3 semantic matching
-curl -X POST https://bhiv-hr-agent-nhgg.onrender.com/match \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9000/match \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"job_id": 1}'
 
 # Test candidate analysis
-curl https://bhiv-hr-agent-nhgg.onrender.com/analyze/1 \
-     -H "Authorization: Bearer <YOUR_API_KEY>"
+curl http://localhost:9000/analyze/1 \
+     -H "Authorization: Bearer YOUR_API_KEY"
 
 # Test batch processing
-curl -X POST https://bhiv-hr-agent-nhgg.onrender.com/batch-match \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9000/batch-match \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"job_ids": [1, 2, 3]}'
 ```
@@ -303,7 +299,7 @@ curl -X POST https://bhiv-hr-agent-nhgg.onrender.com/batch-match \
 1. **Phase 3 Semantic Engine Status**:
    ```bash
    # Check engine status
-   curl https://bhiv-hr-agent-nhgg.onrender.com/engine/status
+   curl http://localhost:9000/engine/status
    
    # Expected response:
    {
@@ -332,17 +328,17 @@ curl -X POST https://bhiv-hr-agent-nhgg.onrender.com/batch-match \
 #### **Problem: Slow AI Processing (>0.02 seconds)**
 ```bash
 # Check processing performance
-curl -X POST https://bhiv-hr-agent-nhgg.onrender.com/batch-match \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9000/batch-match \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"job_ids": [1, 2, 3, 4, 5]}'
 
 # Monitor resource usage
-curl https://bhiv-hr-agent-nhgg.onrender.com/metrics
+curl http://localhost:9000/metrics
 
 # Check RL system performance
-curl https://bhiv-hr-agent-nhgg.onrender.com/rl/status \
-     -H "Authorization: Bearer <YOUR_API_KEY>"
+curl http://localhost:9000/rl/status \
+     -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 **Optimization Strategies**:
@@ -361,11 +357,11 @@ curl https://bhiv-hr-agent-nhgg.onrender.com/rl/status \
 #### **Problem: Workflows Not Triggering**
 ```bash
 # Check LangGraph service health
-curl https://bhiv-hr-langgraph.onrender.com/health
+curl http://localhost:9001/health
 
 # Test workflow initiation
-curl -X POST https://bhiv-hr-langgraph.onrender.com/workflows/application/start \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9001/workflows/application/start \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "candidate_id": 1,
@@ -374,12 +370,12 @@ curl -X POST https://bhiv-hr-langgraph.onrender.com/workflows/application/start 
      }'
 
 # Check workflow status
-curl https://bhiv-hr-langgraph.onrender.com/workflow/status \
-     -H "Authorization: Bearer <YOUR_API_KEY>"
+curl http://localhost:9001/workflow/status \
+     -H "Authorization: Bearer YOUR_API_KEY"
 
 # Test workflow analytics
-curl https://bhiv-hr-langgraph.onrender.com/analytics/workflows \
-     -H "Authorization: Bearer <YOUR_API_KEY>"
+curl http://localhost:9001/analytics/workflows \
+     -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 **Common Issues & Solutions**:
@@ -399,8 +395,8 @@ curl https://bhiv-hr-langgraph.onrender.com/analytics/workflows \
 #### **Problem: Notifications Not Being Sent**
 ```bash
 # Test email notification
-curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9001/tools/send-notification \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "type": "email",
@@ -410,8 +406,8 @@ curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
      }'
 
 # Test WhatsApp notification
-curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9001/tools/send-notification \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "type": "whatsapp",
@@ -420,8 +416,8 @@ curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
      }'
 
 # Test Telegram notification
-curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9001/tools/send-notification \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "type": "telegram",
@@ -430,8 +426,8 @@ curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
      }'
 
 # Test multi-channel notification
-curl -X POST https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
-     -H "Authorization: Bearer <YOUR_API_KEY>" \
+curl -X POST http://localhost:9001/tools/send-notification \
+     -H "Authorization: Bearer YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
        "type": "multi",

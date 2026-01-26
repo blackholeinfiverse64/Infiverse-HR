@@ -1,127 +1,199 @@
-# Database Service
+# 🗄️ BHIV HR Platform - Database Service
 
-PostgreSQL schema and SQL scripts for the BHIV HR Platform backend.
+## **MongoDB Atlas Database Service**
+**Updated**: January 22, 2026  
+**Status**: ✅ Production Ready - MongoDB Migration Complete  
+**Database**: MongoDB Atlas (Cloud)  
+**Collections**: 17+ MongoDB collections  
 
 ---
 
-## Overview
-The Database Service defines the comprehensive PostgreSQL schema for all HR platform operations, including candidates, jobs, feedback, interviews, AI learning engine, and more. The schema serves as the central data repository for all backend microservices, providing persistent storage with robust security, performance, and audit capabilities.
+## 📋 Database Overview
 
-## Schema Structure
-The database includes the following core application tables:
+The BHIV HR Platform has **fully migrated from PostgreSQL to MongoDB Atlas**. All database operations now use MongoDB with the following characteristics:
 
-### Core Application Tables
-- `candidates`: Candidate profiles and authentication with 2FA support
-- `jobs`: Job postings for HR and client companies
-- `feedback`: 5-point BHIV values assessment (Integrity, Honesty, Discipline, Hard Work, Gratitude)
-- `interviews`: Interview scheduling and management
-- `offers`: Job offer management and tracking
-- `users`: Internal HR users with 2FA and role-based access control
-- `clients`: External client companies with JWT authentication
-- `job_applications`: Candidate job application tracking
+### **Current Database Configuration**
+- **Engine**: MongoDB Atlas (Cloud-hosted NoSQL)
+- **Database Name**: `bhiv_hr`
+- **Connection Drivers**: 
+  - Motor (Async) - Gateway Service
+  - PyMongo (Sync) - Agent & LangGraph Services
+- **Connection Pooling**: maxPoolSize=10, minPoolSize=2
+- **Collections**: 17+ collections with 75+ indexes
 
-### AI & Machine Learning Tables
-- `matching_cache`: AI matching results cache for performance optimization
-- `company_scoring_preferences`: Reinforcement learning/AI learning engine
-- `rl_predictions`: Reinforcement learning predictions and scoring
-- `rl_feedback`: Feedback and reward signals for RL engine
-- `rl_model_performance`: RL model performance tracking
-- `rl_training_data`: Training data for reinforcement learning
+### **Migration Status**
+- ✅ **PostgreSQL Deprecated**: All PostgreSQL schemas and dependencies have been removed
+- ✅ **MongoDB Active**: All services now connect to MongoDB Atlas
+- ✅ **Data Migrated**: All production data transferred to MongoDB
+- ✅ **Performance Optimized**: Indexes and queries optimized for MongoDB
 
-### Security & Audit Tables
-- `audit_logs`: Comprehensive security and compliance logging
-- `rate_limits`: API rate limiting and throttling
-- `csp_violations`: Content Security Policy monitoring
+---
 
-### Workflow Management Tables
-- `workflows`: LangGraph workflow tracking and management
+## 🔗 Database Connection
 
-### System Tables
-- `client_auth`, `client_sessions`, `schema_version`, `pg_stat_statements`, `pg_stat_statements_info`
+### **Environment Configuration**
+```env
+# MongoDB Atlas Connection (Replace with your actual connection string)
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/bhiv_hr
 
-## Key Features
-- **Data Validation:** Comprehensive CHECK constraints for data integrity
-- **Performance Indexes:** 30+ performance indexes including GIN for full-text search
-- **Audit Triggers:** Automated triggers for audit logging and timestamp updates
-- **Generated Columns:** Automatic average score calculation and computed fields
-- **PostgreSQL Functions:** Advanced operations and business logic
-- **Security Features:** Row-level security, encryption, and access controls
-- **2FA Support:** Built-in support for two-factor authentication
-- **Full-Text Search:** Advanced search capabilities using pg_trgm extension
-
-## Authentication & Security Implementation
-- **Role-Based Access Control:** Fine-grained permissions for different user roles
-- **Password Security:** Bcrypt-hashed passwords with automatic salting
-- **2FA Integration:** Support for TOTP-based two-factor authentication
-- **Audit Trail:** Comprehensive logging of all data changes and access
-- **Rate Limiting:** Built-in rate limiting to prevent abuse
-- **CSP Violation Tracking:** Content Security Policy violation monitoring
-
-## Database Integration
-- **Microservice Architecture:** Schema designed for use with multiple backend services
-- **Connection Pooling:** Optimized for use with connection pooling solutions
-- **Scalability:** Designed for horizontal scaling and partitioning
-- **Backup & Recovery:** Structured for automated backup and disaster recovery
-- **Monitoring:** Built-in performance and usage monitoring
-
-## Configuration Requirements
-The database requires the following extensions to be enabled:
-- `uuid-ossp` - UUID generation functions
-- `pg_stat_statements` - Query performance monitoring
-- `pg_trgm` - Full-text search capabilities
-
-## Deployment Instructions
-### Local Development
-```bash
-# Using Docker
-docker run -d --name bhiv-db \
-  -e POSTGRES_DB=bhiv_hr \
-  -e POSTGRES_USER=bhiv_user \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  postgres:17-alpine
-
-# Initialize schema
-psql postgresql://bhiv_user:password@localhost:5432/bhiv_hr -f consolidated_schema.sql
+# Authentication Secrets
+API_KEY_SECRET=<your-api-key>
+JWT_SECRET_KEY=<your-jwt-secret>
+CANDIDATE_JWT_SECRET_KEY=<your-candidate-jwt-secret>
+GATEWAY_SECRET_KEY=<your-gateway-secret>
 ```
 
-### Production Deployment
-```bash
-# Initialize with production settings
-docker run -d --name bhiv-prod-db \
-  -e POSTGRES_DB=bhiv_hr_prod \
-  -e POSTGRES_USER=bhiv_user \
-  -e POSTGRES_PASSWORD=secure_password \
-  -e POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256" \
-  -v /path/to/data:/var/lib/postgresql/data \
-  -p 5432:5432 \
-  postgres:17-alpine
+### **Connection Settings**
+```python
+# services/gateway/app/database.py
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# Apply schema
-psql postgresql://bhiv_user:secure_password@localhost:5432/bhiv_hr_prod -f consolidated_schema.sql
+MONGODB_URI = os.getenv("MONGODB_URI")
+
+client = AsyncIOMotorClient(
+    MONGODB_URI,
+    maxPoolSize=10,          # Maximum connections in the pool
+    minPoolSize=2,           # Minimum connections in the pool
+    maxIdleTimeMS=30000,     # Close connections after 30 seconds of inactivity
+    serverSelectionTimeoutMS=5000,  # Wait 5 seconds for server selection
+    socketTimeoutMS=45000,   # Close sockets after 45 seconds of inactivity
+    connectTimeoutMS=20000,  # Connect timeout
+)
+
+db = client.bhiv_hr
 ```
 
-## Dependencies
-- `postgresql:17-alpine` - PostgreSQL database server
-- `pg_stat_statements` - Query performance extension
-- `pg_trgm` - Text similarity extension
-- `uuid-ossp` - UUID generation extension
+---
 
-## Integration Points
-- **Gateway Service:** Primary integration point for all database operations
-- **AI Agent Service:** Access to matching cache and learning data
-- **LangGraph Service:** Workflow state and tracking data
-- **All Portal Services:** Indirect access through Gateway API
+## 🏗️ MongoDB Collections
 
-## Error Handling & Monitoring
-- **Constraint Validation:** Comprehensive constraint checking for data integrity
-- **Transaction Management:** ACID-compliant transactions with rollback support
-- **Connection Handling:** Robust connection management with retry logic
-- **Performance Monitoring:** Built-in query performance tracking
-- **Security Monitoring:** Audit trail for security events
+### **Core Application Collections (8)**
+1. `candidates` - Candidate profiles and authentication
+2. `jobs` - Job postings and requirements  
+3. `applications` - Job application tracking
+4. `feedback` - BHIV values assessment
+5. `interviews` - Interview scheduling and results
+6. `offers` - Job offers and negotiations
+7. `users` - HR user management
+8. `clients` - Client company information
 
-## Backup and Maintenance
-- **Schema Versioning:** Automatic schema version tracking with migration support
-- **Performance Tuning:** Optimized for high-volume transaction processing
-- **Index Management:** Regular maintenance and optimization of indexes
-- **Statistics Collection:** Automatic collection of table and index statistics
+### **System Collections (5)**
+9. `api_keys` - API authentication management
+10. `rate_limits` - Dynamic rate limiting data
+11. `audit_logs` - Complete system audit trail
+12. `notifications` - Multi-channel notification log
+13. `sessions` - User session management
+
+### **Reinforcement Learning Collections (4)**
+14. `ml_feedback` - Reinforcement learning feedback
+15. `performance_metrics` - System performance data
+16. `matching_cache` - AI matching results cache
+17. `company_scoring_preferences` - Client-specific scoring weights
+
+---
+
+## 📊 Collection Schema Examples
+
+### **Candidates Collection**
+```javascript
+{
+  "_id": ObjectId("..."),
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "location": "San Francisco, CA",
+  "experience_years": 5,
+  "technical_skills": "Python, Django, FastAPI, MongoDB",
+  "seniority_level": "Senior",
+  "education_level": "Bachelor's",
+  "resume_path": "/resumes/john_doe.pdf",
+  "password_hash": "$2b$12$...",  // bcrypt hashed
+  "status": "applied",  // applied, screening, interview, offer, hired, rejected
+  "created_at": ISODate("2026-01-22T10:00:00Z"),
+  "updated_at": ISODate("2026-01-22T10:00:00Z")
+}
+```
+
+### **Jobs Collection**
+```javascript
+{
+  "_id": ObjectId("..."),
+  "title": "Senior Python Developer",
+  "department": "Engineering",
+  "location": "Remote",
+  "experience_level": "Senior",
+  "requirements": "Python, Django, FastAPI, MongoDB, REST APIs, 5+ years",
+  "description": "We are looking for a senior Python developer...",
+  "client_id": "client123",
+  "employment_type": "Full-time",
+  "status": "active",  // active, paused, closed, draft
+  "created_at": ISODate("2026-01-22T10:00:00Z"),
+  "updated_at": ISODate("2026-01-22T10:00:00Z")
+}
+```
+
+---
+
+## 🔧 Maintenance & Operations
+
+### **Database Health Checks**
+```bash
+# Test MongoDB connection
+mongo "mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/bhiv_hr" --eval "db.runCommand({serverStatus: 1})"
+
+# Test from application
+python -c "
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+
+async def test_connection():
+    client = AsyncIOMotorClient('your_connection_string')
+    await client.admin.command('ping')
+    print('Connected successfully!')
+    client.close()
+
+asyncio.run(test_connection())
+"
+```
+
+### **Data Verification**
+```javascript
+// Verify current data counts
+db.candidates.countDocuments()
+db.jobs.countDocuments()
+db.clients.countDocuments()
+db.feedback.countDocuments()
+db.applications.countDocuments()
+
+// Expected results (January 22, 2026):
+// candidates: 34
+// jobs: 27
+// clients: 6+
+// feedback: 15+
+// applications: 150+
+```
+
+---
+
+## 📈 Performance & Security
+
+### **Performance Optimization**
+- **Response Time**: <50ms for typical queries
+- **AI Matching**: <0.02s with caching
+- **Full-text Search**: <100ms for complex searches
+- **Connection Pooling**: Optimized for 3 core microservices
+
+### **Security Features**
+- **Authentication**: JWT tokens, API keys, 2FA
+- **Rate Limiting**: Dynamic per-endpoint limits
+- **Input Validation**: XSS and injection protection
+- **Audit Logging**: Complete activity tracking
+- **Encryption**: Password hashing with bcrypt
+
+---
+
+**BHIV HR Platform Database Service** - Complete MongoDB Atlas NoSQL implementation replacing deprecated PostgreSQL system.
+
+*Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
+
+**Last Updated**: January 22, 2026 | **Status**: ✅ Production Ready | **Database**: MongoDB Atlas | **Migration**: Complete

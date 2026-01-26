@@ -1,9 +1,9 @@
 # 🔧 BHIV HR Platform - Services Architecture Guide
 
-**Updated**: January 16, 2026  
-**Architecture**: Microservices with 6 Core Services  
-**Status**: ✅ 6/6 Services Operational | 112 Endpoints Live | 99.9% Uptime  
-**Technology**: FastAPI 4.2.0, Streamlit 1.41.1, Python 3.12.7, MongoDB Atlas
+**Updated**: January 22, 2026  
+**Architecture**: Three-Port Microservices Architecture  
+**Status**: ✅ 3/3 Core Services Operational | 108 Endpoints Live | 99.9% Uptime  
+**Technology**: FastAPI 4.2.0, Python 3.12.7, MongoDB Atlas (NoSQL)
 
 ---
 
@@ -13,27 +13,27 @@
 
 | Service | URL | Port | Status | Endpoints |
 |---------|-----|------|--------|-----------|
-| **API Gateway** | http://localhost:8000 | 8000 | ✅ Running | 81 |
+| **API Gateway** | http://localhost:8000 | 8000 | ✅ Running | 77 |
 | **AI Engine** | http://localhost:9000 | 9000 | ✅ Running | 6 |
 | **LangGraph Automation** | http://localhost:9001 | 9001 | ✅ Running | 25 |
 | **HR Portal** | Docker only | 8501 | ✅ Reference | UI |
 | **Client Portal** | Docker only | 8502 | ✅ Reference | UI |
 | **Candidate Portal** | Docker only | 8503 | ✅ Reference | UI |
 
-**Total**: 112 endpoints across 6 microservices + MongoDB Atlas database
+**Total**: 108 endpoints across 3 core microservices + MongoDB Atlas database
 
 **Note:** Streamlit portals (HR, Client, Candidate) are available via Docker only and are for reference/updates.
 
 ### **Microservices Design Principles**
-- **Independent Deployment**: Each service has its own Dockerfile and deployment pipeline
-- **Unified Authentication**: Each service includes dedicated auth_manager.py
-- **Database**: MongoDB Atlas with 17+ collections
+- **Three-Port Architecture**: Services deployed on dedicated ports (8000, 9000, 9001)
+- **Unified Authentication**: Cross-service API key authentication system
+- **Database**: MongoDB Atlas with 17+ collections (fully migrated from PostgreSQL)
 - **Professional Organization**: Files organized in proper subfolders
 - **Security**: Enterprise-grade with CSP, XSS, HSTS headers
 
 ---
 
-## 🌐 Gateway Service (80 Endpoints)
+## 🌐 Gateway Service (77 Endpoints)
 
 ### **📍 Location**: `/services/gateway/`
 ### **🎯 Purpose**: Central API hub with triple authentication and unified routing
@@ -53,7 +53,7 @@
 - **2FA TOTP Support**: QR code generation and verification
 - **Enterprise Security**: Input validation, penetration testing endpoints
 
-#### **API Endpoint Categories (81 Total)**
+#### **API Endpoint Categories (77 Total)**
 ```
 Core API (3 endpoints):
 ├── GET  /                    - Service information
@@ -128,11 +128,11 @@ Additional Endpoints (29 endpoints):
 
 #### **Dependencies**
 - FastAPI 4.2.0
-- SQLAlchemy 2.0.36
-- psycopg2-binary 2.9.10
+- Motor (async MongoDB driver)
 - Pydantic 2.10.3
 - PyJWT for authentication
 - bcrypt for password hashing
+- httpx 0.28.1
 
 ---
 
@@ -188,7 +188,7 @@ Diagnostics (1 endpoint):
 - sentence-transformers for semantic matching
 - scikit-learn for ML models
 - httpx 0.28.1
-- psycopg2-binary 2.9.10
+- pymongo for MongoDB integration
 - numpy, pandas for data processing
 
 ---

@@ -1,32 +1,29 @@
 # 🚀 BHIV HR Platform - Complete Deployment Guide
 
 **Enterprise AI-Powered Recruiting Platform Deployment**  
-**Version**: v4.3.1 with Complete RL Integration  
-**Updated**: December 16, 2025  
+**Version**: v4.3.0 with Complete RL Integration  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
-**Services**: 6/6 Operational | **Cost**: $0/month | **Uptime**: 99.9% | **Database**: Authentication Fixed
+**Services**: 3/3 Core Services Operational | **Cost**: $0/month | **Uptime**: 99.9% | **Database**: MongoDB Atlas
 
 ---
 
 ## 📊 Current Production Status
 
 ### **Live System Overview**
-- **Platform**: Render Cloud (Oregon, US West)
-- **Services**: 6 microservices fully operational
-- **Database**: PostgreSQL 17 with Schema v4.3.0
-- **Total Endpoints**: 111 (80 Gateway + 6 Agent + 25 LangGraph)
+- **Platform**: Three-Port Architecture (8000/Gateway, 9000/Agent, 9001/LangGraph)
+- **Services**: 3 core microservices fully operational
+- **Database**: MongoDB Atlas with 17+ collections (fully migrated from PostgreSQL)
+- **Total Endpoints**: 108 (77 Gateway + 6 Agent + 25 LangGraph)
 - **Performance**: <100ms API response, <0.02s AI matching
 - **Security**: Triple authentication with 2FA support
 
 ### **Service Status Dashboard**
-| Service | URL | Status | Endpoints |
-|---------|-----|--------|-----------|
-| **API Gateway** | [bhiv-hr-gateway-ltg0.onrender.com](https://bhiv-hr-gateway-ltg0.onrender.com/docs) | ✅ Live | 74 |
-| **AI Agent** | [bhiv-hr-agent-nhgg.onrender.com](https://bhiv-hr-agent-nhgg.onrender.com/docs) | ✅ Live | 6 |
-| **LangGraph** | [bhiv-hr-langgraph.onrender.com](https://bhiv-hr-langgraph.onrender.com) | ✅ Live | 25 |
-| **HR Portal** | [bhiv-hr-portal-u670.onrender.com](https://bhiv-hr-portal-u670.onrender.com/) | ✅ Live | 2 |
-| **Client Portal** | [bhiv-hr-client-portal-3iod.onrender.com](https://bhiv-hr-client-portal-3iod.onrender.com/) | ✅ Live | 2 |
-| **Candidate Portal** | [bhiv-hr-candidate-portal-abe6.onrender.com](https://bhiv-hr-candidate-portal-abe6.onrender.com/) | ✅ Live | 2 |
+| Service | Port | URL | Status | Endpoints |
+|---------|------|-----|--------|-----------|
+| **API Gateway** | 8000 | http://localhost:8000/docs | ✅ Live | 77 |
+| **AI Agent** | 9000 | http://localhost:9000/docs | ✅ Live | 6 |
+| **LangGraph** | 9001 | http://localhost:9001/docs | ✅ Live | 25 |
 
 **Demo Access**: Username: `demo_user` | Password: `demo_password` | Client: `TECH001` / `demo123`
 
@@ -34,20 +31,20 @@
 
 ## 🎯 Deployment Options
 
-### **Option 1: Use Live Production System (Recommended)**
+### **Option 1: Use Local Development System (Recommended)**
 **Best for**: Testing, evaluation, immediate use  
-**Time**: 2 minutes  
+**Time**: 5 minutes  
 **Cost**: Free
 
-1. **Access Live Platform**
-   - Visit [API Documentation](https://bhiv-hr-gateway-ltg0.onrender.com/docs)
-   - Use [HR Portal](https://bhiv-hr-portal-u670.onrender.com/) with demo credentials
-   - Test [Client Portal](https://bhiv-hr-client-portal-3iod.onrender.com/) with `TECH001` / `demo123`
+1. **Access Local Platform**
+   - Visit API Documentation at http://localhost:8000/docs
+   - Test all 108 endpoints locally
+   - Real-time AI matching and workflow automation
 
 2. **Get API Access**
-   - API Key available in Render dashboard
-   - All 111 endpoints ready for testing
-   - Real-time AI matching and workflow automation
+   - API Key available in .env file
+   - All 108 endpoints ready for testing
+   - Three-port architecture (8000, 9000, 9001)
 
 ### **Option 2: Local Development Setup**
 **Best for**: Development, customization, learning  
@@ -97,10 +94,7 @@ curl http://localhost:8000/health
 # Create environment file
 cat > .env << EOF
 # Database Configuration
-DATABASE_URL=postgresql://bhiv_user:bhiv_password@db:5432/bhiv_hr
-POSTGRES_DB=bhiv_hr
-POSTGRES_USER=bhiv_user
-POSTGRES_PASSWORD=bhiv_password
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
 
 # API Configuration
 API_KEY_SECRET=your-secret-key-here
@@ -115,60 +109,50 @@ DEBUG=true
 EOF
 ```
 
-#### **Step 2: Database Initialization**
+#### **Step 2: Database Setup**
 ```bash
-# Start database first
-docker-compose -f docker-compose.production.yml up -d db
+# MongoDB Atlas is cloud-hosted - no local initialization required
+# Ensure your MongoDB Atlas cluster is configured and accessible
 
-# Wait for database to be ready
-sleep 10
-
-# Initialize schema
-docker exec -i bhiv_hr_db psql -U bhiv_user -d bhiv_hr < services/db/consolidated_schema.sql
-
-# Verify schema
-docker exec bhiv_hr_db psql -U bhiv_user -d bhiv_hr -c "\dt"
+# Verify MongoDB connection
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb+srv://username:password@cluster.mongodb.net/'); print('MongoDB connected successfully')"
 ```
 
 #### **Step 3: Service Deployment**
 ```bash
 # Start all services
-docker-compose -f docker-compose.production.yml up -d
+docker-compose up -d
 
 # Check service status
-docker-compose -f docker-compose.production.yml ps
+docker-compose ps
 
 # View logs
-docker-compose -f docker-compose.production.yml logs -f
+docker-compose logs -f
 ```
 
 #### **Step 4: Verification**
 ```bash
-# Test API Gateway
+# Test API Gateway (77 endpoints)
 curl http://localhost:8000/health
 curl http://localhost:8000/docs
 
-# Test AI Agent
-curl http://localhost:8001/health
-curl http://localhost:8001/docs
+# Test AI Agent (6 endpoints)
+curl http://localhost:9000/health
+curl http://localhost:9000/docs
 
-# Test LangGraph
-curl http://localhost:8002/health
+# Test LangGraph (25 endpoints)
+curl http://localhost:9001/health
+curl http://localhost:9001/docs
 
-# Test Portals
-curl -I http://localhost:8501  # HR Portal
-curl -I http://localhost:8502  # Client Portal
-curl -I http://localhost:8503  # Candidate Portal
+# Test Database Connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8000/test-candidates
 ```
 
 ### **Local Service URLs**
-- **API Gateway**: http://localhost:8000/docs
-- **AI Agent**: http://localhost:8001/docs
-- **LangGraph**: http://localhost:8002
-- **HR Portal**: http://localhost:8501
-- **Client Portal**: http://localhost:8502
-- **Candidate Portal**: http://localhost:8503
-- **Database**: localhost:5432
+- **API Gateway**: http://localhost:8000/docs (77 endpoints)
+- **AI Agent**: http://localhost:9000/docs (6 endpoints)
+- **LangGraph**: http://localhost:9001/docs (25 endpoints)
+- **Database**: MongoDB Atlas (cloud-hosted)
 
 ---
 
@@ -177,27 +161,29 @@ curl -I http://localhost:8503  # Candidate Portal
 ### **Prerequisites**
 - GitHub account with repository access
 - Render account (free tier available)
-- PostgreSQL database (Render provides free tier)
+- MongoDB Atlas account (free tier available)
 
 ### **Step 1: Database Deployment**
 
-#### **Create PostgreSQL Database**
-1. **Login to Render Dashboard**
-   - Go to [render.com](https://render.com)
-   - Create account or login
+#### **Setup MongoDB Atlas**
+1. **Create MongoDB Atlas Account**
+   - Go to [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+   - Create free account or login
 
-2. **Create Database**
-   - Click "New +" → "PostgreSQL"
-   - Name: `bhiv-hr-database`
-   - Database: `bhiv_hr`
-   - User: `bhiv_user`
-   - Region: `Oregon (US West)`
-   - Plan: `Free` (0.1 CPU, 256MB RAM)
+2. **Create Cluster**
+   - Create new cluster (M0 Sandbox - Free tier)
+   - Select AWS provider, Oregon region
+   - Name: `bhiv-hr-cluster`
 
-3. **Initialize Schema**
-   ```bash
-   # Get connection details from Render dashboard
-   psql postgresql://bhiv_user:password@hostname/bhiv_hr < services/db/consolidated_schema.sql
+3. **Configure Database**
+   - Create database user with read/write permissions
+   - Add IP whitelist (0.0.0.0/0 for development)
+   - Get connection string from Connect dialog
+
+4. **Collections Setup**
+   - MongoDB Atlas creates collections automatically
+   - 17+ collections for HR platform data
+   - No manual schema initialization required
    ```
 
 ### **Step 2: Service Deployment**
@@ -334,38 +320,18 @@ CACHE_SIZE=1000
 
 ### **Docker Configuration**
 
-#### **Production Docker Compose**
+#### **Production Docker Compose (MongoDB Atlas)**
 ```yaml
 version: '3.8'
 services:
-  db:
-    image: postgres:17
-    environment:
-      POSTGRES_DB: bhiv_hr
-      POSTGRES_USER: bhiv_user
-      POSTGRES_PASSWORD: bhiv_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./services/db/consolidated_schema.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bhiv_user -d bhiv_hr"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   gateway:
     build: ./services/gateway
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://bhiv_user:bhiv_password@db:5432/bhiv_hr
-      - AGENT_SERVICE_URL=http://agent:8001
-      - LANGGRAPH_URL=http://langgraph:8002
-    depends_on:
-      db:
-        condition: service_healthy
+      - MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
+      - AGENT_SERVICE_URL=http://agent:9000
+      - LANGGRAPH_URL=http://langgraph:9001
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -375,27 +341,18 @@ services:
   agent:
     build: ./services/agent
     ports:
-      - "8001:8001"
+      - "9000:9000"
     environment:
-      - DATABASE_URL=postgresql://bhiv_user:bhiv_password@db:5432/bhiv_hr
+      - MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
       - GATEWAY_SERVICE_URL=http://gateway:8000
-    depends_on:
-      db:
-        condition: service_healthy
 
   langgraph:
     build: ./services/langgraph
     ports:
-      - "8002:8002"
+      - "9001:9001"
     environment:
-      - DATABASE_URL=postgresql://bhiv_user:bhiv_password@db:5432/bhiv_hr
+      - MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
       - GATEWAY_SERVICE_URL=http://gateway:8000
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
 ```
 
 ---
@@ -412,9 +369,9 @@ echo "=========================================="
 
 # Check service health
 services=(
-    "https://bhiv-hr-gateway-ltg0.onrender.com/health"
-    "https://bhiv-hr-agent-nhgg.onrender.com/health"
-    "https://bhiv-hr-langgraph.onrender.com/health"
+    "http://localhost:8000/health"
+    "http://localhost:9000/health"
+    "http://localhost:9001/health"
 )
 
 for service in "${services[@]}"; do
@@ -428,20 +385,20 @@ done
 
 # Test API endpoints
 echo "🧪 Testing API Endpoints..."
-curl -H "Authorization: Bearer demo_key" \
-     "https://bhiv-hr-gateway-ltg0.onrender.com/v1/jobs" | jq '.total'
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     "http://localhost:8000/v1/jobs" | jq '.total'
 
 # Test AI matching
 echo "🤖 Testing AI Matching..."
 curl -X POST -H "Content-Type: application/json" \
-     -H "Authorization: Bearer demo_key" \
-     "https://bhiv-hr-agent-nhgg.onrender.com/match" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     "http://localhost:9000/match" \
      -d '{"candidate_id": 1, "job_id": 1}' | jq '.score'
 
 # Test LangGraph workflow
 echo "🔄 Testing LangGraph Workflow..."
 curl -X POST -H "Content-Type: application/json" \
-     "https://bhiv-hr-langgraph.onrender.com/workflows/test" \
+     "http://localhost:9001/workflows/test" \
      -d '{"test": true}' | jq '.status'
 
 echo "✅ Verification Complete"
@@ -451,61 +408,54 @@ echo "✅ Verification Complete"
 
 #### **API Gateway (77 endpoints)**
 ```bash
-# Authentication
-curl -X POST -H "Content-Type: application/json" \
-     -d '{"username":"demo_user","password":"demo_password"}' \
-     https://bhiv-hr-gateway-ltg0.onrender.com/v1/auth/login
+# Health check
+curl http://localhost:8000/health
 
-# Jobs API
-curl -H "Authorization: Bearer <token>" \
-     https://bhiv-hr-gateway-ltg0.onrender.com/v1/jobs
+# API Documentation
+curl http://localhost:8000/docs
 
-# Candidates API
-curl -H "Authorization: Bearer <token>" \
-     https://bhiv-hr-gateway-ltg0.onrender.com/v1/candidates
+# Test candidates endpoint
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8000/v1/candidates
+
+# Test jobs endpoint
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8000/v1/jobs
 ```
 
 #### **AI Agent (6 endpoints)**
 ```bash
-# Semantic matching
-curl -X POST -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <token>" \
-     https://bhiv-hr-agent-nhgg.onrender.com/match \
-     -d '{"candidate_id": 1, "job_id": 1}'
+# Health check
+curl http://localhost:9000/health
 
-# Batch processing
-curl -X POST -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <token>" \
-     https://bhiv-hr-agent-nhgg.onrender.com/batch_match \
-     -d '{"job_id": 1, "candidate_ids": [1,2,3]}'
+# API Documentation
+curl http://localhost:9000/docs
+
+# Test matching endpoint
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:9000/match
 ```
 
 #### **LangGraph (25 endpoints)**
 ```bash
-# Workflow creation
-curl -X POST -H "Content-Type: application/json" \
-     https://bhiv-hr-langgraph.onrender.com/workflows/application/start \
-     -d '{"candidate_id": 1, "job_id": 1}'
+# Health check
+curl http://localhost:9001/health
 
-# Notification testing
-curl -X POST -H "Content-Type: application/json" \
-     https://bhiv-hr-langgraph.onrender.com/tools/send-notification \
-     -d '{"type": "email", "recipient": "test@example.com", "message": "Test"}'
+# API Documentation
+curl http://localhost:9001/docs
+
+# Test workflow endpoint
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:9001/workflows/test
 ```
 
-#### **Portal Services**
+#### **Database Connectivity**
 ```bash
-# HR Portal
-curl -I https://bhiv-hr-portal-u670.onrender.com/
-# Expected: 200 OK with Streamlit headers
+# Test MongoDB connection through Gateway
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8000/test-candidates
 
-# Client Portal
-curl -I https://bhiv-hr-client-portal-3iod.onrender.com/
-# Expected: 200 OK with authentication page
-
-# Candidate Portal
-curl -I https://bhiv-hr-candidate-portal-abe6.onrender.com/
-# Expected: 200 OK with job listings
+# Expected response: {"status": "success", "message": "Database connected"}
 ```
 
 ### **Performance Testing**

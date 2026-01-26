@@ -67,7 +67,7 @@ Database documentation and setup guides.
 | [DATABASE_DOCUMENTATION.md](database/DATABASE_DOCUMENTATION.md) | MongoDB collections and schemas |
 | [CONNECTION_DIAGRAM.md](database/CONNECTION_DIAGRAM.md) | Database connection guide |
 | [DBEAVER_SETUP_GUIDE.md](database/DBEAVER_SETUP_GUIDE.md) | Database client setup |
-| [QUICK_QUERIES.sql](database/QUICK_QUERIES.sql) | Useful MongoDB queries |
+| [MONGODB_QUICK_QUERIES.md](database/MONGODB_QUICK_QUERIES.md) | Useful MongoDB queries |
 
 ### **🔒 Security** (`security/`)
 Security documentation and audits.

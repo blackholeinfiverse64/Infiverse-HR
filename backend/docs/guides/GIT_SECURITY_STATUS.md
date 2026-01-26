@@ -1,7 +1,7 @@
 # 🔒 BHIV HR Platform - Git Security Status
 
 **Repository Security & Credential Protection**  
-**Updated**: December 16, 2025  
+**Updated**: January 22, 2026  
 **Status**: ✅ Production Ready  
 **Security Rating**: A+ (Zero exposed credentials)  
 **Git Safety**: 100% secure for public repository
@@ -61,9 +61,9 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '<YOUR_GEMINI_API_KEY>')
 
 ### **Docker Compose Security**
 ```yaml
-# deployment/docker/docker-compose.production.yml
+# deployment/docker/docker-compose.yml
 environment:
-  - DATABASE_URL=${DATABASE_URL:-postgresql://user:pass@localhost/db}
+  - MONGODB_URI=${MONGODB_URI:-mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr}
   - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-<YOUR_TWILIO_ACCOUNT_SID>}
   - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-<YOUR_TWILIO_AUTH_TOKEN>}
   - GMAIL_EMAIL=${GMAIL_EMAIL:-<YOUR_GMAIL_EMAIL>}
@@ -124,7 +124,7 @@ __pycache__/
 #### **Local Development Environment**
 ```bash
 # .env file (protected by .gitignore)
-DATABASE_URL=postgresql://bhiv_user:secure_password@localhost:5432/bhiv_hr
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bhiv_hr
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 GMAIL_EMAIL=your.email@gmail.com
@@ -136,7 +136,7 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 #### **Production Deployment (Render)**
 ```bash
 # Environment variables in Render dashboard
-DATABASE_URL=postgresql://production_user:secure_pass@host:5432/bhiv_hr_prod
+MONGODB_URI=mongodb+srv://production_username:secure_password@cluster.mongodb.net/bhiv_hr_prod
 TWILIO_ACCOUNT_SID=AC[production_account_sid]
 TWILIO_AUTH_TOKEN=[production_auth_token]
 GMAIL_EMAIL=[production_email]
