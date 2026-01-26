@@ -20,6 +20,13 @@ pip install -r tests/requirements.txt
 - **Quick Smoke Test**: `python tests/quick_smoke_tests.py` - Critical endpoints only (removed)
 - **Legacy Test**: `python tests/test_complete_112_endpoints.py` - Original 112 endpoint test (deprecated)
 
+### Authentication & MongoDB Testing
+- **Authentication Tests**: `python test_authentication_changes.py` - Test all authentication flows (candidate, recruiter, client)
+- **MongoDB Scripts Test**: `python test_mongodb_scripts.py` - Test MongoDB schema management scripts
+- **MongoDB Schema Verification**: `python services/gateway/verify_mongodb_schema.py` - Verify MongoDB collections and fields
+- **MongoDB Index Creation**: `python services/gateway/create_mongodb_indexes.py` - Create recommended indexes
+- **MongoDB Schema Migration**: `python services/gateway/migrate_mongodb_schema.py` - Migrate existing data
+
 ## 📊 What Gets Tested
 
 ### 🏗️ All 6 Services (108 Endpoints)

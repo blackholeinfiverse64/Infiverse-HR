@@ -345,6 +345,34 @@ Open your browser and navigate to: **http://localhost:3000**
 | `test_mongodb_atlas.py` | Test MongoDB connection | `python test_mongodb_atlas.py` |
 | `check_services.bat` | Check service health (Windows) | `check_services.bat` |
 
+### 🧪 Testing Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `test_authentication_changes.py` | Test authentication flows (candidate, recruiter, client) | `python test_authentication_changes.py` |
+| `test_mongodb_scripts.py` | Test MongoDB schema management scripts | `python test_mongodb_scripts.py` |
+| `services/gateway/verify_mongodb_schema.py` | Verify MongoDB schema and collections | `python services/gateway/verify_mongodb_schema.py` |
+| `services/gateway/create_mongodb_indexes.py` | Create recommended MongoDB indexes | `python services/gateway/create_mongodb_indexes.py` |
+| `services/gateway/migrate_mongodb_schema.py` | Migrate existing MongoDB data (add role fields) | `python services/gateway/migrate_mongodb_schema.py` |
+
+**Quick Test Commands:**
+```bash
+# Test authentication flows
+python test_authentication_changes.py
+
+# Test MongoDB scripts
+python test_mongodb_scripts.py
+
+# Verify MongoDB schema
+python services/gateway/verify_mongodb_schema.py
+
+# Create MongoDB indexes
+python services/gateway/create_mongodb_indexes.py
+
+# Migrate MongoDB schema
+python services/gateway/migrate_mongodb_schema.py
+```
+
 ---
 
 ## 📁 Complete Project Structure
@@ -887,6 +915,40 @@ TELEGRAM_BOT_TOKEN_SECRET_KEY=<your-telegram-token>
 ---
 
 ## 🧪 Testing
+
+### Authentication Testing
+```bash
+# Test all authentication flows (candidate, recruiter, client)
+python test_authentication_changes.py
+```
+This script tests:
+- Candidate registration and login
+- Recruiter registration and login
+- Client registration and login
+- JWT token generation and validation
+- Role-based access control
+
+### MongoDB Schema Testing
+```bash
+# Test MongoDB schema management scripts
+python test_mongodb_scripts.py
+```
+This script verifies:
+- MongoDB schema verification script
+- Index creation script
+- Schema migration script
+
+### MongoDB Schema Management
+```bash
+# Verify MongoDB schema and collections
+python services/gateway/verify_mongodb_schema.py
+
+# Create recommended indexes for performance
+python services/gateway/create_mongodb_indexes.py
+
+# Migrate existing data (add role fields, etc.)
+python services/gateway/migrate_mongodb_schema.py
+```
 
 ### Run Complete Test Suite
 ```bash

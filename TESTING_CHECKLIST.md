@@ -1,5 +1,24 @@
 # Testing Checklist - After Authentication Fixes
 
+## 🧪 Automated Testing
+
+### Run Automated Test Suites
+```bash
+# Test authentication flows (candidate, recruiter, client)
+python backend/test_authentication_changes.py
+
+# Test MongoDB schema management scripts
+python backend/test_mongodb_scripts.py
+
+# Test all API endpoints
+cd backend/tests
+python comprehensive_endpoint_tests.py
+```
+
+**See [TESTING_GUIDE.md](TESTING_GUIDE.md) for complete testing documentation.**
+
+---
+
 ## ✅ All Fixes Applied
 
 ### Endpoints Fixed:
