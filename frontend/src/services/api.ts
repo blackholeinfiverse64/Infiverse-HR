@@ -17,14 +17,26 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     // Get JWT token from localStorage
-    const token = localStorage.getItem('auth_token');
+    let token = localStorage.getItem('auth_token');
     
-    // Debug logging
+    // If token is missing but user is authenticated, try to get it from user_data or clear auth
     if (!token) {
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      if (isAuthenticated) {
+        // User thinks they're logged in but token is missing - clear auth state
+        console.error('⚠️ Token missing but user is authenticated. Clearing auth state.');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('user_role');
+        // Don't redirect here - let the app handle it
+      }
       console.warn('⚠️ No auth_token found in localStorage for request:', config.url);
       console.warn('Available localStorage keys:', Object.keys(localStorage));
     } else {
-      console.log('✅ Adding Authorization header for request:', config.url);
+      // Only log for non-health check endpoints to reduce noise
+      if (!config.url?.includes('/health')) {
+        console.log('✅ Adding Authorization header for request:', config.url);
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
     

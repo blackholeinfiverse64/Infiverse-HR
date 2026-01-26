@@ -62,13 +62,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await authService.login(email, password, storedRole);
       
       if (result.success && result.token && result.user) {
+        const token = result.token;
+        
+        // Validate token is not empty
+        if (!token || token.trim() === '') {
+          console.error('❌ AuthContext: Empty token received!');
+          return { error: 'Invalid token received from server' };
+        }
+        
         // Extract role from JWT token (token contains role in payload)
         try {
-          const payload = JSON.parse(atob(result.token.split('.')[1]));
+          const payload = JSON.parse(atob(token.split('.')[1]));
           const role = payload.role || result.user.role || 'candidate';
           
-          // Store the JWT token and user data
-          localStorage.setItem('auth_token', result.token);
+          // Store the JWT token FIRST - this is critical
+          console.log('🔐 AuthContext: Storing auth token');
+          localStorage.setItem('auth_token', token);
+          
+          // Verify token was stored
+          const storedToken = localStorage.getItem('auth_token');
+          if (!storedToken || storedToken !== token) {
+            console.error('❌ AuthContext: Failed to store token! Trying direct storage...');
+            // Try direct storage as fallback
+            localStorage.setItem('auth_token', token);
+          } else {
+            console.log('✅ AuthContext: Token stored successfully');
+          }
+          
           localStorage.setItem('user_data', JSON.stringify(result.user));
           localStorage.setItem('user_role', role);  // Store role from token
           localStorage.setItem('user_email', result.user.email || email);
@@ -79,9 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userWithRole = { ...result.user, role };
           setUser(userWithRole);
         } catch (tokenError) {
+          console.error('❌ AuthContext: Error parsing token:', tokenError);
           // If token parsing fails, use role from user object or default
           const role = result.user.role || 'candidate';
-          localStorage.setItem('auth_token', result.token);
+          
+          // Still store the token even if parsing fails
+          console.log('🔐 AuthContext: Storing token (parsing failed but storing anyway)');
+          localStorage.setItem('auth_token', token);
           localStorage.setItem('user_data', JSON.stringify(result.user));
           localStorage.setItem('user_role', role);
           setUser(result.user);
@@ -89,10 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Set the auth token in axios defaults
         const axios = (await import('axios')).default;
-        axios.defaults.headers.common['Authorization'] = `Bearer ${result.token}`;
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         return { error: null };
       } else {
+        console.error('❌ AuthContext: Login failed - no token or user in result:', result);
         return { error: result.error || 'Login failed' };
       }
     } catch (error) {

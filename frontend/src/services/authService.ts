@@ -87,12 +87,32 @@ class AuthService {
       // Backend returns 'candidate' but we need to set correct role
       if (response.data.token && response.data.success) {
         const userData = response.data.candidate || response.data.user;
+        const token = response.data.token;
+        
+        // Validate token is not empty
+        if (!token || token.trim() === '') {
+          console.error('❌ Login response has empty token!');
+          return { success: false, error: 'Invalid token received from server' };
+        }
         
         // Override role from localStorage if available (for recruiter)
         const actualRole = userRole === 'recruiter' ? 'recruiter' : (userData.role || 'candidate');
         const userWithRole = { ...userData, role: actualRole };
         
-        this.setAuthToken(response.data.token);
+        // Store token FIRST - this is critical
+        console.log('🔐 Storing auth token after login');
+        this.setAuthToken(token);
+        
+        // Verify token was stored
+        const storedToken = localStorage.getItem(this.TOKEN_KEY);
+        if (!storedToken || storedToken !== token) {
+          console.error('❌ Failed to store token! Stored:', storedToken ? 'exists but different' : 'missing');
+          // Try direct storage as fallback
+          localStorage.setItem(this.TOKEN_KEY, token);
+        } else {
+          console.log('✅ Token stored successfully');
+        }
+        
         localStorage.setItem(this.USER_KEY, JSON.stringify(userWithRole));
         
         // Store candidate_id if available (for API calls)
@@ -106,7 +126,7 @@ class AuthService {
         
         return {
           success: true,
-          token: response.data.token,
+          token: token,
           user: userWithRole
         };
       }
