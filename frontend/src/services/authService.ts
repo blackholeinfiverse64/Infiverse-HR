@@ -51,6 +51,14 @@ class AuthService {
           });
           
           if (response.data.success && response.data.access_token) {
+            const token = response.data.access_token;
+            
+            // Validate token is not empty
+            if (!token || token.trim() === '') {
+              console.error('❌ Client login response has empty token!');
+              return { success: false, error: 'Invalid token received from server' };
+            }
+            
             const userData = {
               id: response.data.client_id,
               email: email,
@@ -58,19 +66,51 @@ class AuthService {
               role: 'client',
               company: response.data.company_name
             };
-            this.setAuthToken(response.data.access_token);
+            
+            // Store token using multiple methods to ensure it's saved
+            console.log('🔐 Storing client auth token after login');
+            console.log('🔐 Client token length:', token.length);
+            console.log('🔐 Client token first 50 chars:', token.substring(0, 50));
+            
+            this.setAuthToken(token);
+            localStorage.setItem(this.TOKEN_KEY, token); // Direct storage as backup
+            localStorage.setItem('auth_token', token); // Also store with explicit key
+            
+            // Verify token was stored immediately
+            const storedToken = localStorage.getItem(this.TOKEN_KEY);
+            const storedTokenDirect = localStorage.getItem('auth_token');
+            
+            if (!storedToken && !storedTokenDirect) {
+              console.error('❌ CRITICAL: Failed to store client token! localStorage may be disabled or full.');
+              console.error('❌ Available localStorage keys:', Object.keys(localStorage));
+            } else if (storedToken !== token && storedTokenDirect !== token) {
+              console.error('❌ Client token stored but value mismatch!');
+              console.error('❌ Expected length:', token.length, 'Stored length:', storedToken?.length || storedTokenDirect?.length);
+            } else {
+              console.log('✅ Client token stored successfully');
+              console.log('✅ Client token verification: Stored token matches');
+            }
+            
             localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
             localStorage.setItem('client_id', response.data.client_id);
+            localStorage.setItem('user_role', 'client');
+            
             return {
               success: true,
-              token: response.data.access_token,
+              token: token,
               user: userData
+            };
+          } else {
+            console.error('❌ Client login failed: No access_token in response', response.data);
+            return {
+              success: false,
+              error: response.data.error || 'Client login failed. No token received.'
             };
           }
         } catch (clientError: any) {
           // If client login fails, don't fall back to candidate login
           // Return error so user knows client login failed
-          console.log('Client login failed:', clientError.response?.data?.error || clientError.message);
+          console.error('❌ Client login error:', clientError.response?.data?.error || clientError.message);
           return {
             success: false,
             error: clientError.response?.data?.error || 'Client login failed. Please check your credentials.'

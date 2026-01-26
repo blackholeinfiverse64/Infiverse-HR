@@ -56,10 +56,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignIn = async (email: string, password: string) => {
     try {
       // Get role from localStorage (stored during signup) to determine login endpoint
-      const storedRole = localStorage.getItem('user_role') || 'candidate';
+      // Try to detect role from email or use stored role
+      let storedRole = localStorage.getItem('user_role');
+      
+      // If no stored role, try to detect from email domain or use candidate as default
+      if (!storedRole) {
+        // Could add logic here to detect role from email patterns if needed
+        storedRole = 'candidate';
+      }
+      
+      console.log('🔐 AuthContext: Attempting login with role:', storedRole);
       
       const authService = (await import('../services/authService')).default;
       const result = await authService.login(email, password, storedRole);
+      
+      console.log('🔐 AuthContext: Login result:', { 
+        success: result.success, 
+        hasToken: !!result.token, 
+        hasUser: !!result.user,
+        userRole: result.user?.role 
+      });
       
       if (result.success && result.token && result.user) {
         const token = result.token;
@@ -71,17 +87,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         // Extract role from JWT token (token contains role in payload)
+        let role = 'candidate';
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
-          const role = payload.role || result.user.role || 'candidate';
-          
-          // Store the JWT token FIRST - this is critical
-          console.log('🔐 AuthContext: Storing auth token');
-          console.log('🔐 AuthContext: Token length:', token.length);
-          console.log('🔐 AuthContext: Token first 50 chars:', token.substring(0, 50));
-          
-          // Store token using multiple methods to ensure it's saved
+          role = payload.role || result.user.role || storedRole || 'candidate';
+          console.log('🔐 AuthContext: Extracted role from token:', role);
+        } catch (tokenError) {
+          console.error('❌ AuthContext: Error parsing token:', tokenError);
+          // If token parsing fails, use role from user object, stored role, or default
+          role = result.user.role || storedRole || 'candidate';
+          console.log('🔐 AuthContext: Using role from user object or stored role:', role);
+        }
+        
+        // Store the JWT token FIRST - this is critical
+        console.log('🔐 AuthContext: Storing auth token for role:', role);
+        console.log('🔐 AuthContext: Token length:', token.length);
+        console.log('🔐 AuthContext: Token first 50 chars:', token.substring(0, 50));
+        
+        // Store token using multiple methods to ensure it's saved
+        try {
           localStorage.setItem('auth_token', token);
+          
+          // Also set it in authService's TOKEN_KEY for consistency
+          const authServiceInstance = (await import('../services/authService')).default;
+          if (authServiceInstance.setAuthToken) {
+            authServiceInstance.setAuthToken(token);
+          }
           
           // Verify token was stored immediately
           const storedToken = localStorage.getItem('auth_token');
@@ -94,54 +125,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const retryToken = localStorage.getItem('auth_token');
               if (!retryToken) {
                 console.error('❌ AuthContext: Token storage failed even after retry!');
+                return { error: 'Failed to store authentication token. Please check browser settings.' };
               } else {
                 console.log('✅ AuthContext: Token stored successfully on retry');
               }
             } catch (e) {
               console.error('❌ AuthContext: localStorage.setItem threw error:', e);
+              return { error: 'Failed to store authentication token: ' + (e as Error).message };
             }
           } else if (storedToken !== token) {
             console.error('❌ AuthContext: Token stored but value mismatch!');
             console.error('❌ AuthContext: Expected length:', token.length, 'Stored length:', storedToken.length);
+            // Still continue - might be a minor issue
           } else {
             console.log('✅ AuthContext: Token stored successfully');
             console.log('✅ AuthContext: Token verification passed');
           }
-          
-          localStorage.setItem('user_data', JSON.stringify(result.user));
-          localStorage.setItem('user_role', role);  // Store role from token
-          localStorage.setItem('user_email', result.user.email || email);
-          localStorage.setItem('user_name', result.user.name || '');
-          localStorage.setItem('isAuthenticated', 'true');
-          
-          // Update user object with role
-          const userWithRole = { ...result.user, role };
-          setUser(userWithRole);
-        } catch (tokenError) {
-          console.error('❌ AuthContext: Error parsing token:', tokenError);
-          // If token parsing fails, use role from user object or default
-          const role = result.user.role || 'candidate';
-          
-          // Still store the token even if parsing fails
-          console.log('🔐 AuthContext: Storing token (parsing failed but storing anyway)');
-          localStorage.setItem('auth_token', token);
-          localStorage.setItem('user_data', JSON.stringify(result.user));
-          localStorage.setItem('user_role', role);
-          setUser(result.user);
+        } catch (storageError) {
+          console.error('❌ AuthContext: Error storing token:', storageError);
+          return { error: 'Failed to store authentication token: ' + (storageError as Error).message };
         }
+        
+        // Store user data and role
+        localStorage.setItem('user_data', JSON.stringify(result.user));
+        localStorage.setItem('user_role', role);  // Store role from token
+        localStorage.setItem('user_email', result.user.email || email);
+        localStorage.setItem('user_name', result.user.name || '');
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Store role-specific IDs if available
+        if (role === 'client' && result.user.id) {
+          localStorage.setItem('client_id', result.user.id);
+        } else if ((role === 'candidate' || role === 'recruiter') && result.user.id) {
+          localStorage.setItem('candidate_id', result.user.id);
+          localStorage.setItem('backend_candidate_id', result.user.id);
+        }
+        
+        // Update user object with role
+        const userWithRole = { ...result.user, role };
+        setUser(userWithRole);
         
         // Set the auth token in axios defaults
         const axios = (await import('axios')).default;
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
+        console.log('✅ AuthContext: Login successful for role:', role);
         return { error: null };
       } else {
         console.error('❌ AuthContext: Login failed - no token or user in result:', result);
-        return { error: result.error || 'Login failed' };
+        const errorMsg = result.error || 'Login failed - no token or user data received';
+        return { error: errorMsg };
       }
     } catch (error) {
-      console.error('Login error:', error);
-      return { error: 'Login failed' };
+      console.error('❌ AuthContext: Login error:', error);
+      return { error: error instanceof Error ? error.message : 'Login failed' };
     }
   };
 
