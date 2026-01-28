@@ -467,6 +467,171 @@ Authorization: Bearer CANDIDATE_JWT_TOKEN
 
 ---
 
+### 81. GET /v1/candidate/profile/{candidate_id}
+
+**Purpose:** Get detailed candidate profile with extended information
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/candidate/profile/123
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "candidate": {
+    "id": 123,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "location": "San Francisco, CA",
+    "experience_years": 5,
+    "technical_skills": "Python, FastAPI, PostgreSQL, Docker, Kubernetes",
+    "seniority_level": "Senior",
+    "education_level": "Bachelor of Science in Computer Science",
+    "resume_path": "/resumes/john_doe_resume.pdf",
+    "average_score": 4.6,
+    "status": "active",
+    "created_at": "2024-12-01T10:00:00Z",
+    "updated_at": "2026-01-22T13:37:00Z",
+    "applications": [
+      {
+        "job_id": 45,
+        "job_title": "Senior Software Engineer",
+        "application_status": "interviewed",
+        "applied_at": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "feedback": [
+      {
+        "integrity": 5,
+        "honesty": 5,
+        "discipline": 4,
+        "hard_work": 5,
+        "gratitude": 4,
+        "average_score": 4.6,
+        "submitted_at": "2026-01-20T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses:**
+- 404 Not Found: Candidate not found
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter views detailed candidate profile
+
+**Implemented In:** `services/gateway/app/main.py` → `get_candidate_profile()`
+
+**Database Impact:** SELECT from candidates, job_applications, feedback tables with JOIN
+
+---
+
+### 82. GET /v1/candidate/stats/{candidate_id}
+
+**Purpose:** Get statistics for specific candidate
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/candidate/stats/123
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "candidate_id": 123,
+  "applications_count": 3,
+  "interviews_count": 1,
+  "offers_count": 1,
+  "average_feedback_score": 4.6,
+  "highest_matching_score": 92.5,
+  "applied_jobs": [
+    {
+      "job_id": 45,
+      "job_title": "Senior Software Engineer",
+      "status": "interviewed",
+      "applied_at": "2026-01-15T10:00:00Z",
+      "matching_score": 92.5
+    }
+  ],
+  "stats_generated_at": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 404 Not Found: Candidate not found
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter analyzes candidate performance
+
+**Implemented In:** `services/gateway/app/main.py` → `get_candidate_stats()`
+
+**Database Impact:** Multiple COUNT queries on job_applications, interviews, offers, feedback tables
+
+---
+
+### 83. GET /v1/recruiter/stats
+
+**Purpose:** Get comprehensive statistics for recruiter dashboard
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/recruiter/stats
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "total_candidates": 1234,
+  "total_jobs": 45,
+  "active_jobs": 18,
+  "applications_today": 23,
+  "interviews_scheduled": 12,
+  "offers_extended": 5,
+  "hires_this_month": 8,
+  "average_time_to_hire": "15 days",
+  "top_performing_jobs": [
+    {
+      "job_id": 45,
+      "title": "Senior Software Engineer",
+      "applications": 67,
+      "interviews": 15,
+      "offers": 3,
+      "hires": 2
+    }
+  ],
+  "recruiter_performance": {
+    "applications_reviewed": 156,
+    "interviews_conducted": 45,
+    "offers_made": 18,
+    "conversion_rate": "11.5%"
+  },
+  "stats_generated_at": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter dashboard loads performance metrics
+
+**Implemented In:** `services/gateway/app/main.py` → `get_recruiter_stats()`
+
+**Database Impact:** Multiple COUNT and aggregate queries across all core tables
+
+---
+
 ## Summary Table - Part 4
 
 | Endpoint | Method | Category | Purpose | Auth Required |
@@ -484,7 +649,7 @@ Authorization: Bearer CANDIDATE_JWT_TOKEN
 | /v1/candidate/apply | POST | Candidate | Apply for job | Yes |
 | /v1/candidate/applications/{id} | GET | Candidate | Get applications | Yes |
 
-**Total Endpoints in Part 4:** 35 (Cumulative: 80 of 111)
+**Total Endpoints in Part 4:** 38 (46-83 of 111)
 
 ---
 

@@ -538,7 +538,7 @@ Content-Type: application/json
 | /v1/client/register | POST | Client Portal | Register client | No |
 | /v1/client/login | POST | Client Portal | Client login | No |
 
-**Total Endpoints in Part 3:** 10 (Cumulative: 45 of 111)
+**Total Endpoints in Part 3:** 10 (36-45 of 111)
 
 ---
 

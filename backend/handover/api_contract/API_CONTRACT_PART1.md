@@ -942,7 +942,7 @@ Authorization: Bearer YOUR_API_KEY
 | /api/v1/rl/analytics | GET | RL + Feedback | Get analytics | Yes |
 | /api/v1/rl/performance | GET | RL + Feedback | Get performance | Yes |
 
-**Total Endpoints in Part 1:** 17 of 111
+**Total Endpoints in Part 1:** 17 (1-17 of 111)
 
 ---
 
