@@ -2,8 +2,8 @@
 
 **Updated**: January 22, 2026  
 **API Version**: v4.3.0 Production Ready  
-**Total Endpoints**: 108 (77 Gateway + 6 Agent + 25 LangGraph)  
-**Status**: ✅ 3/3 Core Services Operational | 108 Endpoints Live | 99.9% Uptime | MongoDB Atlas  
+**Total Endpoints**: 111 (80 Gateway + 6 Agent + 25 LangGraph)  
+**Status**: ✅ 3/3 Core Services Operational | 111 Endpoints Live | 99.9% Uptime | MongoDB Atlas  
 **Architecture**: Three-Port Microservices (8000/Gateway, 9000/Agent, 9001/LangGraph)
 
 ---
@@ -12,11 +12,11 @@
 
 ### **Three-Port Microservices Architecture**
 
-**Status**: ✅ **3/3 CORE SERVICES OPERATIONAL** | **Total Endpoints**: 108
+**Status**: ✅ **3/3 CORE SERVICES OPERATIONAL** | **Total Endpoints**: 111
 
 | Service | Port | URL | Endpoints | Status |
 |---------|------|-----|-----------|--------|
-| **API Gateway** | 8000 | http://localhost:8000/docs | 77 | ✅ Running |
+| **API Gateway** | 8000 | http://localhost:8000/docs | 80 | ✅ Running |
 | **AI Engine** | 9000 | http://localhost:9000/docs | 6 | ✅ Running |
 | **LangGraph Automation** | 9001 | http://localhost:9001/docs | 25 | ✅ Running |
 
@@ -106,7 +106,7 @@ Authorization: Bearer <service_specific_jwt_token>
 
 ## 📋 Comprehensive Endpoint Directory
 
-All 108 endpoints organized by functional category across the three microservices. Each endpoint supports the unified API key authentication system.
+All 111 endpoints organized by functional category across the three microservices. Each endpoint supports the unified API key authentication system.
 
 ### **Core System Endpoints (5)**
 
@@ -958,7 +958,7 @@ curl https://bhiv-hr-portal-u670.onrender.com/health
 - **Gateway Service**: 77 endpoints (Core API, Auth, Security, Workflows)
 - **AI Agent Service**: 6 endpoints (ML/RL Engine, Semantic Matching)
 - **LangGraph Service**: 25 endpoints (Workflow Automation, Notifications, RL Integration)
-- **Total**: 108 endpoints across 3 microservices
+- **Total**: 111 endpoints across 3 microservices
 
 ### **Gateway Service Categories (77 Endpoints)**
 - **Core API**: 3 endpoints (Root, Health, Test DB)
@@ -2006,13 +2006,13 @@ spec:
 
 ---
 
-**BHIV HR Platform API Documentation v4.3.0** - Enterprise-grade recruitment platform with 108 endpoints, MongoDB implementation, and three-port microservices architecture.
+**BHIV HR Platform API Documentation v4.3.0** - Enterprise-grade recruitment platform with 111 endpoints, MongoDB implementation, and three-port microservices architecture.
 
 *Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
 
 **Documentation Last Updated**: January 22, 2026  
 **Platform Status**: ✅ All Services Operational  
-**Total Endpoints**: 108 (77 Gateway + 6 Agent + 25 LangGraph)  
+**Total Endpoints**: 111 (80 Gateway + 6 Agent + 25 LangGraph)  
 **Database**: MongoDB Atlas (17+ collections)  
 **Architecture**: Three-Port Microservices (8000/9000/9001)  
 **Uptime**: 99.9% | **Response Time**: <100ms avg

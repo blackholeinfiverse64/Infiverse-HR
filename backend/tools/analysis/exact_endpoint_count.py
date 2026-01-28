@@ -19,12 +19,13 @@ gateway_endpoints = {
     "CSP Management": 4,
     "Two-Factor Authentication": 8,
     "Password Management": 6,
-    "Candidate Portal": 5
+    "Candidate Portal": 8,
+    "Recruiter Portal": 1
 }
 
 # Other services
 agent_endpoints = 6
-langgraph_endpoints = 7  # Standalone service
+langgraph_endpoints = 25  # Standalone service
 portal_endpoints = 3  # Web interfaces
 
 def main():

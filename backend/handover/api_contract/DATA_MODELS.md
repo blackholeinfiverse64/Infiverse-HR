@@ -1,9 +1,9 @@
 # Data Models — BHIV HR Platform
 
-**Version**: 4.3.0  
-**Schema**: PostgreSQL 17  
+**Version**: 4.0.0  
+**Schema**: MongoDB Atlas  
 **Total Tables**: 19 (13 core + 6 RL/ML)  
-**Last Updated**: December 9, 2025
+**Last Updated**: January 22, 2026
 
 ---
 

@@ -106,9 +106,14 @@ browser_endpoints = {
     "Candidate Portal": [
         "POST /v1/candidate/register",
         "POST /v1/candidate/login",
+        "GET /v1/candidate/profile/{candidate_id}",
         "PUT /v1/candidate/profile/{candidate_id}",
         "POST /v1/candidate/apply",
-        "GET /v1/candidate/applications/{candidate_id}"
+        "GET /v1/candidate/applications/{candidate_id}",
+        "GET /v1/candidate/stats/{candidate_id}"
+    ],
+    "Recruiter Portal": [
+        "GET /v1/recruiter/stats"
     ]
 }
 
@@ -171,9 +176,9 @@ def analyze_endpoints():
     print("📊 COMPARISON WITH EXPECTATIONS:")
     print("-" * 40)
     print(f"Browser shows: {total_count} endpoints")
-    print(f"Script counted: 63 endpoints")
-    print(f"Expected: ~65 endpoints")
-    print(f"Documentation: 65 endpoints")
+    print(f"Script counted: 66 endpoints")
+    print(f"Expected: ~68 endpoints")
+    print(f"Documentation: 68 endpoints")
     
     # The discrepancy explanation
     print()
@@ -187,13 +192,13 @@ def analyze_endpoints():
     print(f"Total browser endpoints: {total_count}")
     print(f"LangGraph endpoints: {langgraph_count} (via router)")
     print(f"Gateway-only endpoints: {gateway_only}")
-    print(f"Script count (Gateway only): 63")
-    print(f"Difference: {gateway_only - 63}")
+    print(f"Script count (Gateway only): 66")
+    print(f"Difference: {gateway_only - 66}")
     
     print()
     print("✅ CONCLUSION:")
     print("-" * 40)
-    if abs(total_count - 65) <= 5:
+    if abs(total_count - 68) <= 5:
         print("✅ ENDPOINT COUNT: Within acceptable range")
     else:
         print("⚠️ ENDPOINT COUNT: Significant difference")

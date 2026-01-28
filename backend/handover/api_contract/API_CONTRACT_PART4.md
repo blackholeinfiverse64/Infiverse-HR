@@ -2,6 +2,11 @@
 
 **Continued from:** [API_CONTRACT_PART3.md](./API_CONTRACT_PART3.md)
 
+**Version:** 4.0.0  
+**Last Updated:** January 22, 2026  
+**Total Endpoints:** 114 (83 Gateway + 6 Agent + 25 LangGraph)  
+**Database:** MongoDB Atlas
+
 ---
 
 ## Gateway Security Testing
@@ -25,7 +30,7 @@ Authorization: Bearer YOUR_API_KEY
   "requests_per_minute": 60,
   "current_requests": 15,
   "remaining_requests": 45,
-  "reset_time": "2024-12-09T13:37:00Z",
+  "reset_time": "2026-01-22T13:37:00Z",
   "status": "active"
 }
 ```
@@ -55,11 +60,11 @@ Authorization: Bearer YOUR_API_KEY
     {
       "ip": "192.168.1.100",
       "reason": "Rate limit exceeded",
-      "blocked_at": "2024-12-09T10:30:00Z"
+      "blocked_at": "2026-01-22T10:30:00Z"
     }
   ],
   "total_blocked": 1,
-  "last_updated": "2024-12-09T13:37:00Z"
+  "last_updated": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -135,7 +140,7 @@ Authorization: Bearer YOUR_API_KEY
     "violated_directive": "script-src",
     "blocked_uri": "https://malicious-site.com/script.js",
     "document_uri": "https://bhiv-platform.com/dashboard",
-    "timestamp": "2024-12-09T13:37:00Z"
+    "timestamp": "2026-01-22T13:37:00Z"
   },
   "report_id": "csp_report_1702134000"
 }
@@ -440,14 +445,14 @@ Authorization: Bearer CANDIDATE_JWT_TOKEN
       "id": 789,
       "job_id": 123,
       "status": "applied",
-      "applied_date": "2024-12-09T13:37:00Z",
+      "applied_date": "2026-01-22T13:37:00Z",
       "cover_letter": "I am excited to apply...",
       "job_title": "Senior Software Engineer",
       "department": "Engineering",
       "location": "Remote",
       "experience_level": "senior",
       "company": "Tech Innovations Inc",
-      "updated_at": "2024-12-09T13:37:00Z"
+      "updated_at": "2026-01-22T13:37:00Z"
     }
   ],
   "count": 1
@@ -479,7 +484,7 @@ Authorization: Bearer CANDIDATE_JWT_TOKEN
 | /v1/candidate/apply | POST | Candidate | Apply for job | Yes |
 | /v1/candidate/applications/{id} | GET | Candidate | Get applications | Yes |
 
-**Total Endpoints in Part 4:** 35 (Cumulative: 80 of 111)
+**Total Endpoints in Part 4:** 35 (Cumulative: 83 of 111)
 
 ---
 

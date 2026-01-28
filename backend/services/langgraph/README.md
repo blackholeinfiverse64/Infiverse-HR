@@ -16,7 +16,7 @@ The service follows a modular microservice architecture with the following key c
 ```
 langgraph/
 ├── app/
-│   ├── main.py                 # FastAPI application with all endpoints
+│   ├── main.py                 # FastAPI application with 25 endpoints
 │   ├── graphs.py               # LangGraph workflow definitions
 │   ├── state.py                # Workflow state definitions
 │   ├── agents.py               # AI agents for screening and processing
@@ -74,20 +74,21 @@ langgraph/
 
 ## API Endpoints
 
-### Core API Endpoints
+### Core API Endpoints (2 endpoints)
 - `GET /` — Service information and available endpoints
 - `GET /health` — Service health check and monitoring status
 
-### Workflow Management
+### Workflow Management (2 endpoints)
 - `POST /workflows/application/start` — Start candidate application workflow
 - `POST /workflows/{workflow_id}/resume` — Resume paused workflow
+- `GET /workflows/{workflow_id}/status` — Get detailed workflow status
 
-### Workflow Monitoring
+### Workflow Monitoring (3 endpoints)
 - `GET /workflows/{workflow_id}/status` — Get detailed workflow status
 - `GET /workflows` — List all workflows with filtering options
 - `GET /workflows/stats` — Workflow statistics and analytics
 
-### Communication Tools
+### Communication Tools (9 endpoints)
 - `POST /tools/send-notification` — Multi-channel notification system
 - `POST /test/send-email` — Test email sending functionality
 - `POST /test/send-whatsapp` — Test WhatsApp messaging
@@ -98,7 +99,7 @@ langgraph/
 - `POST /automation/bulk-notifications` — Send bulk notifications
 - `POST /webhook/whatsapp` — Handle WhatsApp interactive responses
 
-### RL + Feedback Agent
+### RL + Feedback Agent (8 endpoints)
 - `POST /rl/predict` — RL-enhanced candidate matching prediction
 - `POST /rl/feedback` — Submit feedback for RL learning
 - `GET /rl/analytics` — RL system analytics and performance metrics
@@ -108,7 +109,7 @@ langgraph/
 - `GET /rl/performance` — RL performance monitoring data
 - `POST /rl/start-monitoring` — Start RL performance monitoring
 
-### System Diagnostics
+### System Diagnostics (1 endpoint)
 - `GET /test-integration` — Integration testing and system validation
 
 ## Detailed API Documentation

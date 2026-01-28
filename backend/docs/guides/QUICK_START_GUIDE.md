@@ -157,7 +157,7 @@ LangGraph API:    http://localhost:9001    # 25 endpoints
 # Database
 MongoDB Atlas:    Cloud-hosted              # MongoDB Atlas
 
-# Total Endpoints: 108 (77+6+25)
+# Total Endpoints: 111 (80+6+25)
 ```
 
 ---

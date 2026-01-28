@@ -256,7 +256,7 @@ Comprehensive testing of all API endpoints across all services.
 **Location:** `backend/tests/comprehensive_endpoint_tests.py`
 
 ### What It Tests
-- ✅ All 108 endpoints (77 Gateway + 6 Agent + 25 LangGraph)
+- ✅ All 111 endpoints (80 Gateway + 6 Agent + 25 LangGraph)
 - ✅ Service health checks
 - ✅ Authentication & security
 - ✅ Business workflow

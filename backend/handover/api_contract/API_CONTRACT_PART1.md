@@ -1,8 +1,8 @@
 # API Contract — BHIV HR Platform
 
-**Version:** 3.0.0  
-**Last Updated:** December 2024  
-**Total Endpoints:** 111 (80 Gateway + 6 Agent + 25 LangGraph)  
+**Version:** 4.0.0  
+**Last Updated:** January 22, 2026  
+**Total Endpoints:** 114 (83 Gateway + 6 Agent + 25 LangGraph)  
 **Documentation Style:** Stripe API Standard
 
 ---
@@ -942,7 +942,7 @@ Authorization: Bearer YOUR_API_KEY
 | /api/v1/rl/analytics | GET | RL + Feedback | Get analytics | Yes |
 | /api/v1/rl/performance | GET | RL + Feedback | Get performance | Yes |
 
-**Total Endpoints in Part 1:** 17 of 111
+**Total Endpoints in Part 1:** 17 of 114
 
 ---
 

@@ -114,13 +114,17 @@ gateway/
 - `POST /v1/auth/password/strength` - Password Strength Test
 - `GET /v1/auth/password/security-tips` - Security Tips
 
-### Candidate Portal APIs (6 endpoints)
+### Candidate Portal APIs (7 endpoints)
 - `POST /v1/candidate/register` - Candidate Registration
 - `POST /v1/candidate/login` - Candidate Login
 - `GET /v1/candidate/profile/{candidate_id}` - Get Candidate Profile
 - `PUT /v1/candidate/profile/{candidate_id}` - Update Candidate Profile
 - `POST /v1/candidate/apply` - Apply for Job
 - `GET /v1/candidate/applications/{candidate_id}` - Get Candidate Applications
+- `GET /v1/candidate/stats/{candidate_id}` - Get Candidate Statistics
+
+### Recruiter Portal APIs (1 endpoint)
+- `GET /v1/recruiter/stats` - Get Recruiter Dashboard Statistics
 
 ### Monitoring & Health (3 endpoints)
 - `GET /metrics` - Prometheus Metrics Export

@@ -157,7 +157,7 @@ class EndpointCounter:
         print(f"Total from OpenAPI Schemas: {total_openapi}")
         print(f"Total from Source Code: {total_code}")
         print(f"Total Claimed by Services: {total_claimed}")
-        print(f"Documentation Claims: 89 endpoints")
+        print(f"Documentation Claims: 111 endpoints")
         
         # Determine most accurate count
         most_accurate = max(total_openapi, total_code, total_claimed)
@@ -190,8 +190,8 @@ class EndpointCounter:
             "total_code": total_code,
             "total_claimed": total_claimed,
             "most_accurate": most_accurate,
-            "documentation_claims": 89,
-            "adjustment_needed": most_accurate - 89
+            "documentation_claims": 111,
+            "adjustment_needed": most_accurate - 111
         }
 
 async def main():
@@ -203,7 +203,7 @@ async def main():
         json.dump({
             "summary": results,
             "detailed_results": counter.results,
-            "timestamp": "2025-11-22"
+            "timestamp": "2026-01-22"
         }, f, indent=2)
     
     print(f"\nDetailed results saved to: COMPLETE_ENDPOINT_COUNT.json")

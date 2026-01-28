@@ -14,7 +14,7 @@ The agent service follows a microservice architecture with the following compone
 
 ```
 agent/
-├── app.py                 # Main FastAPI application with all endpoints
+├── app.py                 # Main FastAPI application with 6 endpoints
 ├── config.py             # Configuration and environment variable validation
 ├── database.py           # MongoDB connection management
 ├── jwt_auth.py           # Authentication and authorization utilities

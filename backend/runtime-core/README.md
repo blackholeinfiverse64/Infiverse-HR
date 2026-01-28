@@ -1,12 +1,29 @@
-# BHIV Application Framework
+# BHIV Application Framework (Runtime-Core)
 
 The BHIV Application Framework is a comprehensive, reusable platform extracted from the BHIV HR Platform and evolved to support multiple domains (HR, CRM, ERP, etc.). It provides core infrastructure services including authentication, tenant isolation, role enforcement, audit logging, workflow management, and pluggable integration capabilities.
 
+**Status**: Legacy Reference - Not actively used in current production system
+
+**Note**: This runtime-core framework was developed as part of Task 7 and Task 8 requirements but is not currently integrated into the main BHIV HR Platform services. The core functionality has been integrated directly into the main services (gateway, agent, langgraph) for better maintainability and performance.
+
 ## Overview
 
-The SAR is designed as a sovereign cloud architecture that can be deployed in KSA/UAE infrastructure, ensuring data sovereignty and compliance with local regulations. It provides a comprehensive foundation for building multi-tenant SaaS applications with zero data leakage between tenants.
+**⚠️ IMPORTANT: Legacy Status**
 
-## Features
+This SAR (Sovereign Application Runtime) framework was originally designed as a sovereign cloud architecture that can be deployed in KSA/UAE infrastructure, ensuring data sovereignty and compliance with local regulations. However, it is currently maintained as a reference implementation and not actively used in the production system.
+
+The production system has been re-architected to have core services (gateway, agent, langgraph) with their functionality integrated directly rather than relying on a separate runtime framework. This change was made to:
+
+1. Improve maintainability
+2. Reduce complexity
+3. Enable better performance through direct integration
+4. Simplify the deployment process
+
+This repository contains the complete framework for educational, reference, and future potential integration purposes.
+
+## Features (Reference Implementation)
+
+**⚠️ Note**: These features are implemented in the reference framework but are not actively used in the current production system. The production system has these features implemented directly in the core services.
 
 - **Multi-tenant SaaS Architecture**: Complete tenant isolation with no cross-tenant data access
 - **Dual Authentication System**: Support for both API keys and JWT tokens with 2FA capabilities

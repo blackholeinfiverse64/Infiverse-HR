@@ -46,6 +46,9 @@ The portal communicates with the Gateway service using the following endpoints:
 ### Health Check Endpoints
 - `GET /health` - Verify API connectivity
 
+### Statistics Endpoints
+- `GET /v1/recruiter/stats` - Get recruiter dashboard statistics
+
 ## Authentication & Security Implementation
 - **JWT Token Authentication:** Secure session management using JWT tokens
 - **API Key Authorization:** Service-to-service communication secured with API keys

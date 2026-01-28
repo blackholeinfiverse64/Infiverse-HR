@@ -2,6 +2,11 @@
 
 **Continued from:** [API_CONTRACT_PART1.md](./API_CONTRACT_PART1.md)
 
+**Version:** 4.0.0  
+**Last Updated:** January 22, 2026  
+**Total Endpoints:** 114 (83 Gateway + 6 Agent + 25 LangGraph)  
+**Database:** MongoDB Atlas
+
 ---
 
 ## Gateway Monitoring
@@ -59,7 +64,7 @@ GET /health/detailed
   "status": "healthy",
   "service": "BHIV HR Gateway",
   "version": "4.2.0",
-  "timestamp": "2024-12-09T13:37:00Z",
+  "timestamp": "2026-01-22T13:37:00Z",
   "uptime_seconds": 86400,
   "database": {
     "status": "connected",
@@ -70,7 +75,7 @@ GET /health/detailed
   "dependencies": {
     "agent_service": "healthy",
     "langgraph_service": "healthy",
-    "postgresql": "healthy"
+    "mongodb": "healthy"
   },
   "system": {
     "cpu_usage": 25.5,
@@ -222,7 +227,7 @@ GET /
   "message": "BHIV HR Platform API Gateway",
   "version": "4.2.0",
   "status": "healthy",
-  "endpoints": 80,
+  "endpoints": 77,
   "documentation": "/docs",
   "monitoring": "/metrics",
   "production_url": "https://bhiv-hr-gateway-ltg0.onrender.com",
@@ -258,7 +263,7 @@ GET /health
   "status": "healthy",
   "service": "BHIV HR Gateway",
   "version": "4.2.0",
-  "timestamp": "2024-12-09T13:37:00Z"
+  "timestamp": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -295,7 +300,7 @@ Authorization: Bearer YOUR_API_KEY
 {
   "database_status": "connected",
   "total_candidates": 1234,
-  "test_timestamp": "2024-12-09T13:37:00Z"
+  "test_timestamp": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -394,7 +399,7 @@ Authorization: Bearer YOUR_API_KEY
       "experience_level": "mid",
       "requirements": "3+ years product management",
       "description": "Lead product strategy for HR platform",
-      "created_at": "2024-12-08T10:00:00Z"
+      "created_at": "2026-01-21T10:00:00Z"
     }
   ],
   "count": 2
@@ -482,7 +487,7 @@ Authorization: Bearer YOUR_API_KEY
   "pending_interviews": 23,
   "new_candidates_this_week": 67,
   "total_feedback_submissions": 456,
-  "statistics_generated_at": "2024-12-09T13:37:00Z",
+  "statistics_generated_at": "2026-01-22T13:37:00Z",
   "data_source": "real_time_database",
   "dashboard_ready": true
 }
@@ -622,7 +627,7 @@ Authorization: Bearer YOUR_API_KEY
     "education_level": "Bachelor of Science in Computer Science",
     "resume_path": "/resumes/john_doe_resume.pdf",
     "created_at": "2024-12-01T10:00:00Z",
-    "updated_at": "2024-12-09T13:37:00Z"
+    "updated_at": "2026-01-22T13:37:00Z"
   }
 }
 ```
@@ -711,6 +716,171 @@ Authorization: Bearer YOUR_API_KEY
 
 ---
 
+### 34. GET /v1/candidate/profile/{candidate_id}
+
+**Purpose:** Get detailed candidate profile with extended information
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/candidate/profile/123
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "candidate": {
+    "id": 123,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "location": "San Francisco, CA",
+    "experience_years": 5,
+    "technical_skills": "Python, FastAPI, PostgreSQL, Docker, Kubernetes",
+    "seniority_level": "Senior",
+    "education_level": "Bachelor of Science in Computer Science",
+    "resume_path": "/resumes/john_doe_resume.pdf",
+    "average_score": 4.6,
+    "status": "active",
+    "created_at": "2024-12-01T10:00:00Z",
+    "updated_at": "2026-01-22T13:37:00Z",
+    "applications": [
+      {
+        "job_id": 45,
+        "job_title": "Senior Software Engineer",
+        "application_status": "interviewed",
+        "applied_at": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "feedback": [
+      {
+        "integrity": 5,
+        "honesty": 5,
+        "discipline": 4,
+        "hard_work": 5,
+        "gratitude": 4,
+        "average_score": 4.6,
+        "submitted_at": "2026-01-20T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses:**
+- 404 Not Found: Candidate not found
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter views detailed candidate profile
+
+**Implemented In:** `services/gateway/app/main.py` → `get_candidate_profile()`
+
+**Database Impact:** SELECT from candidates, job_applications, feedback tables with JOIN
+
+---
+
+### 35. GET /v1/candidate/stats/{candidate_id}
+
+**Purpose:** Get statistics for specific candidate
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/candidate/stats/123
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "candidate_id": 123,
+  "applications_count": 3,
+  "interviews_count": 1,
+  "offers_count": 1,
+  "average_feedback_score": 4.6,
+  "highest_matching_score": 92.5,
+  "applied_jobs": [
+    {
+      "job_id": 45,
+      "job_title": "Senior Software Engineer",
+      "status": "interviewed",
+      "applied_at": "2026-01-15T10:00:00Z",
+      "matching_score": 92.5
+    }
+  ],
+  "stats_generated_at": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 404 Not Found: Candidate not found
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter analyzes candidate performance
+
+**Implemented In:** `services/gateway/app/main.py` → `get_candidate_stats()`
+
+**Database Impact:** Multiple COUNT queries on job_applications, interviews, offers, feedback tables
+
+---
+
+### 36. GET /v1/recruiter/stats
+
+**Purpose:** Get comprehensive statistics for recruiter dashboard
+
+**Authentication:** Bearer token required
+
+**Request:**
+```http
+GET /v1/recruiter/stats
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "total_candidates": 1234,
+  "total_jobs": 45,
+  "active_jobs": 18,
+  "applications_today": 23,
+  "interviews_scheduled": 12,
+  "offers_extended": 5,
+  "hires_this_month": 8,
+  "average_time_to_hire": "15 days",
+  "top_performing_jobs": [
+    {
+      "job_id": 45,
+      "title": "Senior Software Engineer",
+      "applications": 67,
+      "interviews": 15,
+      "offers": 3,
+      "hires": 2
+    }
+  ],
+  "recruiter_performance": {
+    "applications_reviewed": 156,
+    "interviews_conducted": 45,
+    "offers_made": 18,
+    "conversion_rate": "11.5%"
+  },
+  "stats_generated_at": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Recruiter dashboard loads performance metrics
+
+**Implemented In:** `services/gateway/app/main.py` → `get_recruiter_stats()`
+
+**Database Impact:** Multiple COUNT and aggregate queries across all core tables
+
+---
+
 ## Gateway Analytics & Statistics
 
 ### 34. GET /v1/database/schema
@@ -766,7 +936,7 @@ Authorization: Bearer YOUR_API_KEY
     "csp_violations",
     "company_scoring_preferences"
   ],
-  "checked_at": "2024-12-09T13:37:00Z"
+  "checked_at": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -835,10 +1005,13 @@ Authorization: Bearer YOUR_API_KEY
 | /v1/candidates/job/{job_id} | GET | Candidate Mgmt | Get candidates by job | Yes |
 | /v1/candidates/{candidate_id} | GET | Candidate Mgmt | Get candidate details | Yes |
 | /v1/candidates/bulk | POST | Candidate Mgmt | Bulk upload | Yes |
+| /v1/candidate/profile/{candidate_id} | GET | Candidate Mgmt | Get candidate profile | Yes |
+| /v1/candidate/stats/{candidate_id} | GET | Analytics | Get candidate stats | Yes |
+| /v1/recruiter/stats | GET | Analytics | Get recruiter stats | Yes |
 | /v1/database/schema | GET | Analytics | Get schema info | Yes |
 | /v1/reports/job/{job_id}/export.csv | GET | Analytics | Export report | Yes |
 
-**Total Endpoints in Part 2:** 18 (Cumulative: 35 of 111)
+**Total Endpoints in Part 2:** 21 (Cumulative: 38 of 111)
 
 ---
 

@@ -2,6 +2,11 @@
 
 **Continued from:** [API_CONTRACT_PART2.md](./API_CONTRACT_PART2.md)
 
+**Version:** 4.0.0  
+**Last Updated:** January 22, 2026  
+**Total Endpoints:** 114 (83 Gateway + 6 Agent + 25 LangGraph)  
+**Database:** MongoDB Atlas
+
 ---
 
 ## Gateway AI Matching Engine
@@ -169,7 +174,7 @@ Authorization: Bearer YOUR_API_KEY
     "gratitude": 4
   },
   "average_score": 4.6,
-  "submitted_at": "2024-12-09T13:37:00Z"
+  "submitted_at": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -251,7 +256,7 @@ Authorization: Bearer YOUR_API_KEY
       "id": 456,
       "candidate_id": 123,
       "job_id": 45,
-      "interview_date": "2024-12-15T14:00:00Z",
+      "interview_date": "2026-01-29T14:00:00Z",
       "interviewer": "Sarah Johnson",
       "status": "scheduled",
       "candidate_name": "John Doe",
@@ -354,7 +359,7 @@ Authorization: Bearer YOUR_API_KEY
   "start_date": "2025-01-15",
   "terms": "Full-time, remote, benefits included",
   "status": "pending",
-  "created_at": "2024-12-09T13:37:00Z"
+  "created_at": "2026-01-22T13:37:00Z"
 }
 ```
 
@@ -533,7 +538,7 @@ Content-Type: application/json
 | /v1/client/register | POST | Client Portal | Register client | No |
 | /v1/client/login | POST | Client Portal | Client login | No |
 
-**Total Endpoints in Part 3:** 10 (Cumulative: 45 of 111)
+**Total Endpoints in Part 3:** 10 (Cumulative: 48 of 111)
 
 ---
 

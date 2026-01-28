@@ -40,7 +40,9 @@ The portal communicates with the Gateway service using the following endpoints:
 - `POST /v1/candidate/apply` - Submit job application
 
 ### Profile Management Endpoints
+- `GET /v1/candidate/profile/{candidate_id}` - Get candidate profile
 - `PUT /v1/candidate/profile/{candidate_id}` - Update candidate profile
+- `GET /v1/candidate/stats/{candidate_id}` - Get candidate statistics
 - `GET /v1/candidate/applications/{candidate_id}` - Get candidate applications
 
 ## Authentication & Security Implementation

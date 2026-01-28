@@ -20,7 +20,7 @@
 | **Client Portal** | Docker only | 8502 | ✅ Reference | UI |
 | **Candidate Portal** | Docker only | 8503 | ✅ Reference | UI |
 
-**Total**: 108 endpoints across 3 core microservices + MongoDB Atlas database
+**Total**: 111 endpoints across 3 core microservices + MongoDB Atlas database
 
 **Note:** Streamlit portals (HR, Client, Candidate) are available via Docker only and are for reference/updates.
 

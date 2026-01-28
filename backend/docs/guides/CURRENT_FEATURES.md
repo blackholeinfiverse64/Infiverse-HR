@@ -321,7 +321,7 @@ GET /v1/system/status              # Overall system status
 ### **Enterprise Project Architecture**
 ```
 BHIV HR PLATFORM/
-├── services/                    # 6 microservices (108 total endpoints)
+├── services/                    # 6 microservices (111 total endpoints)
 │   ├── gateway/                 # API Gateway (77 endpoints)
 │   │   ├── app/                 # FastAPI application
 │   │   ├── routes/              # API route definitions
@@ -384,7 +384,7 @@ BHIV HR PLATFORM/
 ## 🧪 Testing & Validation
 
 ### **Comprehensive Test Coverage**
-- **108 Endpoints**: 100% tested and functional (77 Gateway + 6 Agent + 25 LangGraph)
+- **111 Endpoints**: 100% tested and functional (80 Gateway + 6 Agent + 25 LangGraph)
 - **Security Tests**: Triple authentication, input validation, security headers
 - **Integration Tests**: Cross-service communication and data flow
 - **Performance Tests**: Load testing, stress testing, and scalability
@@ -448,7 +448,7 @@ GET /v1/reports/summary            # Comprehensive system summary
 ## 🚀 Latest Updates (December 2025)
 
 ### **System Enhancements**
-- ✅ **Endpoint Expansion**: Increased from 89 to 108 total endpoints
+- ✅ **Endpoint Expansion**: Increased from 89 to 111 total endpoints
 - ✅ **Portal Enhancement**: Streamlined portal functionality with improved UI accessibility
 - ✅ **Performance Optimization**: Improved API response times by 15%
 - ✅ **Monitoring Enhancement**: Advanced real-time monitoring and analytics

@@ -15,7 +15,7 @@
 3. Setup: [Backend README](../README.md)
 
 ### **For API Integration**
-1. [Complete API Documentation](api/API_DOCUMENTATION.md) - All 112 endpoints
+1. [Complete API Documentation](api/API_DOCUMENTATION.md) - All 111 endpoints
 2. [API Testing Guide](testing/API_TESTING_GUIDE.md)
 3. [Postman Collection](../handover/postman/postman_collection.json)
 
@@ -57,7 +57,7 @@ API documentation and reference.
 
 | Document | Description |
 |----------|-------------|
-| [API_DOCUMENTATION.md](api/API_DOCUMENTATION.md) | Complete API reference (112 endpoints) |
+| [API_DOCUMENTATION.md](api/API_DOCUMENTATION.md) | Complete API reference (111 endpoints) |
 
 ### **🗄️ Database** (`database/`)
 Database documentation and setup guides.
@@ -130,8 +130,8 @@ System analysis and documentation updates.
 ## 📝 Important Notes
 
 ### **Current System Status**
-- ✅ **6 Services**: Gateway (81), Agent (6), LangGraph (25), Portals (Reference)
-- ✅ **112 Endpoints**: Total across all services
+- ✅ **6 Services**: Gateway (80), Agent (6), LangGraph (25), Portals (Reference)
+- ✅ **111 Endpoints**: Total across all services
 - ✅ **Database**: MongoDB Atlas (PostgreSQL is legacy reference only)
 - ✅ **Portals**: Streamlit portals available via Docker only, for reference
 
@@ -143,7 +143,7 @@ System analysis and documentation updates.
 ### **Documentation Standards**
 - All URLs use `localhost` (no production URLs)
 - Database references are MongoDB Atlas
-- Endpoint count: 112 total
+- Endpoint count: 111 total
 - Services: 3 core (Gateway, Agent, LangGraph) + 3 portals (Reference)
 
 ---

@@ -45,7 +45,12 @@ The portal communicates with the Gateway service using the following endpoints:
 ### Candidate Management Endpoints
 - `GET /v1/candidates/search` - Search candidates with filters
 - `POST /v1/candidates/bulk` - Upload multiple candidates
+- `GET /v1/candidate/profile/{candidate_id}` - Get candidate profile
 - `GET /v1/candidate/applications/{candidate_id}` - Get candidate applications
+- `GET /v1/candidate/stats/{candidate_id}` - Get candidate statistics
+
+### Statistics Endpoints
+- `GET /v1/recruiter/stats` - Get recruiter dashboard statistics
 
 ### Job Management Endpoints
 - `GET /v1/jobs` - Retrieve job listings

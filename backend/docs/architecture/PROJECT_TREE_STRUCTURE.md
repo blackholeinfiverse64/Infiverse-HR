@@ -11,7 +11,7 @@
 - **Total Files**: 200+ files across professional directory structure
 - **Architecture**: Three-port microservices with unified authentication
 - **Status**: ✅ Production-ready with 99.9% uptime and auto-restart
-- **Endpoints**: 108 total (77 Gateway + 6 Agent + 25 LangGraph)
+- **Endpoints**: 111 total (80 Gateway + 6 Agent + 25 LangGraph)
 - **Database**: MongoDB Atlas with 17+ collections
 
 ---
@@ -27,7 +27,7 @@ BHIV HR PLATFORM/
 ├── requirements.txt               # 📦 Global Python dependencies
 │
 ├── 📁 services/                   # 🎯 Core Microservices (3 Core Services)
-│   ├── 📂 gateway/               # 🌐 API Gateway (77 endpoints)
+│   ├── 📂 gateway/               # 🌐 API Gateway (80 endpoints)
 │   │   ├── 📂 app/
 │   │   │   ├── __init__.py
 │   │   │   ├── main.py           # FastAPI 4.2.0 application
@@ -304,7 +304,7 @@ LangGraph Workflows:
 ## 📊 **Production Status & Metrics**
 
 ### **Live Services (6/6 Operational)**
-- **API Gateway**: [bhiv-hr-gateway-ltg0.onrender.com](https://bhiv-hr-gateway-ltg0.onrender.com) (77 endpoints)
+- **API Gateway**: [bhiv-hr-gateway-ltg0.onrender.com](https://bhiv-hr-gateway-ltg0.onrender.com) (80 endpoints)
 - **AI Engine**: [bhiv-hr-agent-nhgg.onrender.com](https://bhiv-hr-agent-nhgg.onrender.com) (6 endpoints)
 - **LangGraph Automation**: [bhiv-hr-langgraph.onrender.com](https://bhiv-hr-langgraph.onrender.com) (25 endpoints)
 - **HR Portal**: [bhiv-hr-portal-u670.onrender.com](https://bhiv-hr-portal-u670.onrender.com) (Live UI)
