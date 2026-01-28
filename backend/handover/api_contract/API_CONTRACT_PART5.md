@@ -632,58 +632,450 @@ Authorization: Bearer YOUR_API_KEY
 
 ---
 
-### 95-102. Communication Tools (8 endpoints)
+### 95. POST /test/send-email
 
-**Endpoints:**
-- POST /test/send-email
-- POST /test/send-whatsapp
-- POST /test/send-telegram
-- POST /test/send-whatsapp-buttons
-- POST /test/send-automated-sequence
-- POST /automation/trigger-workflow
-- POST /automation/bulk-notifications
-- POST /webhook/whatsapp
+**Purpose:** Send test email via SMTP or email service provider
 
-**Common Pattern:**
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_test_email()`
+
+**Timeout:** 30s
+
+**Request:**
 ```http
 POST /test/send-email
+Content-Type: application/json
 Authorization: Bearer YOUR_API_KEY
+
 {
-  "recipient_email": "test@example.com",
-  "subject": "Test Email",
-  "message": "This is a test"
+  "to_email": "test@example.com",
+  "subject": "Test Email Subject",
+  "body": "This is a test email body",
+  "from_name": "BHIV HR System",
+  "template_id": "welcome_template"
 }
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "success": true,
-  "result": {"sent": true, "message_id": "msg_abc123"}
+  "result": {
+    "sent": true,
+    "message_id": "msg_abc123",
+    "provider": "smtp",
+    "delivery_status": "queued"
+  },
+  "sent_at": "2026-01-22T13:37:00Z",
+  "recipient": "test@example.com"
 }
 ```
 
-**When Called:** Testing communication channels, automation triggers
+**Error Responses:**
+- 400 Bad Request: Invalid email format
+- 401 Unauthorized: Invalid API key
 
-**Implementation:** `services/langgraph/app/main.py` → Communication functions
+**When Called:** Testing email service configuration
 
-**Database Impact:** None (external service calls only)
+**Database Impact:** INSERT into email_logs collection
 
 ---
 
-### 103-110. RL + Feedback Agent (8 endpoints) - ✅ 100% Operational
+### 96. POST /test/send-whatsapp
 
-**Endpoints:**
-- POST /rl/predict - ML-powered candidate matching (Score: 77.65, Confidence: 75%)
-- POST /rl/feedback - Submit hiring outcome feedback (340% feedback rate)
-- GET /rl/analytics - System performance metrics (5 predictions, 17 feedback)
-- GET /rl/performance/{model_version} - Model performance data (v1.0.0 active)
-- GET /rl/history/{candidate_id} - Candidate decision history (3 decisions tracked)
-- POST /rl/retrain - Trigger model retraining (v1.0.1, 80% accuracy)
-- GET /health - Service health check
-- POST /rl/start-monitoring - Start RL monitoring
+**Purpose:** Send test WhatsApp message via WhatsApp Business API
 
-**Example - RL Predict:**
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_test_whatsapp()`
+
+**Timeout:** 30s
+
+**Request:**
+```http
+POST /test/send-whatsapp
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "to_phone": "+1234567890",
+  "message": "This is a test WhatsApp message",
+  "message_type": "text",
+  "template_name": "generic_template"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "result": {
+    "sent": true,
+    "message_sid": "SM123456789",
+    "provider": "twilio",
+    "delivery_status": "sent"
+  },
+  "sent_at": "2026-01-22T13:37:00Z",
+  "recipient": "+1234567890"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid phone format
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Testing WhatsApp messaging service
+
+**Database Impact:** INSERT into whatsapp_logs collection
+
+---
+
+### 97. POST /test/send-telegram
+
+**Purpose:** Send test Telegram message via Bot API
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_test_telegram()`
+
+**Timeout:** 30s
+
+**Request:**
+```http
+POST /test/send-telegram
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "chat_id": "123456789",
+  "message": "This is a test Telegram message",
+  "parse_mode": "markdown"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "result": {
+    "sent": true,
+    "message_id": 12345,
+    "provider": "telegram_bot_api",
+    "delivery_status": "delivered"
+  },
+  "sent_at": "2026-01-22T13:37:00Z",
+  "chat_id": "123456789"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid chat ID
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Testing Telegram messaging service
+
+**Database Impact:** INSERT into telegram_logs collection
+
+---
+
+### 98. POST /test/send-whatsapp-buttons
+
+**Purpose:** Send WhatsApp message with interactive buttons
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_test_whatsapp_buttons()`
+
+**Timeout:** 30s
+
+**Request:**
+```http
+POST /test/send-whatsapp-buttons
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "to_phone": "+1234567890",
+  "message": "Please select an option:",
+  "buttons": [
+    {"id": "accept", "title": "Accept"},
+    {"id": "decline", "title": "Decline"},
+    {"id": "later", "title": "Remind Later"}
+  ]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "result": {
+    "sent": true,
+    "message_sid": "SM987654321",
+    "provider": "twilio",
+    "delivery_status": "sent",
+    "interactive_elements": true
+  },
+  "sent_at": "2026-01-22T13:37:00Z",
+  "recipient": "+1234567890"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid phone format or button configuration
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Testing WhatsApp interactive features
+
+**Database Impact:** INSERT into whatsapp_logs collection
+
+---
+
+### 99. POST /test/send-automated-sequence
+
+**Purpose:** Send automated sequence of notifications across multiple channels
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_test_automated_sequence()`
+
+**Timeout:** 60s
+
+**Request:**
+```http
+POST /test/send-automated-sequence
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "recipient": {
+    "email": "test@example.com",
+    "phone": "+1234567890",
+    "chat_id": "123456789"
+  },
+  "sequence": [
+    {"type": "email", "delay_minutes": 0, "template": "initial_notification"},
+    {"type": "whatsapp", "delay_minutes": 5, "template": "followup_reminder"},
+    {"type": "telegram", "delay_minutes": 10, "template": "final_reminder"}
+  ]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "sequence_id": "seq_abc123",
+  "status": "initiated",
+  "total_messages": 3,
+  "channels": ["email", "whatsapp", "telegram"],
+  "scheduled_at": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid recipient or sequence configuration
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Testing automated notification sequences
+
+**Database Impact:** INSERT into notification_sequences collection
+
+---
+
+### 100. POST /automation/trigger-workflow
+
+**Purpose:** Trigger automated workflow with notification sequence
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `trigger_workflow_automation()`
+
+**Timeout:** 30s
+
+**Request:**
+```http
+POST /automation/trigger-workflow
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "workflow_type": "candidate_application",
+  "trigger_data": {
+    "candidate_id": 123,
+    "job_id": 45,
+    "candidate_email": "john.doe@example.com",
+    "candidate_name": "John Doe",
+    "job_title": "Senior Developer"
+  },
+  "notification_channels": ["email", "whatsapp"]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "workflow_id": "wf_def456",
+  "status": "triggered",
+  "triggered_at": "2026-01-22T13:37:00Z",
+  "notification_channels": ["email", "whatsapp"],
+  "workflow_type": "candidate_application"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid workflow type or data
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Triggering automated workflows
+
+**Database Impact:** INSERT into workflows and notification_logs collections
+
+---
+
+### 101. POST /automation/bulk-notifications
+
+**Purpose:** Send bulk notifications to multiple recipients
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/main.py` → `send_bulk_notifications()`
+
+**Timeout:** 120s
+
+**Request:**
+```http
+POST /automation/bulk-notifications
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "recipients": [
+    {"email": "test1@example.com", "phone": "+1234567890"},
+    {"email": "test2@example.com", "phone": "+0987654321"}
+  ],
+  "message_template": "Your application status has been updated",
+  "channels": ["email", "whatsapp"],
+  "priority": "normal"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "total_recipients": 2,
+  "sent_count": 2,
+  "failed_count": 0,
+  "batch_id": "batch_xyz789",
+  "status": "processing",
+  "estimated_completion": "2026-01-22T13:40:00Z"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid recipients or message format
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Sending bulk notifications
+
+**Database Impact:** INSERT into bulk_notification_logs collection
+
+---
+
+### 102. POST /webhook/whatsapp
+
+**Purpose:** Handle incoming WhatsApp webhook events
+
+**Authentication:** Bearer token required (or WhatsApp signature verification)
+
+**Implementation:** `services/langgraph/app/main.py` → `handle_whatsapp_webhook()`
+
+**Timeout:** 30s
+
+**Request:**
+```http
+POST /webhook/whatsapp
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "123456789",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+1234567890",
+              "phone_number_id": "0987654321"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "John Doe"
+                },
+                "wa_id": "+1234567890"
+              }
+            ],
+            "messages": [
+              {
+                "from": "+1234567890",
+                "id": "wamid.HBgLMTIzNDU2Nzg5MBUCAREY",
+                "timestamp": "1684123456",
+                "text": {
+                  "body": "Hello, I'm interested in the position."
+                },
+                "type": "text"
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "event_handled": true,
+  "event_type": "message_received",
+  "sender_id": "+1234567890",
+  "message_id": "wamid.HBgLMTIzNDU2Nzg5MBUCAREY",
+  "processed_at": "2026-01-22T13:37:00Z",
+  "action_taken": "stored_for_processing"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid webhook payload
+- 401 Unauthorized: Invalid signature or API key
+
+**When Called:** WhatsApp Business API sends webhook events
+
+**Database Impact:** INSERT into whatsapp_webhook_events collection
+
+---
+
+### 103. POST /rl/predict
+
+**Purpose:** Make Reinforcement Learning-based prediction for candidate-job matching
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_predict()`
+
+**Timeout:** 30s
+
+**Request:**
 ```http
 POST /rl/predict
 Content-Type: application/json
@@ -692,44 +1084,415 @@ Authorization: Bearer YOUR_API_KEY
 {
   "candidate_features": {
     "experience_years": 5,
-    "technical_skills": ["Python", "FastAPI"]
+    "technical_skills": ["Python", "FastAPI", "MongoDB"],
+    "soft_skills": ["communication", "leadership"],
+    "education_level": "bachelor",
+    "location_match": true
   },
   "job_features": {
     "experience_required": 5,
-    "required_skills": ["Python", "FastAPI"]
+    "required_skills": ["Python", "FastAPI"],
+    "preferred_skills": ["MongoDB"],
+    "location": "remote",
+    "job_type": "full-time"
   }
 }
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "success": true,
-  "rl_prediction": {
-    "rl_score": 87.5,
-    "confidence": 0.92,
-    "recommendation": "strong_match"
+  "data": {
+    "prediction_id": "pred_rl_12345",
+    "rl_prediction": {
+      "rl_score": 87.5,
+      "confidence_level": 0.92,
+      "decision_type": "recommend",
+      "model_version": "v1.0.0"
+    },
+    "feedback_samples_used": 150,
+    "feature_importance": {
+      "technical_skills": 0.65,
+      "experience_match": 0.25,
+      "location_match": 0.10
+    }
   },
-  "feedback_samples_used": 150,
-  "predicted_at": "2026-01-22T13:37:00Z"
+  "message": "RL prediction completed successfully",
+  "timestamp": "2026-01-22T13:37:00Z"
 }
 ```
 
+**Error Responses:**
+- 400 Bad Request: Invalid feature format
+- 401 Unauthorized: Invalid API key
+
 **When Called:** AI matching requests RL enhancement
 
-**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → Complete RL system
+**Database Impact:** INSERT into rl_predictions collection
 
-**Database Impact:** MongoDB with rl_predictions, rl_feedback, rl_model_performance collections
+---
 
-**Test Results:** 8/8 tests passing (100% success rate)
-- ✅ Service Health: langgraph-orchestrator v4.3.1 operational
-- ✅ Integration Test: RL Engine integrated with MongoDB
-- ✅ RL Prediction: Score 77.65, Decision: recommend, Confidence: 75.0%
-- ✅ RL Feedback: Feedback ID: 20, Reward: 1.225
-- ✅ RL Analytics: 5 Predictions, 17 Feedback, 340% rate
-- ✅ RL Performance: Model v1.0.0 active
-- ✅ RL History: Candidate 1 has 3 decisions tracked
-- ✅ RL Retrain: Model v1.0.1, 15 samples, 80% accuracy
+### 104. POST /rl/feedback
+
+**Purpose:** Submit feedback for Reinforcement Learning model improvement
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_submit_feedback()`
+
+**Timeout:** 20s
+
+**Request:**
+```http
+POST /rl/feedback
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "prediction_id": "pred_rl_12345",
+  "candidate_id": 123,
+  "job_id": 45,
+  "actual_outcome": "hired",
+  "feedback_score": 0.9,
+  "feedback_source": "hr_manager",
+  "feedback_notes": "Excellent candidate, great cultural fit"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "feedback_id": "fb_rl_67890",
+    "reward_signal": 0.85,
+    "processed_feedback": {
+      "actual_outcome": "hired",
+      "feedback_score": 0.9,
+      "reward_signal": 0.85
+    }
+  },
+  "message": "RL feedback submitted successfully",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid feedback format
+- 401 Unauthorized: Invalid API key
+- 404 Not Found: Prediction not found
+
+**When Called:** HR provides feedback on matching predictions
+
+**Database Impact:** INSERT into rl_feedback collection
+
+---
+
+### 105. GET /rl/analytics
+
+**Purpose:** Get Reinforcement Learning system analytics and performance metrics
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_get_analytics()`
+
+**Timeout:** 25s
+
+**Request:**
+```http
+GET /rl/analytics
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "rl_analytics": {
+      "total_predictions": 1250,
+      "total_feedback": 890,
+      "average_accuracy": 0.87,
+      "model_performance": {
+        "precision": 0.85,
+        "recall": 0.82,
+        "f1_score": 0.83
+      },
+      "feedback_rate": 0.71,
+      "active_models": ["v1.0.0"],
+      "last_training": "2026-01-20T10:00:00Z"
+    },
+    "system_status": "operational"
+  },
+  "message": "RL analytics retrieved successfully",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Dashboard analytics, system performance monitoring
+
+**Database Impact:** Aggregation queries on rl_predictions and rl_feedback collections
+
+---
+
+### 106. GET /rl/performance/{model_version}
+
+**Purpose:** Get specific model version performance metrics
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_get_performance_by_version()`
+
+**Timeout:** 20s
+
+**Request:**
+```http
+GET /rl/performance/v1.0.0
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "model_version": "v1.0.0",
+    "performance_metrics": {
+      "accuracy": 0.87,
+      "precision": 0.85,
+      "recall": 0.82,
+      "f1_score": 0.83,
+      "predictions_made": 1250,
+      "feedback_received": 890,
+      "average_confidence": 0.88
+    },
+    "training_data_size": 10000,
+    "features_used": 15,
+    "model_status": "active"
+  },
+  "message": "Model performance retrieved successfully",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+- 404 Not Found: Model version not found
+
+**When Called:** Model performance evaluation
+
+**Database Impact:** SELECT from rl_model_performance collection
+
+---
+
+### 107. GET /rl/history/{candidate_id}
+
+**Purpose:** Get Reinforcement Learning decision history for a candidate
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_get_history()`
+
+**Timeout:** 15s
+
+**Request:**
+```http
+GET /rl/history/123
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "candidate_id": 123,
+    "decision_history": [
+      {
+        "prediction_id": "pred_rl_101",
+        "job_id": 45,
+        "job_title": "Senior Developer",
+        "rl_score": 0.87,
+        "confidence": 0.92,
+        "prediction_date": "2026-01-20T10:00:00Z",
+        "actual_outcome": "hired",
+        "feedback_provided": true
+      }
+    ],
+    "total_decisions": 3,
+    "positive_outcomes": 2,
+    "negative_outcomes": 1
+  },
+  "message": "RL history retrieved successfully",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+- 404 Not Found: Candidate not found
+
+**When Called:** Reviewing candidate's matching history
+
+**Database Impact:** SELECT from rl_predictions collection
+
+---
+
+### 108. POST /rl/retrain
+
+**Purpose:** Trigger Reinforcement Learning model retraining
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_trigger_retrain()`
+
+**Timeout:** 300s (5 minutes)
+
+**Request:**
+```http
+POST /rl/retrain
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "model_version": "v1.0.1",
+  "training_data_filters": {
+    "date_range": {"start": "2026-01-01", "end": "2026-01-22"},
+    "minimum_feedback": 10
+  },
+  "hyperparameters": {
+    "learning_rate": 0.001,
+    "epochs": 50,
+    "batch_size": 32
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "retrain_job_id": "rt_98765",
+    "status": "initiated",
+    "model_version": "v1.0.1",
+    "estimated_duration": "300s",
+    "training_samples": 150,
+    "feedback_samples": 89
+  },
+  "message": "Model retraining initiated",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid training parameters
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Scheduled model retraining or manual trigger
+
+**Database Impact:** INSERT into rl_retrain_jobs collection
+
+---
+
+### 109. GET /rl/performance
+
+**Purpose:** Get overall Reinforcement Learning system performance
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_get_performance()`
+
+**Timeout:** 20s
+
+**Request:**
+```http
+GET /rl/performance
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response (200 OK):**
+```json
+{
+  "current_metrics": {
+    "total_predictions": 1250,
+    "accuracy": 0.87,
+    "model_version": "v1.0.0",
+    "feedback_rate": 0.71,
+    "active_learning_cycles": 5,
+    "improvement_since_deploy": 0.12
+  },
+  "monitoring_status": "active",
+  "last_updated": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Performance monitoring, model evaluation
+
+**Database Impact:** Aggregation queries on rl_predictions and rl_feedback collections
+
+---
+
+### 110. POST /rl/start-monitoring
+
+**Purpose:** Start Reinforcement Learning system monitoring
+
+**Authentication:** Bearer token required
+
+**Implementation:** `services/langgraph/app/rl_integration/rl_endpoints.py` → `rl_start_monitoring()`
+
+**Timeout:** 10s
+
+**Request:**
+```http
+POST /rl/start-monitoring
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+
+{
+  "monitoring_config": {
+    "metrics": ["accuracy", "latency", "feedback_rate"],
+    "frequency": "5min",
+    "alert_thresholds": {
+      "accuracy_drop": 0.05,
+      "latency_increase": 2.0
+    }
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "monitoring_id": "mon_rl_11223",
+    "status": "active",
+    "config": {
+      "metrics": ["accuracy", "latency", "feedback_rate"],
+      "frequency": "5min",
+      "alerts_enabled": true
+    }
+  },
+  "message": "RL monitoring started",
+  "timestamp": "2026-01-22T13:37:00Z"
+}
+```
+
+**Error Responses:**
+- 400 Bad Request: Invalid monitoring configuration
+- 401 Unauthorized: Invalid API key
+
+**When Called:** Starting RL system monitoring
+
+**Database Impact:** INSERT into rl_monitoring_sessions collection
 
 ---
 
