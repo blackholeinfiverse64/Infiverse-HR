@@ -2,10 +2,11 @@
 
 **Continued from:** [API_CONTRACT_PART1.md](./API_CONTRACT_PART1.md)
 
-**Version:** 4.0.0  
+**Version:** 4.1.0  
 **Last Updated:** January 22, 2026  
 **Total Endpoints:** 111 (80 Gateway + 6 Agent + 25 LangGraph)  
-**Database:** MongoDB Atlas
+**Database:** MongoDB Atlas  
+**Analysis Source:** Comprehensive endpoint analysis from services directories
 
 ---
 
@@ -16,6 +17,10 @@
 **Purpose:** Export Prometheus metrics for monitoring
 
 **Authentication:** None (public monitoring endpoint)
+
+**Implementation:** `services/gateway/app/main.py` → `get_prometheus_metrics()`
+
+**Timeout:** 5s
 
 **Request:**
 ```http
@@ -43,8 +48,6 @@ active_connections 8
 
 **When Called:** Prometheus scrapes metrics every 15s
 
-**Implemented In:** `services/gateway/app/main.py` → `get_prometheus_metrics()`
-
 ---
 
 ### 19. GET /health/detailed
@@ -52,6 +55,10 @@ active_connections 8
 **Purpose:** Detailed health check with system metrics
 
 **Authentication:** None (public health endpoint)
+
+**Implementation:** `services/gateway/app/main.py` → `detailed_health_check()`
+
+**Timeout:** 10s
 
 **Request:**
 ```http
@@ -68,9 +75,8 @@ GET /health/detailed
   "uptime_seconds": 86400,
   "database": {
     "status": "connected",
-    "pool_size": 10,
-    "active_connections": 3,
-    "idle_connections": 7
+    "type": "MongoDB Atlas",
+    "active_connections": 3
   },
   "dependencies": {
     "agent_service": "healthy",
@@ -87,20 +93,21 @@ GET /health/detailed
 
 **When Called:** Load balancer health checks, monitoring dashboard
 
-**Implemented In:** `services/gateway/app/main.py` → `detailed_health_check()`
-
 ---
 
 ### 20. GET /metrics/dashboard
 
 **Purpose:** Metrics dashboard data for admin UI
 
-**Authentication:** Bearer token required
+**Authentication:** None (public)
+
+**Implementation:** `services/gateway/app/main.py` → `metrics_dashboard()`
+
+**Timeout:** 15s
 
 **Request:**
 ```http
 GET /metrics/dashboard
-Authorization: Bearer YOUR_API_KEY
 ```
 
 **Response (200 OK):**
@@ -131,8 +138,6 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Admin dashboard loads metrics
 
-**Implemented In:** `services/gateway/app/main.py` → `metrics_dashboard()`
-
 ---
 
 ## Gateway Core API
@@ -142,6 +147,10 @@ Authorization: Bearer YOUR_API_KEY
 **Purpose:** OpenAPI schema for API documentation
 
 **Authentication:** None (public documentation)
+
+**Implementation:** `services/gateway/app/main.py` → `get_openapi()`
+
+**Timeout:** 5s
 
 **Request:**
 ```http
@@ -174,8 +183,6 @@ GET /openapi.json
 
 **When Called:** API documentation tools, client SDK generation
 
-**Implemented In:** `services/gateway/app/main.py` → `get_openapi()`
-
 ---
 
 ### 22. GET /docs
@@ -183,6 +190,10 @@ GET /openapi.json
 **Purpose:** Interactive API documentation (Swagger UI)
 
 **Authentication:** None (public documentation)
+
+**Implementation:** `services/gateway/app/main.py` → `get_docs()`
+
+**Timeout:** 5s
 
 **Request:**
 ```http
@@ -206,8 +217,6 @@ GET /docs
 
 **When Called:** Developers access API documentation
 
-**Implemented In:** `services/gateway/app/main.py` → `get_docs()`
-
 ---
 
 ### 23. GET /
@@ -215,6 +224,10 @@ GET /docs
 **Purpose:** API root information and service status
 
 **Authentication:** None (public endpoint)
+
+**Implementation:** `services/gateway/app/main.py` → `read_root()`
+
+**Timeout:** 2s
 
 **Request:**
 ```http
@@ -227,7 +240,7 @@ GET /
   "message": "BHIV HR Platform API Gateway",
   "version": "4.2.0",
   "status": "healthy",
-  "endpoints": 77,
+  "endpoints": 80,
   "documentation": "/docs",
   "monitoring": "/metrics",
   "production_url": "https://bhiv-hr-gateway-ltg0.onrender.com",
@@ -242,8 +255,6 @@ GET /
 
 **When Called:** Service discovery, health check
 
-**Implemented In:** `services/gateway/app/main.py` → `read_root()`
-
 ---
 
 ### 24. GET /health
@@ -251,6 +262,10 @@ GET /
 **Purpose:** Basic health check endpoint
 
 **Authentication:** None (public health endpoint)
+
+**Implementation:** `services/gateway/app/main.py` → `health_check()`
+
+**Timeout:** 5s
 
 **Request:**
 ```http
@@ -279,8 +294,6 @@ Content-Security-Policy: default-src 'self'
 
 **When Called:** Load balancer health checks, monitoring systems
 
-**Implemented In:** `services/gateway/app/main.py` → `health_check()`
-
 ---
 
 ### 25. GET /v1/test-candidates
@@ -289,16 +302,21 @@ Content-Security-Policy: default-src 'self'
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `test_candidates_db()`
+
+**Timeout:** 10s
+
 **Request:**
 ```http
 GET /v1/test-candidates
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
 ```json
 {
   "database_status": "connected",
+  "database_type": "MongoDB Atlas",
   "total_candidates": 1234,
   "test_timestamp": "2026-01-22T13:37:00Z"
 }
@@ -308,8 +326,6 @@ Authorization: Bearer YOUR_API_KEY
 - 500 Internal Server Error: Database connection failed
 
 **When Called:** System diagnostics, deployment verification
-
-**Implemented In:** `services/gateway/app/main.py` → `test_candidates_db()`
 
 ---
 
@@ -321,11 +337,15 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `create_job()`
+
+**Timeout:** 15s
+
 **Request:**
 ```http
 POST /v1/jobs
 Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 
 {
   "title": "Senior Software Engineer",
@@ -338,20 +358,18 @@ Authorization: Bearer YOUR_API_KEY
 }
 ```
 
-**Response (201 Created):**
+**Response (200 OK):**
 ```json
 {
   "message": "Job created successfully",
-  "job_id": 123,
+  "job_id": "507f1f77bcf86cd799439011",
   "created_at": "2024-12-09T13:37:00Z"
 }
 ```
 
-**Sequence:**
-1. Validate required fields (title, department, location, experience_level)
-2. Insert into jobs table with status='active'
-3. Return job_id
-4. Trigger job.created event for notifications
+**Validation:**
+- Required fields: title, department, location, experience_level, requirements, description
+- experience_level: "entry", "mid", "senior", "lead"
 
 **Error Responses:**
 - 400 Bad Request: Missing required fields
@@ -359,9 +377,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Client creates job posting in portal
 
-**Implemented In:** `services/gateway/app/main.py` → `create_job()`
-
-**Database Impact:** INSERT into jobs table
+**Database Impact:** INSERT into jobs collection
 
 ---
 
@@ -369,12 +385,15 @@ Authorization: Bearer YOUR_API_KEY
 
 **Purpose:** List all active job postings
 
-**Authentication:** Bearer token required (API key or JWT)
+**Authentication:** None (public endpoint)
+
+**Implementation:** `services/gateway/app/main.py` → `list_jobs()`
+
+**Timeout:** 10s
 
 **Request:**
 ```http
 GET /v1/jobs
-Authorization: Bearer YOUR_API_KEY
 ```
 
 **Response (200 OK):**
@@ -382,7 +401,7 @@ Authorization: Bearer YOUR_API_KEY
 {
   "jobs": [
     {
-      "id": 123,
+      "id": "507f1f77bcf86cd799439011",
       "title": "Senior Software Engineer",
       "department": "Engineering",
       "location": "Remote",
@@ -390,30 +409,15 @@ Authorization: Bearer YOUR_API_KEY
       "requirements": "5+ years Python, FastAPI, PostgreSQL",
       "description": "Join our team to build scalable HR solutions",
       "created_at": "2024-12-09T13:37:00Z"
-    },
-    {
-      "id": 124,
-      "title": "Product Manager",
-      "department": "Product",
-      "location": "San Francisco",
-      "experience_level": "mid",
-      "requirements": "3+ years product management",
-      "description": "Lead product strategy for HR platform",
-      "created_at": "2026-01-21T10:00:00Z"
     }
   ],
-  "count": 2
+  "count": 1
 }
 ```
 
-**Error Responses:**
-- 401 Unauthorized: Invalid authentication
-
 **When Called:** Dashboard loads job list, candidate browses jobs
 
-**Implemented In:** `services/gateway/app/main.py` → `list_jobs()`
-
-**Database Impact:** SELECT from jobs table WHERE status='active'
+**Database Impact:** SELECT from jobs collection WHERE status='active'
 
 ---
 
@@ -425,10 +429,14 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `get_all_candidates()`
+
+**Timeout:** 15s
+
 **Request:**
 ```http
 GET /v1/candidates?limit=50&offset=0
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -436,7 +444,7 @@ Authorization: Bearer YOUR_API_KEY
 {
   "candidates": [
     {
-      "id": 1,
+      "id": "507f1f77bcf86cd799439011",
       "name": "John Doe",
       "email": "john.doe@example.com",
       "phone": "+1234567890",
@@ -455,14 +463,16 @@ Authorization: Bearer YOUR_API_KEY
 }
 ```
 
+**Parameters:**
+- `limit`: Maximum candidates to return (default: 50)
+- `offset`: Number of candidates to skip (default: 0)
+
 **Error Responses:**
 - 401 Unauthorized: Invalid API key
 
 **When Called:** HR dashboard loads candidate list
 
-**Implemented In:** `services/gateway/app/main.py` → `get_all_candidates()`
-
-**Database Impact:** SELECT from candidates table with LIMIT/OFFSET
+**Database Impact:** SELECT from candidates collection with LIMIT/OFFSET
 
 ---
 
@@ -472,10 +482,14 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `get_candidate_stats()`
+
+**Timeout:** 15s
+
 **Request:**
 ```http
 GET /v1/candidates/stats
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -488,7 +502,7 @@ Authorization: Bearer YOUR_API_KEY
   "new_candidates_this_week": 67,
   "total_feedback_submissions": 456,
   "statistics_generated_at": "2026-01-22T13:37:00Z",
-  "data_source": "real_time_database",
+  "data_source": "mongodb_atlas",
   "dashboard_ready": true
 }
 ```
@@ -498,9 +512,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Dashboard loads analytics panel
 
-**Implemented In:** `services/gateway/app/main.py` → `get_candidate_stats()`
-
-**Database Impact:** Multiple COUNT queries on candidates, jobs, matching_cache, interviews, feedback tables
+**Database Impact:** Multiple COUNT queries on candidates, jobs, matching_cache, interviews, feedback collections
 
 ---
 
@@ -510,10 +522,14 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `search_candidates()`
+
+**Timeout:** 20s
+
 **Request:**
 ```http
 GET /v1/candidates/search?skills=Python&location=San Francisco&experience_min=3
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -521,7 +537,7 @@ Authorization: Bearer YOUR_API_KEY
 {
   "candidates": [
     {
-      "id": 1,
+      "id": "507f1f77bcf86cd799439011",
       "name": "John Doe",
       "email": "john.doe@example.com",
       "phone": "+1234567890",
@@ -542,6 +558,11 @@ Authorization: Bearer YOUR_API_KEY
 }
 ```
 
+**Parameters:**
+- `skills`: Skills to search for (max 200 chars)
+- `location`: Location filter (max 100 chars)
+- `experience_min`: Minimum years of experience
+
 **Input Validation:**
 - skills: Max 200 chars, alphanumeric + comma/space only
 - location: Max 100 chars, alphanumeric + comma/space only
@@ -553,9 +574,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** HR searches for candidates matching criteria
 
-**Implemented In:** `services/gateway/app/main.py` → `search_candidates()`
-
-**Database Impact:** SELECT with WHERE clauses using ILIKE for fuzzy matching
+**Database Impact:** SELECT with WHERE clauses using regex for fuzzy matching
 
 ---
 
@@ -565,10 +584,14 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `get_candidates_by_job()`
+
+**Timeout:** 15s
+
 **Request:**
 ```http
-GET /v1/candidates/job/123
-Authorization: Bearer YOUR_API_KEY
+GET /v1/candidates/job/507f1f77bcf86cd799439011
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -576,27 +599,25 @@ Authorization: Bearer YOUR_API_KEY
 {
   "candidates": [
     {
-      "id": 1,
+      "id": "507f1f77bcf86cd799439012",
       "name": "John Doe",
       "email": "john.doe@example.com",
       "skills": "Python, FastAPI, PostgreSQL",
       "experience": 5
     }
   ],
-  "job_id": 123,
+  "job_id": "507f1f77bcf86cd799439011",
   "count": 1
 }
 ```
 
 **Error Responses:**
-- 400 Bad Request: Invalid job_id (< 1)
+- 400 Bad Request: Invalid job_id format
 - 404 Not Found: Job not found
 
 **When Called:** HR views candidates for specific job
 
-**Implemented In:** `services/gateway/app/main.py` → `get_candidates_by_job()`
-
-**Database Impact:** SELECT from candidates table (limited to 10)
+**Database Impact:** SELECT from candidates collection (limited to 10)
 
 ---
 
@@ -606,17 +627,21 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `get_candidate_by_id()`
+
+**Timeout:** 10s
+
 **Request:**
 ```http
-GET /v1/candidates/123
-Authorization: Bearer YOUR_API_KEY
+GET /v1/candidates/507f1f77bcf86cd799439011
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
 ```json
 {
   "candidate": {
-    "id": 123,
+    "id": "507f1f77bcf86cd799439011",
     "name": "John Doe",
     "email": "john.doe@example.com",
     "phone": "+1234567890",
@@ -638,9 +663,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** HR views candidate profile details
 
-**Implemented In:** `services/gateway/app/main.py` → `get_candidate_by_id()`
-
-**Database Impact:** SELECT from candidates table WHERE id = candidate_id
+**Database Impact:** SELECT from candidates collection WHERE _id = ObjectId(candidate_id)
 
 ---
 
@@ -650,11 +673,15 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `bulk_upload_candidates()`
+
+**Timeout:** 60s
+
 **Request:**
 ```http
 POST /v1/candidates/bulk
 Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 
 {
   "candidates": [
@@ -669,18 +696,6 @@ Authorization: Bearer YOUR_API_KEY
       "education_level": "Bachelor",
       "resume_path": "/resumes/jane_smith.pdf",
       "status": "applied"
-    },
-    {
-      "name": "Bob Johnson",
-      "email": "bob.johnson@example.com",
-      "phone": "+0987654321",
-      "location": "Austin, TX",
-      "experience_years": 7,
-      "technical_skills": "Java, Spring Boot, Microservices",
-      "seniority_level": "Senior",
-      "education_level": "Master",
-      "resume_path": "/resumes/bob_johnson.pdf",
-      "status": "applied"
     }
   ]
 }
@@ -690,8 +705,8 @@ Authorization: Bearer YOUR_API_KEY
 ```json
 {
   "message": "Bulk upload completed",
-  "candidates_received": 2,
-  "candidates_inserted": 2,
+  "candidates_received": 1,
+  "candidates_inserted": 1,
   "errors": [],
   "total_errors": 0,
   "status": "success"
@@ -710,9 +725,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** HR imports candidates from CSV/Excel
 
-**Implemented In:** `services/gateway/app/main.py` → `bulk_upload_candidates()`
-
-**Database Impact:** Multiple INSERT into candidates table with transaction
+**Database Impact:** Multiple INSERT into candidates collection with transaction
 
 ---
 
@@ -725,19 +738,24 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `get_database_schema()`
+
+**Timeout:** 10s
+
 **Request:**
 ```http
 GET /v1/database/schema
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
 ```json
 {
-  "schema_version": "4.3.0",
-  "applied_at": "2024-12-01T10:00:00Z",
-  "total_tables": 18,
-  "tables": [
+  "database_type": "MongoDB Atlas",
+  "schema_version": "1.0.0-mongodb",
+  "applied_at": null,
+  "total_collections": 12,
+  "collections": [
     "candidates",
     "jobs",
     "feedback",
@@ -749,16 +767,10 @@ Authorization: Bearer YOUR_API_KEY
     "audit_logs",
     "rate_limits",
     "csp_violations",
-    "company_scoring_preferences",
-    "workflows",
-    "rl_predictions",
-    "rl_feedback",
-    "rl_model_performance",
-    "rl_training_data",
-    "job_applications"
+    "company_scoring_preferences"
   ],
   "phase3_enabled": true,
-  "core_tables": [
+  "core_collections": [
     "candidates",
     "jobs",
     "feedback",
@@ -782,9 +794,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Admin checks database status, deployment verification
 
-**Implemented In:** `services/gateway/app/main.py` → `get_database_schema()`
-
-**Database Impact:** Query information_schema.tables, schema_version table
+**Database Impact:** Query collection list, schema_version collection
 
 ---
 
@@ -794,19 +804,23 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `export_job_report()`
+
+**Timeout:** 30s
+
 **Request:**
 ```http
-GET /v1/reports/job/123/export.csv
-Authorization: Bearer YOUR_API_KEY
+GET /v1/reports/job/507f1f77bcf86cd799439011/export.csv
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
 ```json
 {
   "message": "Job report export",
-  "job_id": 123,
+  "job_id": "507f1f77bcf86cd799439011",
   "format": "CSV",
-  "download_url": "/downloads/job_123_report.csv",
+  "download_url": "/downloads/job_507f1f77bcf86cd799439011_report.csv",
   "generated_at": "2024-12-09T13:37:00Z"
 }
 ```
@@ -816,8 +830,6 @@ Authorization: Bearer YOUR_API_KEY
 - 401 Unauthorized: Invalid API key
 
 **When Called:** HR exports job analytics report
-
-**Implemented In:** `services/gateway/app/main.py` → `export_job_report()`
 
 ---
 

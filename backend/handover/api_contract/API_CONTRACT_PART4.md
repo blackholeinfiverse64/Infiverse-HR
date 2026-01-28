@@ -2,10 +2,11 @@
 
 **Continued from:** [API_CONTRACT_PART3.md](./API_CONTRACT_PART3.md)
 
-**Version:** 4.0.0  
+**Version:** 4.1.0  
 **Last Updated:** January 22, 2026  
 **Total Endpoints:** 111 (80 Gateway + 6 Agent + 25 LangGraph)  
-**Database:** MongoDB Atlas
+**Database:** MongoDB Atlas  
+**Analysis Source:** Comprehensive endpoint analysis from services directories
 
 ---
 
@@ -17,10 +18,14 @@
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `check_rate_limit_status()`
+
+**Timeout:** 5s
+
 **Request:**
 ```http
 GET /v1/security/rate-limit-status
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -37,7 +42,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Admin monitors rate limiting
 
-**Implemented In:** `services/gateway/app/main.py` → `check_rate_limit_status()`
+**Database Impact:** SELECT from rate_limits collection
 
 ---
 
@@ -47,10 +52,14 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `view_blocked_ips()`
+
+**Timeout:** 10s
+
 **Request:**
 ```http
 GET /v1/security/blocked-ips
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 ```
 
 **Response (200 OK):**
@@ -70,7 +79,7 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Admin reviews security blocks
 
-**Implemented In:** `services/gateway/app/main.py` → `view_blocked_ips()`
+**Database Impact:** SELECT from blocked_ips collection
 
 ---
 
@@ -91,7 +100,7 @@ Authorization: Bearer YOUR_API_KEY
 **Common Pattern:**
 ```http
 POST /v1/security/test-input-validation
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 {"input_data": "<script>alert('xss')</script>"}
 ```
 
@@ -107,7 +116,9 @@ Authorization: Bearer YOUR_API_KEY
 
 **When Called:** Security testing, penetration testing
 
-**Implemented In:** `services/gateway/app/main.py` → Various security test functions
+**Timeout:** 10s each
+
+**Database Impact:** INSERT into security_test_logs collection
 
 ---
 
@@ -119,11 +130,15 @@ Authorization: Bearer YOUR_API_KEY
 
 **Authentication:** Bearer token required
 
+**Implementation:** `services/gateway/app/main.py` → `csp_violation_reporting()`
+
+**Timeout:** 10s
+
 **Request:**
 ```http
 POST /v1/security/csp-report
 Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 
 {
   "violated_directive": "script-src",
@@ -142,15 +157,13 @@ Authorization: Bearer YOUR_API_KEY
     "document_uri": "https://bhiv-platform.com/dashboard",
     "timestamp": "2026-01-22T13:37:00Z"
   },
-  "report_id": "csp_report_1702134000"
+  "report_id": "507f1f77bcf86cd799439019"
 }
 ```
 
 **When Called:** Browser reports CSP violation
 
-**Implemented In:** `services/gateway/app/main.py` → `csp_violation_reporting()`
-
-**Database Impact:** INSERT into csp_violations table
+**Database Impact:** INSERT into csp_violations collection
 
 ---
 
@@ -160,7 +173,9 @@ Authorization: Bearer YOUR_API_KEY
 - GET /v1/security/csp-policies
 - POST /v1/security/test-csp-policy
 
-**Implemented In:** `services/gateway/app/main.py` → CSP management functions
+**Timeout:** 10s each
+
+**Database Impact:** SELECT/INSERT into csp_violations collection
 
 ---
 
@@ -181,22 +196,24 @@ Authorization: Bearer YOUR_API_KEY
 **Example - Setup:**
 ```http
 POST /v1/auth/2fa/setup
-Authorization: Bearer YOUR_API_KEY
-{"user_id": "user_123"}
+Authorization: Bearer <API_KEY_SECRET>
+{"user_id": "507f1f77bcf86cd799439020"}
 ```
 
 **Response:**
 ```json
 {
   "message": "2FA setup initiated",
-  "user_id": "user_123",
+  "user_id": "507f1f77bcf86cd799439020",
   "secret": "JBSWY3DPEHPK3PXP",
   "qr_code": "data:image/png;base64,...",
   "manual_entry_key": "JBSWY3DPEHPK3PXP"
 }
 ```
 
-**Implemented In:** `services/gateway/app/main.py` → 2FA functions
+**Timeout:** 15s each
+
+**Database Impact:** INSERT/UPDATE in users collection
 
 ---
 
@@ -215,7 +232,7 @@ Authorization: Bearer YOUR_API_KEY
 **Example - Validate:**
 ```http
 POST /v1/auth/password/validate
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <API_KEY_SECRET>
 {"password": "SecurePass123!"}
 ```
 
@@ -230,7 +247,9 @@ Authorization: Bearer YOUR_API_KEY
 }
 ```
 
-**Implemented In:** `services/gateway/app/main.py` → Password management functions
+**Timeout:** 5s each
+
+**Database Impact:** SELECT from password_policies collection
 
 ---
 
@@ -241,6 +260,10 @@ Authorization: Bearer YOUR_API_KEY
 **Purpose:** Register new candidate account
 
 **Authentication:** None (public registration)
+
+**Implementation:** `services/gateway/app/main.py` → `candidate_register()`
+
+**Timeout:** 15s
 
 **Request:**
 ```http
@@ -265,24 +288,29 @@ Content-Type: application/json
 {
   "success": true,
   "message": "Registration successful",
-  "candidate_id": 456
+  "candidate_id": "507f1f77bcf86cd799439021"
 }
 ```
 
 **Sequence:**
 1. Check email uniqueness
 2. Hash password with bcrypt
-3. Insert into candidates table with status='applied'
+3. Insert into candidates collection with status='applied'
 4. Return candidate_id
+
+**Validation:**
+- Email format validation and uniqueness
+- Password strength requirements (min 8 chars, uppercase, lowercase, number, special char)
+- Phone format validation (E.164)
+- Experience years: Non-negative integer
 
 **Error Responses:**
 - 409 Conflict: Email already registered
+- 400 Bad Request: Invalid input format or password requirements not met
 
 **When Called:** Candidate signs up
 
-**Implemented In:** `services/gateway/app/main.py` → `candidate_register()`
-
-**Database Impact:** INSERT into candidates table
+**Database Impact:** INSERT into candidates collection
 
 ---
 

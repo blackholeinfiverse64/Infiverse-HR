@@ -2,22 +2,27 @@
 
 **Continued from:** [API_CONTRACT_PART4.md](./API_CONTRACT_PART4.md)
 
-**Version:** 4.0.0  
+**Version:** 4.1.0  
 **Last Updated:** January 22, 2026  
 **Total Endpoints:** 111 (80 Gateway + 6 Agent + 25 LangGraph)  
-**Database:** MongoDB Atlas
+**Database:** MongoDB Atlas  
+**Analysis Source:** Comprehensive endpoint analysis from services directories
 
 ---
 
-## AI Agent Service (6 endpoints)
-
-**Base URL:** https://bhiv-hr-agent-nhgg.onrender.com
+## AI Agent Service (Port 9000)
+**Total Endpoints:** 6  
+**Base URL:** http://localhost:9000 (Local) | https://bhiv-hr-agent-nhgg.onrender.com (Production)
 
 ### 81. GET /
 
 **Purpose:** AI Agent service information
 
 **Authentication:** None (public endpoint)
+
+**Implementation:** `services/agent/app.py` → `read_root()`
+
+**Timeout:** 2s
 
 **Request:**
 ```http
@@ -43,7 +48,7 @@ GET /
 
 **When Called:** Service discovery
 
-**Implemented In:** `services/agent/app.py` → `read_root()`
+**Database Impact:** None (static response)
 
 ---
 
@@ -52,6 +57,10 @@ GET /
 **Purpose:** Health check for AI Agent service
 
 **Authentication:** None (public health endpoint)
+
+**Implementation:** `services/agent/app.py` → `health_check()`
+
+**Timeout:** 5s
 
 **Request:**
 ```http
@@ -70,7 +79,7 @@ GET /health
 
 **When Called:** Load balancer health checks
 
-**Implemented In:** `services/agent/app.py` → `health_check()`
+**Database Impact:** None (static response)
 
 ---
 
