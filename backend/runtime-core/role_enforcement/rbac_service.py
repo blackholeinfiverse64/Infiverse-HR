@@ -13,8 +13,11 @@ from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 import os
-from auth.auth_service import SARAuthentication
-from tenancy.tenant_service import TenantResolver
+from pymongo import MongoClient
+from auth.auth_service import get_auth, SARAuthentication
+from tenancy.tenant_service import get_tenant_info, TenantResolver
+
+logger = logging.getLogger(__name__)
 
 
 class RoleType(Enum):
@@ -70,10 +73,15 @@ class RoleAssignment:
 class RBACConfig:
     """Configuration for the RBAC service"""
     def __init__(self):
-        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "default_secret_key")
+        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "")
         self.default_permissions_cache_ttl = int(os.getenv("RBAC_CACHE_TTL", "300"))  # 5 minutes
         self.role_validation_enabled = os.getenv("ROLE_VALIDATION_ENABLED", "true").lower() == "true"
         self.strict_mode = os.getenv("RBAC_STRICT_MODE", "false").lower() == "true"
+        # MongoDB configuration
+        self.mongodb_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.mongodb_db_name = os.getenv("MONGODB_DB_NAME", "bhiv_hr")
+        self.roles_collection_name = os.getenv("RBAC_ROLES_COLLECTION", "roles")
+        self.role_assignments_collection_name = os.getenv("RBAC_ASSIGNMENTS_COLLECTION", "role_assignments")
 
 
 class SARRoleEnforcement:
@@ -85,9 +93,38 @@ class SARRoleEnforcement:
         self._roles: Dict[str, Role] = {}
         self._role_assignments: List[RoleAssignment] = []
         self._permission_cache: Dict[str, Set[Permission]] = {}
+        # MongoDB connection
+        self._client = None
+        self._db = None
+        self._roles_collection = None
+        self._assignments_collection = None
+        
+        # Initialize MongoDB connection
+        self._connect_to_mongodb()
         
         # Initialize default roles
         self._initialize_default_roles()
+    
+    def _connect_to_mongodb(self):
+        """Establish MongoDB connection for role data storage"""
+        try:
+            self._client = MongoClient(self.config.mongodb_uri)
+            self._db = self._client[self.config.mongodb_db_name]
+            self._roles_collection = self._db[self.config.roles_collection_name]
+            self._assignments_collection = self._db[self.config.role_assignments_collection_name]
+            
+            # Create indexes for efficient queries
+            self._roles_collection.create_index([("name", 1)], unique=True)
+            self._assignments_collection.create_index([("user_id", 1), ("role_name", 1), ("tenant_id", 1)])
+            self._assignments_collection.create_index([("user_id", 1)])
+            
+            logger.info("✅ Connected to MongoDB for role enforcement data")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MongoDB for role enforcement data: {e}")
+            self._client = None
+            self._db = None
+            self._roles_collection = None
+            self._assignments_collection = None
     
     def _initialize_default_roles(self):
         """Initialize default roles for the system"""
@@ -224,16 +261,63 @@ class SARRoleEnforcement:
             assigned_by=assigned_by
         )
         
+        # Store assignment in MongoDB
+        if self._assignments_collection is not None:
+            assignment_doc = {
+                "user_id": assignment.user_id,
+                "role_name": assignment.role.name,
+                "tenant_id": assignment.tenant_id,
+                "assigned_at": assignment.assigned_at,
+                "assigned_by": assignment.assigned_by,
+                "expires_at": assignment.expires_at
+            }
+            try:
+                self._assignments_collection.insert_one(assignment_doc)
+                logger.info(f"✅ Role assignment stored in MongoDB: {user_id} -> {role_name}")
+            except Exception as e:
+                logger.error(f"❌ Failed to store role assignment in MongoDB: {e}")
+        
+        # Also keep in memory for performance
         self._role_assignments.append(assignment)
         return assignment
     
     def get_user_roles(self, user_id: str, tenant_id: Optional[str] = None) -> List[RoleAssignment]:
         """Get all roles assigned to a user, optionally filtered by tenant"""
-        assignments = [ra for ra in self._role_assignments if ra.user_id == user_id]
+        # First, get roles from MongoDB
+        assignments = []
+        if self._assignments_collection is not None:
+            try:
+                query = {"user_id": user_id}
+                if tenant_id:
+                    query["$or"] = [
+                        {"tenant_id": tenant_id},
+                        {"tenant_id": None}
+                    ]
+                
+                cursor = self._assignments_collection.find(query)
+                for doc in cursor:
+                    role_name = doc["role_name"]
+                    role = self.get_role(role_name)
+                    if role:
+                        assignment = RoleAssignment(
+                            user_id=doc["user_id"],
+                            role=role,
+                            tenant_id=doc.get("tenant_id"),
+                            assigned_at=doc.get("assigned_at"),
+                            assigned_by=doc.get("assigned_by"),
+                            expires_at=doc.get("expires_at")
+                        )
+                        assignments.append(assignment)
+            except Exception as e:
+                logger.error(f"❌ Failed to retrieve role assignments from MongoDB: {e}")
         
+        # Also include in-memory assignments for performance
+        in_memory_assignments = [ra for ra in self._role_assignments if ra.user_id == user_id]
         if tenant_id:
-            assignments = [ra for ra in assignments if ra.tenant_id == tenant_id or ra.tenant_id is None]
+            in_memory_assignments = [ra for ra in in_memory_assignments if ra.tenant_id == tenant_id or ra.tenant_id is None]
         
+        # Combine both sources
+        assignments.extend(in_memory_assignments)
         return assignments
     
     def has_permission(self, user_id: str, resource: str, action: str, 

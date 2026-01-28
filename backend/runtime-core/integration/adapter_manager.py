@@ -8,6 +8,11 @@ import logging
 from typing import Dict, List, Any
 from .adapters import get_all_adapters
 from .adapters.base_adapter import BaseIntegrationAdapter
+import os
+import jwt
+from pymongo import MongoClient
+from pymongo.collection import Collection
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +25,8 @@ class AdapterManager:
     - Centralized execution of adapters
     - Configuration management
     - Error handling across all adapters
+    - Secure authentication with API keys and JWT tokens
+    - MongoDB-based audit logging
     """
     
     def __init__(self, adapter_configs: Dict[str, Dict[str, Any]] = None):
@@ -32,6 +39,17 @@ class AdapterManager:
         """
         self.adapters: Dict[str, BaseIntegrationAdapter] = {}
         self.adapter_configs = adapter_configs or {}
+        
+        # Initialize authentication settings
+        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "")
+        self.candidate_jwt_secret_key = os.getenv("CANDIDATE_JWT_SECRET_KEY", "")
+        self.api_key_secret = os.getenv("API_KEY_SECRET", "")
+        
+        # Initialize MongoDB connection for manager-level logging
+        self._mongo_client = None
+        self._db = None
+        self._adapter_events_collection = None
+        self._connect_to_mongodb()
         
         # Load all available adapters
         available_adapters = get_all_adapters()
@@ -50,6 +68,59 @@ class AdapterManager:
             
             logger.info(f"Initialized adapter: {adapter_name} (enabled: {adapter_instance.enabled})")
     
+    def _connect_to_mongodb(self):
+        """Establish MongoDB connection for adapter event logging"""
+        try:
+            mongodb_uri = os.getenv("MONGODB_URI", os.getenv("DATABASE_URL"))
+            if not mongodb_uri:
+                logger.warning("MONGODB_URI/DATABASE_URL not configured, skipping MongoDB integration")
+                return
+            
+            self._mongo_client = MongoClient(
+                mongodb_uri,
+                serverSelectionTimeoutMS=5000,
+                maxPoolSize=10,
+                minPoolSize=2,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=20000,
+            )
+            
+            # Test connection
+            self._mongo_client.admin.command('ping')
+            
+            db_name = os.getenv("MONGODB_DB_NAME", "bhiv_hr")
+            self._db = self._mongo_client[db_name]
+            self._adapter_events_collection = self._db.adapter_events
+            
+            # Create indexes for efficient queries
+            self._adapter_events_collection.create_index([("event_type", 1)])
+            self._adapter_events_collection.create_index([("timestamp", -1)])
+            self._adapter_events_collection.create_index([("tenant_id", 1)])
+            
+            logger.info(f"✅ Connected to MongoDB for adapter event logging: {db_name}")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MongoDB for adapter event logging: {e}")
+            self._mongo_client = None
+            self._db = None
+            self._adapter_events_collection = None
+    
+    def _log_adapter_event(self, event_type: str, details: Dict[str, Any]):
+        """Log adapter manager events to MongoDB for auditing purposes"""
+        if not self._adapter_events_collection:
+            return
+        
+        try:
+            log_entry = {
+                "event_type": event_type,
+                "details": details,
+                "timestamp": datetime.utcnow(),
+                "created_at": datetime.utcnow()
+            }
+            
+            self._adapter_events_collection.insert_one(log_entry)
+        except Exception as e:
+            logger.error(f"Failed to log adapter event: {e}")
+    
     def execute_all_adapters(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute all registered adapters with the given event.
@@ -61,6 +132,15 @@ class AdapterManager:
             Dictionary containing results from all adapters
         """
         results = {}
+        
+        # Log the execution event
+        self._log_adapter_event("execute_all_adapters", {
+            "event_id": event.get("event_id"),
+            "action": event.get("action"),
+            "tenant_id": event.get("tenant_id"),
+            "user_id": event.get("user_id"),
+            "adapter_count": len(self.adapters)
+        })
         
         for adapter_name, adapter in self.adapters.items():
             try:
@@ -85,10 +165,28 @@ class AdapterManager:
         """
         if adapter_name not in self.adapters:
             logger.warning(f"Adapter {adapter_name} not found")
+            # Log the error event
+            self._log_adapter_event("adapter_not_found", {
+                "adapter_name": adapter_name,
+                "event_id": event.get("event_id"),
+                "action": event.get("action")
+            })
             return None
         
         adapter = self.adapters[adapter_name]
-        return adapter.execute(event)
+        result = adapter.execute(event)
+        
+        # Log the execution event
+        self._log_adapter_event("execute_adapter", {
+            "adapter_name": adapter_name,
+            "event_id": event.get("event_id"),
+            "action": event.get("action"),
+            "tenant_id": event.get("tenant_id"),
+            "user_id": event.get("user_id"),
+            "result": result
+        })
+        
+        return result
     
     def get_active_adapters(self) -> List[str]:
         """
@@ -112,10 +210,23 @@ class AdapterManager:
         """
         if adapter_name not in self.adapters:
             logger.warning(f"Cannot toggle {adapter_name}: adapter not found")
+            # Log the error event
+            self._log_adapter_event("toggle_adapter_failed", {
+                "adapter_name": adapter_name,
+                "enabled": enabled,
+                "reason": "adapter_not_found"
+            })
             return False
         
         self.adapters[adapter_name].enabled = enabled
         logger.info(f"Toggled {adapter_name} to {'enabled' if enabled else 'disabled'}")
+        
+        # Log the toggle event
+        self._log_adapter_event("toggle_adapter", {
+            "adapter_name": adapter_name,
+            "enabled": enabled
+        })
+        
         return True
 
 
@@ -153,3 +264,30 @@ class AdapterManager:
 #     # Execute all adapters
 #     results = manager.execute_all_adapters(event)
 #     print(results)
+
+
+# Initialize default instance for SAR framework
+if __name__ != "__main__":
+    # This creates a default adapter manager instance when the module is imported
+    # This is used by the SAR integration framework
+    default_configs = {
+        'artha': {
+            "name": "Artha Payroll Adapter",
+            "enabled": False,  # Disabled by default for security
+        },
+        'karya': {
+            "name": "Karya Task Adapter",
+            "enabled": False,  # Disabled by default for security
+        },
+        'insightflow': {
+            "name": "InsightFlow Analytics Adapter",
+            "enabled": False,  # Disabled by default for security
+        },
+        'bucket': {
+            "name": "Bucket Storage Adapter",
+            "enabled": False,  # Disabled by default for security
+        }
+    }
+    
+    # Create default instance with default configurations
+    default_adapter_manager = AdapterManager(default_configs)

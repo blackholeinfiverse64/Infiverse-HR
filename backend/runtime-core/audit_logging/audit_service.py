@@ -20,6 +20,11 @@ import logging
 from auth.auth_service import sar_auth
 from tenancy.tenant_service import sar_tenant_resolver
 from role_enforcement.rbac_service import sar_rbac
+from pymongo import MongoClient
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AuditEventType(Enum):
@@ -140,6 +145,108 @@ class InMemoryAuditStorage(AuditStorageBackend):
             return None
 
 
+class MongoAuditStorage(AuditStorageBackend):
+    """MongoDB Atlas-based audit storage for persistent logging"""
+    
+    def __init__(self, mongodb_uri: str = None):
+        self.mongodb_uri = mongodb_uri or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.db_name = os.getenv("MONGODB_DB_NAME", "bhiv_hr")
+        self.collection_name = "audit_logs"
+        self._client = None
+        self._db = None
+        self._collection = None
+        self._connect()
+    
+    def _connect(self):
+        """Establish MongoDB connection"""
+        try:
+            self._client = MongoClient(self.mongodb_uri)
+            self._db = self._client[self.db_name]
+            self._collection = self._db[self.collection_name]
+            # Create index for efficient queries
+            self._collection.create_index([("timestamp", -1)])
+            self._collection.create_index([("user_id", 1)])
+            self._collection.create_index([("tenant_id", 1)])
+            self._collection.create_index([("event_type", 1)])
+            logger.info(f"✅ Connected to MongoDB audit logs collection: {self.collection_name}")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MongoDB for audit logs: {e}")
+            self._client = None
+            self._db = None
+            self._collection = None
+    
+    def store_event(self, event: AuditEvent) -> bool:
+        """Store audit event in MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for audit logging")
+            return False
+        
+        try:
+            event_dict = event.to_dict()
+            # Convert datetime to ISO format for MongoDB
+            if isinstance(event_dict.get("timestamp"), datetime):
+                event_dict["timestamp"] = event_dict["timestamp"].isoformat()
+            
+            result = self._collection.insert_one(event_dict)
+            logger.debug(f"✅ Audit event stored: {event.event_id}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to store audit event: {e}")
+            return False
+    
+    def get_events(self, filters: Optional[Dict[str, Any]] = None, 
+                   limit: int = 100, offset: int = 0) -> List[AuditEvent]:
+        """Retrieve audit events from MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for audit logging")
+            return []
+        
+        try:
+            query = {}
+            if filters:
+                # Convert filters to MongoDB query format
+                for key, value in filters.items():
+                    if key == "start_date" and value:
+                        query.setdefault("timestamp", {})["$gte"] = value
+                    elif key == "end_date" and value:
+                        query.setdefault("timestamp", {})["$lte"] = value
+                    elif key not in ["start_date", "end_date"]:
+                        query[key] = value
+            
+            # Sort by timestamp descending (newest first)
+            cursor = self._collection.find(query).sort("timestamp", -1).skip(offset).limit(limit)
+            events = []
+            
+            for doc in cursor:
+                try:
+                    event = AuditEvent.from_dict(doc)
+                    events.append(event)
+                except Exception as e:
+                    logger.error(f"❌ Failed to parse audit event from MongoDB: {e}")
+                    continue
+            
+            logger.debug(f"✅ Retrieved {len(events)} audit events from MongoDB")
+            return events
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve audit events: {e}")
+            return []
+    
+    def get_event_by_id(self, event_id: str) -> Optional[AuditEvent]:
+        """Retrieve specific audit event by ID"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for audit logging")
+            return None
+        
+        try:
+            doc = self._collection.find_one({"event_id": event_id})
+            if doc:
+                return AuditEvent.from_dict(doc)
+            return None
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve audit event by ID: {e}")
+            return None
+
+
 class FileAuditStorage(AuditStorageBackend):
     """File-based audit storage for persistent logging"""
     
@@ -182,7 +289,7 @@ class AuditConfig:
     """Configuration for the audit logging service"""
     def __init__(self):
         self.enabled = os.getenv("AUDIT_LOGGING_ENABLED", "true").lower() == "true"
-        self.storage_backend = os.getenv("AUDIT_STORAGE_BACKEND", "file")  # file or memory
+        self.storage_backend = os.getenv("AUDIT_STORAGE_BACKEND", "mongodb")  # mongodb, file, or memory
         self.log_level = os.getenv("AUDIT_LOG_LEVEL", "INFO")
         self.retention_days = int(os.getenv("AUDIT_RETENTION_DAYS", "90"))
         self.batch_size = int(os.getenv("AUDIT_BATCH_SIZE", "100"))
@@ -209,6 +316,9 @@ class SARAuditLogging:
         """Initialize the appropriate storage backend based on configuration"""
         if self.config.storage_backend == "memory":
             self.storage = InMemoryAuditStorage()
+        elif self.config.storage_backend == "mongodb":
+            mongodb_uri = os.getenv("MONGODB_URI")
+            self.storage = MongoAuditStorage(mongodb_uri)
         else:
             log_dir = os.getenv("AUDIT_LOG_DIR", "audit_logs")
             self.storage = FileAuditStorage(log_dir)

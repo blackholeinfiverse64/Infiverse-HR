@@ -16,6 +16,10 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from enum import Enum
+from pymongo import MongoClient
+import time
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowStatus(Enum):
@@ -129,6 +133,184 @@ class WorkflowStorageBackend(ABC):
         pass
 
 
+class MongoWorkflowStorage(WorkflowStorageBackend):
+    """MongoDB-based workflow storage for persistent workflow management"""
+    
+    def __init__(self, mongodb_uri: str = None, db_name: str = None, collection_name: str = None):
+        self.mongodb_uri = mongodb_uri or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.db_name = db_name or os.getenv("MONGODB_DB_NAME", "bhiv_hr")
+        self.collection_name = collection_name or os.getenv("WORKFLOW_COLLECTION", "workflows")
+        self._client = None
+        self._db = None
+        self._collection = None
+        self._connect()
+    
+    def _connect(self):
+        """Establish MongoDB connection"""
+        try:
+            self._client = MongoClient(self.mongodb_uri)
+            self._db = self._client[self.db_name]
+            self._collection = self._db[self.collection_name]
+            # Create indexes for efficient queries
+            self._collection.create_index([("instance_id", 1)], unique=True)
+            self._collection.create_index([("tenant_id", 1)])
+            self._collection.create_index([("workflow_name", 1)])
+            self._collection.create_index([("status", 1)])
+            self._collection.create_index([("created_at", -1)])
+            logger.info(f"✅ Connected to MongoDB workflow collection: {self.collection_name}")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MongoDB for workflow storage: {e}")
+            self._client = None
+            self._db = None
+            self._collection = None
+    
+    def _serialize_instance(self, instance: WorkflowInstance) -> Dict[str, Any]:
+        """Serialize a WorkflowInstance to a dictionary for MongoDB storage"""
+        return {
+            "instance_id": instance.instance_id,
+            "workflow_name": instance.workflow_name,
+            "tenant_id": instance.tenant_id,
+            "user_id": instance.user_id,
+            "tasks": [
+                {
+                    "task_id": task.task_id,
+                    "name": task.name,
+                    "args": task.args,
+                    "kwargs": task.kwargs,
+                    "dependencies": task.dependencies,
+                    "timeout": task.timeout,
+                    "retry_count": task.retry_count,
+                    "max_retries": task.max_retries,
+                    "status": task.status.value,
+                    "result": task.result,
+                    "error": task.error,
+                    "started_at": task.started_at.isoformat() if task.started_at else None,
+                    "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+                } for task in instance.tasks
+            ],
+            "status": instance.status.value,
+            "context": instance.context,
+            "created_at": instance.created_at.isoformat(),
+            "started_at": instance.started_at.isoformat() if instance.started_at else None,
+            "completed_at": instance.completed_at.isoformat() if instance.completed_at else None,
+            "error": instance.error,
+        }
+    
+    def _deserialize_instance(self, data: Dict[str, Any]) -> WorkflowInstance:
+        """Deserialize a dictionary from MongoDB to a WorkflowInstance"""
+        # Deserialize tasks
+        tasks = []
+        for task_data in data["tasks"]:
+            task = WorkflowTask(
+                task_id=task_data["task_id"],
+                name=task_data["name"],
+                function=None,  # We can't serialize functions, so they need to be re-assigned
+                args=task_data["args"],
+                kwargs=task_data["kwargs"],
+                dependencies=task_data["dependencies"],
+                timeout=task_data["timeout"],
+                retry_count=task_data["retry_count"],
+                max_retries=task_data["max_retries"],
+                status=TaskStatus(task_data["status"]),
+                result=task_data["result"],
+                error=task_data["error"],
+                started_at=datetime.fromisoformat(task_data["started_at"]) if task_data["started_at"] else None,
+                completed_at=datetime.fromisoformat(task_data["completed_at"]) if task_data["completed_at"] else None,
+            )
+            tasks.append(task)
+        
+        return WorkflowInstance(
+            instance_id=data["instance_id"],
+            workflow_name=data["workflow_name"],
+            tenant_id=data["tenant_id"],
+            user_id=data["user_id"],
+            tasks=tasks,
+            status=WorkflowStatus(data["status"]),
+            context=data["context"],
+            created_at=datetime.fromisoformat(data["created_at"]),
+            started_at=datetime.fromisoformat(data["started_at"]) if data["started_at"] else None,
+            completed_at=datetime.fromisoformat(data["completed_at"]) if data["completed_at"] else None,
+            error=data["error"],
+        )
+    
+    async def store_workflow_instance(self, instance: WorkflowInstance) -> bool:
+        """Store a workflow instance in MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for workflow storage")
+            return False
+        
+        try:
+            doc = self._serialize_instance(instance)
+            result = self._collection.insert_one(doc)
+            logger.debug(f"✅ Workflow instance stored: {instance.instance_id}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to store workflow instance: {e}")
+            return False
+    
+    async def get_workflow_instance(self, instance_id: str) -> Optional[WorkflowInstance]:
+        """Retrieve a workflow instance from MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for workflow storage")
+            return None
+        
+        try:
+            doc = self._collection.find_one({"instance_id": instance_id})
+            if doc:
+                return self._deserialize_instance(doc)
+            return None
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve workflow instance: {e}")
+            return None
+    
+    async def update_workflow_instance(self, instance: WorkflowInstance) -> bool:
+        """Update a workflow instance in MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for workflow storage")
+            return False
+        
+        try:
+            doc = self._serialize_instance(instance)
+            result = self._collection.replace_one(
+                {"instance_id": instance.instance_id}, doc
+            )
+            logger.debug(f"✅ Workflow instance updated: {instance.instance_id}")
+            return result.modified_count > 0
+        except Exception as e:
+            logger.error(f"❌ Failed to update workflow instance: {e}")
+            return False
+    
+    async def list_workflow_instances(self, tenant_id: str, 
+                                    status: Optional[WorkflowStatus] = None,
+                                    limit: int = 100, offset: int = 0) -> List[WorkflowInstance]:
+        """List workflow instances for a tenant from MongoDB"""
+        if not self._collection:
+            logger.error("❌ MongoDB collection not available for workflow storage")
+            return []
+        
+        try:
+            query = {"tenant_id": tenant_id}
+            if status:
+                query["status"] = status.value
+            
+            cursor = self._collection.find(query).skip(offset).limit(limit)
+            instances = []
+            
+            for doc in cursor:
+                try:
+                    instance = self._deserialize_instance(doc)
+                    instances.append(instance)
+                except Exception as e:
+                    logger.error(f"❌ Failed to deserialize workflow instance: {e}")
+                    continue
+            
+            logger.debug(f"✅ Retrieved {len(instances)} workflow instances for tenant {tenant_id}")
+            return instances
+        except Exception as e:
+            logger.error(f"❌ Failed to list workflow instances: {e}")
+            return []
+
+
 class InMemoryWorkflowStorage(WorkflowStorageBackend):
     """In-memory workflow storage for development/testing purposes"""
     
@@ -164,13 +346,17 @@ class InMemoryWorkflowStorage(WorkflowStorageBackend):
 class WorkflowConfig:
     """Configuration for the workflow engine"""
     def __init__(self):
-        self.storage_backend = os.getenv("WORKFLOW_STORAGE_BACKEND", "memory")
+        self.storage_backend = os.getenv("WORKFLOW_STORAGE_BACKEND", "mongodb")
         self.max_concurrent_workflows = int(os.getenv("WORKFLOW_MAX_CONCURRENT", "10"))
         self.task_timeout = int(os.getenv("WORKFLOW_TASK_TIMEOUT", "300"))  # 5 minutes
         self.workflow_timeout = int(os.getenv("WORKFLOW_TIMEOUT", "3600"))  # 1 hour
         self.retry_delay = int(os.getenv("WORKFLOW_RETRY_DELAY", "5"))  # 5 seconds
         self.enable_persistence = os.getenv("WORKFLOW_PERSISTENCE", "false").lower() == "true"
         self.executor_workers = int(os.getenv("WORKFLOW_EXECUTOR_WORKERS", "20"))
+        # MongoDB configuration
+        self.mongodb_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.mongodb_db_name = os.getenv("MONGODB_DB_NAME", "bhiv_hr")
+        self.workflows_collection_name = os.getenv("WORKFLOW_COLLECTION", "workflows")
 
 
 class SARWorkflowEngine:
@@ -187,8 +373,14 @@ class SARWorkflowEngine:
         """Initialize the appropriate storage backend based on configuration"""
         if self.config.storage_backend == "memory":
             self.storage = InMemoryWorkflowStorage()
+        elif self.config.storage_backend == "mongodb":
+            self.storage = MongoWorkflowStorage(
+                mongodb_uri=self.config.mongodb_uri,
+                db_name=self.config.mongodb_db_name,
+                collection_name=self.config.workflows_collection_name
+            )
         else:
-            # In a real implementation, you would add other storage backends like database storage
+            # Default to in-memory for unknown storage types
             self.storage = InMemoryWorkflowStorage()
     
     def register_workflow(self, definition: WorkflowDefinition):

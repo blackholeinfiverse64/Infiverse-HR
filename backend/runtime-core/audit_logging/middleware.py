@@ -12,6 +12,10 @@ from starlette.types import ASGIApp
 import time
 import uuid
 from audit_logging.audit_service import sar_audit, AuditEventType
+from auth.auth_service import get_auth, AuthResult
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AuditLoggingMiddleware(BaseHTTPMiddleware):
@@ -52,6 +56,13 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             tenant_id = tenant_info.tenant_id
         elif auth_info and 'tenant_id' in auth_info:
             tenant_id = auth_info['tenant_id']
+        
+        # Try to get auth result directly
+        auth_result = getattr(request.state, 'auth_result', None)
+        if auth_result and isinstance(auth_result, AuthResult):
+            user_id = (auth_result.user_id or auth_result.client_id or auth_result.candidate_id)
+            if hasattr(auth_result, 'tenant_id'):
+                tenant_id = auth_result.tenant_id
         
         # Log the request (before processing)
         request_event_id = str(uuid.uuid4())

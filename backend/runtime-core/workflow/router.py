@@ -4,14 +4,19 @@ Workflow Router for Sovereign Application Runtime (SAR)
 This module provides endpoints for workflow management and execution.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel
 from workflow.workflow_service import sar_workflow, WorkflowStatus, TaskStatus, WorkflowInstance, WorkflowDefinition
-from auth.auth_service import sar_auth
+from auth.auth_service import get_auth, get_api_key
 from tenancy.tenant_service import get_tenant_info
 from role_enforcement.rbac_service import require_permission
 from workflow.middleware import check_workflow_permissions, validate_workflow_tenant_access, enrich_workflow_context
+import logging
+
+logger = logging.getLogger(__name__)
+security = HTTPBearer()
 
 
 class WorkflowStartRequest(BaseModel):

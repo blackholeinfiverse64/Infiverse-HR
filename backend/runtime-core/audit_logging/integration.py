@@ -8,51 +8,66 @@ from typing import Dict, Any, Optional, Callable
 from fastapi import Request, Response
 from fastapi.responses import StreamingResponse
 import asyncio
-from ..auth.auth_service import sar_auth
+from ..auth.auth_service import get_auth, AuthResult
 from ..tenancy.tenant_service import sar_tenant_resolver
 from ..role_enforcement.rbac_service import sar_rbac
 from .audit_service import sar_audit, AuditEventType
 from .middleware import AuditLoggingMiddleware, DetailedAuditMiddleware
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def integrate_audit_with_auth():
     """Integrate audit logging with authentication service"""
     # Enhance the authentication service with audit capabilities
     
-    # Store original login method
-    original_login = sar_auth.login
+    # Store original auth method
+    original_get_auth = get_auth
     
-    def audited_login(username: str, password: str, request: Request = None):
-        """Login method with audit logging"""
-        client_ip = request.client.host if request and hasattr(request, 'client') else None
-        user_agent = request.headers.get('user-agent') if request else None
+    def audited_get_auth(request: Request) -> AuthResult:
+        """Authentication method with audit logging"""
+        client_ip = request.client.host if hasattr(request, 'client') else None
+        user_agent = request.headers.get('user-agent')
         
         try:
-            result = original_login(username, password)
+            result = original_get_auth(request)
             
-            # Log successful login
-            if result.get("success"):
-                sar_audit.log_user_login(
-                    user_id=username,
+            # Log successful authentication
+            if result.success:
+                user_id = (result.user_id or result.client_id or result.candidate_id)
+                sar_audit.log_event(
+                    event_type=AuditEventType.USER_LOGIN,
+                    user_id=user_id,
+                    tenant_id=getattr(result, 'tenant_id', None),
                     client_ip=client_ip,
                     user_agent=user_agent,
-                    success=True
+                    resource="authentication",
+                    action="login",
+                    success=True,
+                    metadata={
+                        "auth_method": "api_key" if result.user_id else "jwt",
+                        "client_id": result.client_id,
+                        "candidate_id": result.candidate_id
+                    }
                 )
             
             return result
         except Exception as e:
-            # Log failed login
-            sar_audit.log_user_login(
-                user_id=username,
+            # Log failed authentication
+            sar_audit.log_event(
+                event_type=AuditEventType.USER_LOGIN,
                 client_ip=client_ip,
                 user_agent=user_agent,
+                resource="authentication",
+                action="login",
                 success=False,
                 error_message=str(e)
             )
             raise e
     
-    # Replace the login method
-    sar_auth.login = audited_login
+    # Replace the auth method
+    get_auth = audited_get_auth
 
 
 def integrate_audit_with_tenant():

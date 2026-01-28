@@ -6,10 +6,11 @@ that can be plugged into any BHIV service.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
-from .auth_service import sar_auth, AuthType
+from .auth_service import sar_auth, AuthType, get_auth, get_api_key, get_candidate_auth, get_recruiter_auth, get_client_auth, get_admin_auth, get_optional_auth
 
 
 router = APIRouter(prefix="/auth", tags=["Sovereign Authentication"])
@@ -40,13 +41,13 @@ class PasswordChange(BaseModel):
 
 
 @router.post("/2fa/setup")
-async def setup_2fa(setup_data: TwoFASetup, api_key: str = Depends(sar_auth.get_api_key)):
+async def setup_2fa(setup_data: TwoFASetup, api_key: str = Depends(get_api_key)):
     """Setup 2FA TOTP for user"""
     return sar_auth.setup_2fa(setup_data.user_id)
 
 
 @router.post("/2fa/verify")
-async def verify_2fa(verify_data: TwoFAVerify, api_key: str = Depends(sar_auth.get_api_key)):
+async def verify_2fa(verify_data: TwoFAVerify, api_key: str = Depends(get_api_key)):
     """Verify 2FA TOTP code"""
     is_valid = sar_auth.verify_2fa(verify_data.user_id, verify_data.totp_code)
     if is_valid:
@@ -96,7 +97,7 @@ async def login_with_2fa(login_data: LoginRequest):
 
 
 @router.get("/2fa/status/{user_id}")
-async def get_2fa_status(user_id: str, auth_result: dict = Depends(sar_auth.get_auth)):
+async def get_2fa_status(user_id: str, auth_result: dict = Depends(get_auth)):
     """Get 2FA status for user"""
     # In a real implementation, check the database for 2FA status
     return {
@@ -109,13 +110,13 @@ async def get_2fa_status(user_id: str, auth_result: dict = Depends(sar_auth.get_
 
 
 @router.post("/password/validate")
-async def validate_password(password_data: PasswordValidation, api_key: str = Depends(sar_auth.get_api_key)):
+async def validate_password(password_data: PasswordValidation, api_key: str = Depends(get_api_key)):
     """Validate password strength"""
     return sar_auth.validate_password(password_data.password)
 
 
 @router.post("/password/change")
-async def change_password(password_change: PasswordChange, auth_result: dict = Depends(sar_auth.get_auth)):
+async def change_password(password_change: PasswordChange, auth_result: dict = Depends(get_auth)):
     """Change password - requires valid authentication first"""
     # In a real implementation, this would update the user's password in the database
     # For now, this is a placeholder showing the expected flow
@@ -135,7 +136,7 @@ async def change_password(password_change: PasswordChange, auth_result: dict = D
 
 
 @router.get("/password/generate")
-async def generate_password(length: int = 12, include_symbols: bool = True, api_key: str = Depends(sar_auth.get_api_key)):
+async def generate_password(length: int = 12, include_symbols: bool = True, api_key: str = Depends(get_api_key)):
     """Generate a secure random password"""
     password = sar_auth.generate_password(length, include_symbols)
     
@@ -150,7 +151,7 @@ async def generate_password(length: int = 12, include_symbols: bool = True, api_
 
 
 @router.get("/password/policy")
-async def get_password_policy(api_key: str = Depends(sar_auth.get_api_key)):
+async def get_password_policy(api_key: str = Depends(get_api_key)):
     """Get password policy information"""
     from datetime import datetime, timezone
     

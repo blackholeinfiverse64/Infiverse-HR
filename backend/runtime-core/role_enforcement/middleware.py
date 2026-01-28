@@ -8,11 +8,14 @@ from typing import Callable, Optional, Dict, Any
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
-from auth.auth_service import sar_auth
-from tenancy.tenant_service import sar_tenant_resolver
+from auth.auth_service import get_auth, sar_auth
+from tenancy.tenant_service import sar_tenant_resolver, get_tenant_info
 from role_enforcement.rbac_service import sar_rbac
 import jwt
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RoleEnforcementMiddleware(BaseHTTPMiddleware):
@@ -22,51 +25,35 @@ class RoleEnforcementMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
     
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        # Extract authentication info from request
-        auth_header = request.headers.get("Authorization")
-        
-        # Initialize auth_info
+        # Extract authentication info using the new get_auth function
         auth_info = None
         
-        if auth_header:
-            # Try to authenticate the request
-            try:
-                # Try API key authentication first
-                if auth_header.startswith("Bearer "):
-                    token = auth_header[7:]
-                    if sar_auth.validate_api_key(token):
-                        auth_info = {
-                            "type": "api_key_secret",
-                            "credentials": token,
-                            "user_id": "system"
-                        }
-                    else:
-                        # Try JWT token authentication
-                        try:
-                            # Try client JWT
-                            payload = jwt.decode(token, sar_auth.config.jwt_secret_key, algorithms=["HS256"])
-                            auth_info = {
-                                "type": "client_token",
-                                "client_id": payload.get("client_id"),
-                                "user_id": payload.get("user_id"),
-                                "tenant_id": payload.get("tenant_id", payload.get("client_id"))
-                            }
-                        except:
-                            # Try candidate JWT
-                            try:
-                                payload = jwt.decode(token, sar_auth.config.candidate_jwt_secret, algorithms=["HS256"])
-                                auth_info = {
-                                    "type": "candidate_token",
-                                    "candidate_id": payload.get("candidate_id"),
-                                    "user_id": payload.get("candidate_id"),
-                                    "tenant_id": payload.get("tenant_id")
-                                }
-                            except:
-                                # Invalid token
-                                pass
-            except Exception:
-                # If authentication fails, continue without auth info
-                pass
+        try:
+            # Use the unified authentication function from auth_service
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+                # Create a mock credentials object for the get_auth function
+                from fastapi.security import HTTPAuthorizationCredentials
+                credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+                auth_info = get_auth(credentials)
+        except Exception as e:
+            logger.warning(f"Failed to authenticate request: {e}")
+            # Continue without auth info
+            pass
+        
+        # Store auth info in request state for later use
+        request.state.auth_info = auth_info
+        
+        # Try to resolve tenant information
+        tenant_info = None
+        try:
+            tenant_info = await get_tenant_info(request)
+            request.state.tenant_info = tenant_info
+        except Exception as e:
+            # If tenant resolution fails, continue without tenant info
+            logger.warning(f"Failed to resolve tenant: {e}")
+            request.state.tenant_info = None
         
         # Store auth info in request state for later use
         request.state.auth_info = auth_info

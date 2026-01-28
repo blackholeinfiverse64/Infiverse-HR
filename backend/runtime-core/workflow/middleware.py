@@ -10,9 +10,12 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import Response
 from starlette.types import ASGIApp
 from workflow.workflow_service import sar_workflow, WorkflowStatus
-from auth.auth_service import sar_auth
-from tenancy.tenant_service import sar_tenant_resolver
+from auth.auth_service import get_auth
+from tenancy.tenant_service import get_tenant_info
 from role_enforcement.rbac_service import sar_rbac
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowEnforcementMiddleware(BaseHTTPMiddleware):

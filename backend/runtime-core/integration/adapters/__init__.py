@@ -1,8 +1,7 @@
 """
 Initialization module for the integration adapters package.
 
-This module exports all the adapter classes to make them easily importable.
-"""
+This module exports all the adapter classes to make them easily importable."""
 
 from .base_adapter import BaseIntegrationAdapter
 from .artha_adapter import ArthaAdapter

@@ -4,13 +4,18 @@ Role-Based Router for Sovereign Application Runtime (SAR)
 This module provides a router with role-protected endpoints for the SAR.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from auth.auth_service import sar_auth
+from auth.auth_service import get_auth, get_api_key
 from tenancy.tenant_service import get_tenant_info
 from role_enforcement.rbac_service import sar_rbac, require_permission, get_current_user_permissions
 from role_enforcement.middleware import get_user_auth_info, get_user_tenant_info
+import logging
+
+logger = logging.getLogger(__name__)
+security = HTTPBearer()
 
 
 class RoleAssignmentRequest(BaseModel):

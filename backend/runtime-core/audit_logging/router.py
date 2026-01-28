@@ -4,13 +4,18 @@ Audit Logging Router for Sovereign Application Runtime (SAR)
 This module provides endpoints for audit log management and retrieval.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel
 from audit_logging.audit_service import sar_audit, AuditEventType, AuditEvent
-from auth.auth_service import sar_auth
+from auth.auth_service import get_auth, AuthResult
 from tenancy.tenant_service import get_tenant_info
 from role_enforcement.rbac_service import require_permission
+import logging
+
+logger = logging.getLogger(__name__)
+security = HTTPBearer()
 
 
 class AuditFilter(BaseModel):
@@ -48,7 +53,75 @@ class AuditLogResponse(BaseModel):
     offset: int
 
 
+class AuditEventRequest(BaseModel):
+    """Request model for logging audit events"""
+    event_type: str
+    user_id: Optional[str] = None
+    tenant_id: Optional[str] = None
+    resource: str
+    action: str
+    resource_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    success: bool = True
+    error_message: Optional[str] = None
+
+
 router = APIRouter(prefix="/audit", tags=["Audit Logging"])
+
+
+@router.post("/logs", response_model=Dict[str, Any])
+async def log_audit_event(
+    request: Request,
+    event_data: AuditEventRequest,
+    auth: AuthResult = Depends(get_auth)
+):
+    """Log an audit event - matches services pattern"""
+    try:
+        # Extract user and tenant info
+        user_id = (auth.user_id or auth.client_id or auth.candidate_id)
+        tenant_id = auth.tenant_id if hasattr(auth, 'tenant_id') else None
+        
+        # Get client IP
+        client_ip = request.client.host if request.client else None
+        
+        # Validate event type
+        try:
+            event_type = AuditEventType(event_data.event_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid event type: {event_data.event_type}")
+        
+        # Log the event
+        success = sar_audit.log_event(
+            event_type=event_type,
+            user_id=user_id or event_data.user_id,
+            tenant_id=tenant_id or event_data.tenant_id,
+            client_ip=client_ip,
+            resource=event_data.resource,
+            action=event_data.action,
+            resource_id=event_data.resource_id,
+            metadata=event_data.metadata,
+            success=event_data.success,
+            error_message=event_data.error_message
+        )
+        
+        if success:
+            logger.info(f"✅ Audit event logged: {event_type.value} - {event_data.resource}")
+            return {
+                "status": "success",
+                "message": "Audit event logged successfully",
+                "event_type": event_type.value,
+                "resource": event_data.resource,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            logger.error(f"❌ Failed to log audit event: {event_type.value}")
+            raise HTTPException(status_code=500, detail="Failed to log audit event")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error logging audit event: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/events", response_model=AuditLogResponse)

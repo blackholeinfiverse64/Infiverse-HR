@@ -13,6 +13,10 @@ import os
 import jwt
 from datetime import datetime, timezone
 import re
+from pymongo import MongoClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TenantType(Enum):
@@ -32,12 +36,16 @@ class TenantConfig:
     """Configuration class for SAR tenant resolution service"""
     
     def __init__(self):
-        self.jwt_secret_key = os.getenv("SAR_JWT_SECRET_KEY", "default_sar_secret_key")
+        # Use the same environment variables as the services
+        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "")
         self.tenant_isolation_enabled = os.getenv("SAR_TENANT_ISOLATION_ENABLED", "true").lower() == "true"
         self.require_tenant_header = os.getenv("SAR_REQUIRE_TENANT_HEADER", "false").lower() == "true"
         self.default_tenant_id = os.getenv("SAR_DEFAULT_TENANT_ID", "default")
         self.tenant_header_name = os.getenv("SAR_TENANT_HEADER_NAME", "X-Tenant-ID")
         self.tenant_context_key = os.getenv("SAR_TENANT_CONTEXT_KEY", "tenant_id")
+        # MongoDB Atlas configuration
+        self.mongodb_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.mongodb_db_name = os.getenv("MONGODB_DB_NAME", "bhiv_hr")
 
 
 class TenantInfo:
@@ -66,14 +74,37 @@ class TenantResolver:
     def __init__(self):
         self.config = TenantConfig()
         self.tenant_cache = {}  # In production, use a distributed cache
+        self._client = None
+        self._db = None
+        self._connect_to_mongodb()
+    
+    def _connect_to_mongodb(self):
+        """Establish MongoDB connection for tenant data storage"""
+        try:
+            self._client = MongoClient(self.config.mongodb_uri)
+            self._db = self._client[self.config.mongodb_db_name]
+            # Create indexes for efficient queries
+            if self._db is not None:
+                self._db.clients.create_index([("tenant_id", 1)])
+                self._db.users.create_index([("tenant_id", 1)])
+                self._db.candidates.create_index([("tenant_id", 1)])
+            logger.info("✅ Connected to MongoDB for tenant data")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MongoDB for tenant data: {e}")
+            self._client = None
+            self._db = None
     
     def get_tenant_from_jwt(self, token: str) -> Optional[TenantInfo]:
         """Extract tenant information from JWT token"""
         try:
-            payload = jwt.decode(token, self.config.jwt_secret_key, algorithms=["HS256"])
+            # Use the same JWT verification logic as the auth service
+            from auth.auth_service import sar_auth
+            payload = sar_auth.verify_jwt_token(token, secret=self.config.jwt_secret_key)
+            if not payload:
+                return None
             
             # Extract tenant information from JWT claims
-            tenant_id = payload.get("tenant_id") or payload.get("client_id")
+            tenant_id = payload.get("tenant_id") or payload.get("client_id") or payload.get("user_id")
             if not tenant_id:
                 return None
             
@@ -83,18 +114,37 @@ class TenantResolver:
             except ValueError:
                 tenant_type = TenantType.CLIENT  # Default fallback
             
+            # Get additional tenant information from MongoDB if available
+            tenant_name = payload.get("tenant_name") or payload.get("company_name") or payload.get("name", "")
+            if self._db is not None:
+                try:
+                    # Try to get tenant name from clients collection
+                    client_doc = self._db.clients.find_one({"client_id": tenant_id})
+                    if client_doc and client_doc.get("company_name"):
+                        tenant_name = client_doc["company_name"]
+                    else:
+                        # Try to get tenant name from users collection
+                        user_doc = self._db.users.find_one({"user_id": tenant_id})
+                        if user_doc and user_doc.get("name"):
+                            tenant_name = user_doc["name"]
+                except Exception as e:
+                    logger.warning(f"Failed to get tenant name from MongoDB: {e}")
+            
             return TenantInfo(
                 tenant_id=tenant_id,
                 tenant_type=tenant_type,
-                name=payload.get("tenant_name", payload.get("company_name", "")),
+                name=tenant_name,
                 metadata={
                     "exp": payload.get("exp"),
                     "iat": payload.get("iat"),
                     "permissions": payload.get("permissions", []),
-                    "source": "jwt"
+                    "source": "jwt",
+                    "email": payload.get("email"),
+                    "role": payload.get("role", "candidate")
                 }
             )
-        except jwt.PyJWTError:
+        except Exception as e:
+            logger.error(f"Error extracting tenant from JWT: {e}")
             return None
     
     def get_tenant_from_header(self, request: Request) -> Optional[TenantInfo]:
@@ -143,22 +193,62 @@ class TenantResolver:
         if not self.config.tenant_isolation_enabled:
             return True  # Bypass validation if isolation is disabled
         
-        return tenant_info.tenant_id == resource_tenant_id
+        # Check if tenant has direct access to the resource
+        if tenant_info.tenant_id == resource_tenant_id:
+            return True
+        
+        # Check if tenant has cross-tenant access permissions (e.g., admin users)
+        if self._db is not None:
+            try:
+                # Check if the tenant is an admin or has cross-tenant permissions
+                user_doc = self._db.users.find_one({"user_id": tenant_info.tenant_id})
+                if user_doc and user_doc.get("role") == "admin":
+                    logger.info(f"Admin user {tenant_info.tenant_id} granted cross-tenant access to {resource_tenant_id}")
+                    return True
+                
+                # Check if there are explicit cross-tenant permissions
+                permission_doc = self._db.tenant_permissions.find_one({
+                    "tenant_id": tenant_info.tenant_id,
+                    "target_tenant_id": resource_tenant_id,
+                    "permission": "read"  # or "write"
+                })
+                if permission_doc:
+                    logger.info(f"Cross-tenant permission granted for {tenant_info.tenant_id} to access {resource_tenant_id}")
+                    return True
+            except Exception as e:
+                logger.warning(f"Failed to check cross-tenant permissions: {e}")
+        
+        return False
     
-    def get_tenant_isolation_query_filter(self, tenant_info: TenantInfo, table_name: str = "jobs") -> str:
-        """Get the SQL query filter for tenant isolation"""
+    def get_tenant_isolation_query_filter(self, tenant_info: TenantInfo, collection_name: str = "jobs") -> Dict[str, Any]:
+        """Get the MongoDB query filter for tenant isolation"""
         if not self.config.tenant_isolation_enabled:
-            return ""  # No filter needed if isolation is disabled
+            return {}  # No filter needed if isolation is disabled
         
-        # Determine the appropriate column name based on table
-        if table_name in ["jobs", "offers", "feedback", "interviews"]:
-            column = "client_id"
-        elif table_name in ["candidates", "users"]:
-            column = "tenant_id"  # For tenant-scoped tables
+        # Determine the appropriate field name based on collection
+        if collection_name in ["jobs", "offers", "feedback", "interviews"]:
+            field = "client_id"
+        elif collection_name in ["candidates", "users"]:
+            field = "tenant_id"  # For tenant-scoped collections
         else:
-            column = "tenant_id"  # Default
+            field = "tenant_id"  # Default
         
-        return f"{column} = '{tenant_info.tenant_id}'"
+        return {field: tenant_info.tenant_id}
+    
+    def get_tenant_isolation_aggregation_pipeline(self, tenant_info: TenantInfo, collection_name: str = "jobs") -> List[Dict[str, Any]]:
+        """Get the MongoDB aggregation pipeline for tenant isolation"""
+        if not self.config.tenant_isolation_enabled:
+            return []  # No pipeline needed if isolation is disabled
+        
+        # Determine the appropriate field name based on collection
+        if collection_name in ["jobs", "offers", "feedback", "interviews"]:
+            field = "client_id"
+        elif collection_name in ["candidates", "users"]:
+            field = "tenant_id"  # For tenant-scoped collections
+        else:
+            field = "tenant_id"  # Default
+        
+        return [{"$match": {field: tenant_info.tenant_id}}]
     
     def create_tenant_context(self, tenant_info: TenantInfo) -> Dict[str, Any]:
         """Create a tenant context dictionary for use in request handlers"""
