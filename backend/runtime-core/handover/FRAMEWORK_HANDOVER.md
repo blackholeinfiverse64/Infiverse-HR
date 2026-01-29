@@ -6,17 +6,16 @@
 2. [Quick Start Guide](#quick-start-guide)
 3. [Architecture Overview](#architecture-overview)
 4. [Module Development Guide](#module-development-guide)
-5. [AI/RL Integration Guidelines](#airl-integration-guidelines)
-6. [Configuration Guide](#configuration-guide)
-7. [Security & Compliance](#security--compliance)
-8. [Deployment Guide](#deployment-guide)
-9. [Troubleshooting](#troubleshooting)
-10. [Team Contacts](#team-contacts)
-11. [Support & Maintenance](#support--maintenance)
+5. [Configuration Guide](#configuration-guide)
+6. [Security & Compliance](#security--compliance)
+7. [Deployment Guide](#deployment-guide)
+8. [Troubleshooting](#troubleshooting)
+9. [Team Contacts](#team-contacts)
+10. [Support & Maintenance](#support--maintenance)
 
 ## Executive Summary
 
-The Sovereign Application Runtime (SAR) is a production-ready, multi-tenant application platform that provides essential infrastructure services for building secure, scalable SaaS applications with complete tenant isolation, robust security measures, and integrated MongoDB Atlas database backend.
+The Sovereign Application Runtime (SAR) is a production-ready, multi-tenant application platform that provides essential infrastructure services for building secure, scalable SaaS applications with complete tenant isolation, robust security measures, and integrated MongoDB database backend.
 
 ### Key Features
 - **Authentication Service**: JWT/API key auth with 2FA and password management
@@ -24,9 +23,8 @@ The Sovereign Application Runtime (SAR) is a production-ready, multi-tenant appl
 - **Role Enforcement**: Comprehensive RBAC with 5 predefined roles
 - **Audit Logging**: Complete audit trails with provenance tracking and MongoDB storage
 - **Workflow Engine**: Business process automation with instance management and MongoDB persistence
-- **AI/RL Integration**: Intelligent automation and reinforcement learning hooks
 - **Integration Adapters**: Pluggable adapters for external systems with secure API communication
-- **Database**: MongoDB Atlas integration as primary database backend with elastic scaling
+- **Database**: MongoDB integration as primary database backend with elastic scaling
 
 ### Business Value
 - **Reusable Infrastructure**: <10% glue code needed for new product integration
@@ -40,6 +38,7 @@ The Sovereign Application Runtime (SAR) is a production-ready, multi-tenant appl
 - Python 3.12+
 - pip package manager
 - Docker (optional, for containerized deployment)
+- MongoDB instance (local or Atlas)
 
 ### Installation
 ```bash
@@ -78,6 +77,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - **Swagger UI**: http://localhost:8000/docs
 - **API Root**: http://localhost:8000/
 - **Health Check**: http://localhost:8000/health
+- **Ready Check**: http://localhost:8000/ready
 - **Default API Key**: `default_sar_api_key`
 
 ## Architecture Overview
@@ -108,13 +108,13 @@ The framework consists of 5 core microservices:
 - Captures comprehensive audit trails
 - Maintains provenance tracking for data modifications
 - Provides search and analysis capabilities
-- Supports configurable storage backends
+- Stores data in MongoDB with configurable retention
 
 #### 5. Workflow Engine
 - Automates business processes with dependency management
 - Manages workflow definitions and instances
 - Provides lifecycle controls (start, pause, resume, cancel)
-- Supports tenant-isolated workflow execution
+- Supports tenant-isolated workflow execution with MongoDB persistence
 
 ### Integration Layer
 
@@ -128,14 +128,6 @@ The framework includes a pluggable adapter layer for external system integration
 
 All adapters follow the same interface and are designed to be optional and fail-safe.
 
-### AI/RL Integration Layer
-
-The framework includes hooks for AI/RL integration:
-- Clean abstraction layer for AI services
-- Reinforcement learning feedback loops
-- Graceful degradation when AI/RL services unavailable
-- Tenant isolation maintained for AI/RL service calls
-
 ## Module Development Guide
 
 ### Adding a New Module (CRM/ERP/etc.)
@@ -146,22 +138,17 @@ The framework includes hooks for AI/RL integration:
    cd modules/new_module
    ```
 
-2. **Follow HR Reference Pattern**
-   - Examine `/modules/hr/` for implementation patterns
+2. **Follow Reference Pattern**
+   - Examine the runtime-core services for implementation patterns
    - Use the same authentication and tenancy services
-   - Leverage the shared services from `/runtime-core/`
+   - Leverage the shared services from the runtime-core
 
 3. **Ensure Tenant Isolation**
    - Include tenant_id scoping in all data access
    - Use tenant resolution service for context
    - Validate tenant access before operations
 
-4. **Implement AI/RL Integration**
-   - Use the AI/RL service abstraction layer
-   - Implement intelligent automation where beneficial
-   - Maintain loose coupling with AI/RL services
-
-5. **API Endpoint Patterns**
+4. **API Endpoint Patterns**
    - Follow RESTful API design principles
    - Use consistent authentication patterns
    - Implement proper error handling
@@ -174,60 +161,11 @@ The framework includes hooks for AI/RL integration:
 - Maintain backward compatibility
 - Write comprehensive tests
 
-## AI/RL Integration Guidelines
-
-### Integration Architecture
-
-The AI/RL integration follows a service wrapper pattern to maintain loose coupling:
-
-```python
-# Use the AI/RL service wrapper
-class AIServiceWrapper:
-    def __init__(self):
-        self.ai_available = True  # Check service availability
-    
-    def get_recommendation(self, data):
-        if not self.ai_available:
-            return self.fallback_logic(data)
-        # Call AI service
-        return ai_client.process(data)
-```
-
-### Implementation Guidelines
-
-1. **Optional Integration**
-   - Use the AI/RL service wrapper to maintain optional integration
-   - Implement graceful degradation when services unavailable
-   - Provide fallback logic for all AI-dependent features
-
-2. **Tenant Isolation**
-   - Apply the same tenant isolation patterns for AI/RL service calls
-   - Ensure AI service calls include proper tenant context
-   - Maintain data privacy in AI service communications
-
-3. **Error Handling**
-   - Implement appropriate error handling for external services
-   - Set reasonable timeouts for AI/RL service calls
-   - Log all AI/RL interactions for audit and debugging
-
-4. **Performance Considerations**
-   - Cache AI results when appropriate
-   - Implement async processing for time-consuming operations
-   - Monitor AI service response times
-
-### Configuration
-
-AI/RL services are configured via environment variables:
-- `AI_SERVICE_ENDPOINT`: URL for AI service
-- `RL_SERVICE_API_KEY`: API key for reinforcement learning service
-- `AI_TIMEOUT_SECONDS`: Timeout for AI service calls
-- `AI_FALLBACK_ENABLED`: Whether to use fallback logic
-
 ## Configuration Guide
 
 ### Environment Variables
 
-The framework relies on environment variables for configuration. The `.env.example` file contains all required variables:
+The framework relies on environment variables for configuration:
 
 #### Authentication
 - `API_KEY_SECRET`: Secret for API key authentication
@@ -235,23 +173,25 @@ The framework relies on environment variables for configuration. The `.env.examp
 - `CANDIDATE_JWT_SECRET_KEY`: Secret for candidate tokens
 
 #### Database
-- `MONGODB_URI`: Connection string for MongoDB Atlas cluster
-- `MONGODB_DB_NAME`: Database name in MongoDB Atlas (default: bhiv_hr)
+- `MONGODB_URI`: Connection string for MongoDB (default: mongodb://localhost:27017)
+- `MONGODB_DB_NAME`: Database name in MongoDB (default: bhiv_hr)
 
 #### Services
-- `GATEWAY_SERVICE_URL`: URL for gateway service
-- `AGENT_SERVICE_URL`: URL for agent service
-- `LANGGRAPH_SERVICE_URL`: URL for LangGraph service
+- `AUDIT_LOGGING_ENABLED`: Enable/disable audit logging
+- `AUDIT_STORAGE_BACKEND`: Storage backend for audit logs (mongodb/file/memory)
+- `TENANT_ISOLATION_ENABLED`: Enable/disable tenant isolation
+- `WORKFLOW_STORAGE_BACKEND`: Storage backend for workflows (mongodb/memory)
 
 #### Integration Adapters
-- `ARTHA_API_URL`: Artha payroll system API endpoint
-- `ARTHA_API_KEY`: API key for Artha system
+- `ARTHRA_API_URL`: Artha payroll system API endpoint
+- `ARTHRA_API_KEY`: API key for Artha system
 - `KARYA_API_URL`: Karya task system API endpoint
 - `KARYA_API_KEY`: API key for Karya system
 - `INSIGHTFLOW_API_URL`: InsightFlow analytics API endpoint
 - `INSIGHTFLOW_API_KEY`: API key for InsightFlow system
 - `BUCKET_API_URL`: Bucket storage API endpoint
 - `BUCKET_CREDENTIALS`: Credentials for Bucket storage system
+
 #### Security Settings
 - `MAX_LOGIN_ATTEMPTS`: Maximum failed login attempts before lockout
 - `JWT_EXPIRATION_HOURS`: JWT token expiration time
@@ -295,13 +235,11 @@ The framework relies on environment variables for configuration. The `.env.examp
 
 #### Data Privacy
 - Tenant isolation ensuring data separation
-- GDPR/CCPA compliance capabilities
 - Right to deletion implementation
 - Data minimization principles
 
 ### Security Best Practices
 - Regular security audits
-- Penetration testing
 - Vulnerability scanning
 - Secure coding practices
 - Access control reviews
@@ -314,7 +252,7 @@ The framework relies on environment variables for configuration. The `.env.examp
 1. Set up production environment with appropriate hardware
 2. Configure firewall and network security
 3. Set up SSL certificates for HTTPS
-4. Prepare database infrastructure
+4. Prepare database infrastructure (MongoDB)
 
 #### Configuration
 1. Update environment variables for production
@@ -324,21 +262,20 @@ The framework relies on environment variables for configuration. The `.env.examp
 
 #### Deployment Process
 1. Deploy the framework to production servers
-2. Run database migrations if applicable
-3. Start all services
-4. Perform smoke tests
-5. Monitor initial operation
+2. Start all services
+3. Perform smoke tests
+4. Monitor initial operation
 
 ### Docker Deployment
 
 #### Building the Image
 ```bash
-docker build -t bharat-sar-runtime .
+docker build -t sar-runtime .
 ```
 
 #### Running with Docker
 ```bash
-docker run -p 8000:8000 --env-file .env bharat-sar-runtime
+docker run -p 8000:8000 --env-file .env sar-runtime
 ```
 
 #### Docker Compose
@@ -358,23 +295,23 @@ docker-compose -f docker-compose.yml up -d
 
 #### 1. Authentication Issues
 - **Problem**: Unable to authenticate
-- **Solution**: Verify API_KEY_SECRET, JWT_SECRET_KEY, and CANDIDATE_JWT_SECRET_KEY in environment variables. Check MongoDB Atlas connection for user data storage.
+- **Solution**: Verify API_KEY_SECRET, JWT_SECRET_KEY, and CANDIDATE_JWT_SECRET_KEY in environment variables. Check MongoDB connection for user data storage.
 
 #### 2. Tenant Isolation Not Working
 - **Problem**: Cross-tenant data access
-- **Solution**: Verify all database queries include tenant_id filters. Check MongoDB Atlas collection indexes for tenant_id fields.
+- **Solution**: Verify all database queries include tenant_id filters. Check MongoDB collection indexes for tenant_id fields.
 
 #### 3. Adapter Not Loading
 - **Problem**: Integration adapters not initializing
-- **Solution**: Check adapter configuration in environment variables. Verify MongoDB Atlas connection for adapter event logging.
+- **Solution**: Check adapter configuration in environment variables. Verify MongoDB connection for adapter event logging.
 
-#### 4. AI/RL Service Integration Failing
-- **Problem**: AI/RL services not responding
-- **Solution**: Verify AI_SERVICE_ENDPOINT and RL_SERVICE_API_KEY, check service connectivity. Ensure MongoDB Atlas is available for RL data persistence.
-
-#### 5. Performance Issues
+#### 4. Performance Issues
 - **Problem**: Slow response times
-- **Solution**: Check MongoDB Atlas connection pool settings, optimize database indexes, monitor resource usage. Consider enabling MongoDB Atlas performance advisor.
+- **Solution**: Check MongoDB connection pool settings, optimize database indexes, monitor resource usage.
+
+#### 5. MongoDB Connection Issues
+- **Problem**: Cannot connect to database
+- **Solution**: Verify MONGODB_URI and MONGODB_DB_NAME environment variables. Check that MongoDB service is running and accessible.
 
 ### Diagnostic Commands
 
@@ -382,8 +319,8 @@ docker-compose -f docker-compose.yml up -d
 # Check service health
 curl http://localhost:8000/health
 
-# Check MongoDB Atlas connection
-python -c "from runtime_core.tenancy.tenant_service import sar_tenant_resolver; print('MongoDB connection:', 'OK' if sar_tenant_resolver._db else 'FAILED')"
+# Check service readiness
+curl http://localhost:8000/ready
 
 # Check all endpoints
 python test/test_all_endpoints.py --verbose
@@ -391,8 +328,8 @@ python test/test_all_endpoints.py --verbose
 # View logs
 tail -f logs/application.log
 
-# Check adapter status
-curl http://localhost:8000/integration/
+# Check MongoDB connection
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017'); print('MongoDB connection:', 'OK' if client.admin.command('ping')['ok'] else 'FAILED')"
 ```
 
 ### Monitoring
@@ -404,20 +341,17 @@ curl http://localhost:8000/integration/
 ## Team Contacts
 
 ### Core Framework
-- **Framework Architect**: Ashmit (Integration architecture)
-- **Platform Engineer**: Vinayak (QA and deployment)
+- **Framework Architect**: Development team
+- **Platform Engineer**: DevOps team
 
 ### Module Development
-- **Frontend/UI**: Nikhil
-- **Backend Services**: Development team
-
-### AI/RL Integration
-- **AI Specialist**: Ishan Shirode
+- **Frontend/UI**: UI/UX team
+- **Backend Services**: Backend development team
 
 ### Support Channels
-- **Technical Queries**: framework-support@bharat-platform.com
-- **Security Issues**: security@bharat-platform.com
-- **Urgent Issues**: escalation@bharat-platform.com
+- **Technical Queries**: runtime-core-support@company.com
+- **Security Issues**: security@company.com
+- **Urgent Issues**: escalation@company.com
 
 ## Support & Maintenance
 
