@@ -46,8 +46,20 @@
 23. [How do I run security audits?](#q23-how-do-i-run-security-audits)
 24. [Rate limiting errors - what to do?](#q24-rate-limiting-errors---what-to-do)
 
-### **Portal Issues**
+### Portal Issues
 25. [Portal not loading - how to fix?](#q25-portal-not-loading---how-to-fix)
+
+### Multi-Tenancy and Scaling
+26. [Can this support multiple companies?](#q26-can-this-support-multiple-companies)
+27. [Is the system production-ready for multi-tenancy?](#q27-is-the-system-production-ready-for-multi-tenancy)
+
+### Reusability and Framework
+28. [Is the hiring loop reusable for other purposes?](#q28-is-the-hiring-loop-reusable-for-other-purposes)
+29. [How do I integrate this into my own system?](#q29-how-do-i-integrate-this-into-my-own-system)
+
+### Demo and Presentation
+30. [What should I demonstrate in a demo?](#q30-what-should-i-demonstrate-in-a-demo)
+31. [What are the known limitations for demos?](#q31-what-are-the-known-limitations-for-demos)
 26. [Client portal login fails - what to do?](#q26-client-portal-login-fails---what-to-do)
 27. [Dashboard shows stale data - how to refresh?](#q27-dashboard-shows-stale-data---how-to-refresh)
 28. [How do I explore portal features?](#q28-how-do-i-explore-portal-features)
@@ -3118,6 +3130,147 @@ docker-compose -f docker-compose.production.yml logs gateway | \
 - Use batch endpoints for multiple items
 - Monitor your request patterns
 - Request tier upgrade if consistently hitting limits
+
+
+### Q26: Can this support multiple companies?
+
+**Answer**: Yes, the system is designed with multi-tenancy in mind, though currently operating in single-tenant mode:
+
+**Current State**:
+- ✅ Multi-tenant framework fully implemented in runtime-core
+- ✅ Tenant resolution service with JWT and header-based resolution
+- ✅ Tenant isolation middleware ready for activation
+- ❌ Not currently enforced (operating as single-tenant)
+
+**Activation Requirements**:
+1. Database schema updates (add tenant_id to all collections)
+2. Query modifications (filter all queries by tenant_id)
+3. Configuration changes (enable tenant isolation flags)
+4. Testing (validate cross-tenant data separation)
+
+**Timeline**: 2-3 weeks for full multi-tenant activation.
+
+---
+
+### Q27: Is the system production-ready for multi-tenancy?
+
+**Answer**: The framework is production-ready but requires activation:
+
+**Ready Components**:
+- ✅ Complete tenancy service in runtime-core
+- ✅ Tenant resolution from JWT tokens
+- ✅ Cross-tenant access validation
+- ✅ Tenant-aware query filtering functions
+- ✅ Integration with audit logging
+
+**Activation Steps Required**:
+1. Enable tenant isolation in configuration
+2. Add tenant_id fields to all MongoDB collections
+3. Update all database queries to include tenant filtering
+4. Test tenant isolation with multiple tenant data
+5. Deploy with multi-tenant configuration
+
+**Risk Level**: Medium (well-tested framework, requires deployment changes)
+
+---
+
+### Q28: Is the hiring loop reusable for other purposes?
+
+**Answer**: Yes, the hiring loop is specifically designed for reuse across different domains:
+
+**Reusable Components**:
+- Job/Requirement processing (adaptable to any requirement type)
+- Candidate/Entity matching (works with any entity type)
+- Application/Request workflow (generic request processing)
+- Evaluation/Review process (applicable to any assessment)
+- Decision-making workflow (domain-agnostic logic)
+
+**Adaptation Examples**:
+- CRM: Lead qualification → Proposal → Approval → Onboarding
+- ERP: Purchase request → Approval → Procurement → Receipt
+- Project Management: Task creation → Assignment → Review → Completion
+
+**Implementation**: Use the same workflow engine with domain-specific adapters.
+
+---
+
+### Q29: How do I integrate this into my own system?
+
+**Answer**: Integration follows a standardized adapter pattern:
+
+**Integration Methods**:
+
+1. **API Integration** (Recommended):
+   - Use REST API endpoints for data exchange
+   - Implement webhook callbacks for event notifications
+   - Leverage OAuth/JWT for secure authentication
+
+2. **SDK Integration**:
+   - Import core workflow engines directly
+   - Use domain adapters to map your data structures
+   - Implement callback interfaces for custom logic
+
+3. **Database Integration**:
+   - Direct MongoDB access with proper tenant isolation
+   - Use provided schema definitions
+   - Implement proper data synchronization
+
+**Steps**:
+1. Identify your domain entities that map to our concepts
+2. Create adapter classes for data transformation
+3. Configure tenant isolation if needed
+4. Implement authentication integration
+5. Test with sample data
+6. Deploy with monitoring
+
+**Documentation**: See FRAMEWORK_HANDOVER.md for detailed integration guides.
+
+---
+
+### Q30: What should I demonstrate in a demo?
+
+**Answer**: Focus on these key capabilities during demonstrations:
+
+**Primary Demo Flow**:
+1. Job creation and posting (show ease of use)
+2. Candidate application process (highlight UX)
+3. AI-powered matching (emphasize speed and accuracy)
+4. Values assessment integration (differentiator)
+5. Multi-channel notifications (automation benefits)
+
+**Key Metrics to Highlight**:
+- AI matching speed: <0.02s per candidate
+- Multi-channel notifications: Email, WhatsApp, Telegram
+- Values-based assessment: 5-dimension evaluation
+- Workflow automation: From application to decision
+
+**Demo Duration**: 15-20 minutes maximum
+
+**Materials**: Use the DEMO_RUNBOOK.md for step-by-step instructions.
+
+---
+
+### Q31: What are the known limitations for demos?
+
+**Answer**: Be transparent about current limitations:
+
+**Technical Limitations**:
+- Operating in single-tenant mode (multi-tenant framework ready but not activated)
+- AI model performance may vary with small datasets
+- Third-party service dependencies (email/SMS providers)
+- Demo data may not reflect production volumes
+
+**Functional Limitations**:
+- Advanced reporting features still in development
+- Some integration points are mocked/placeholder
+- Reinforcement learning feedback loops still learning
+
+**Operational Limitations**:
+- Requires stable internet connection
+- Dependent on third-party API availability
+- Performance may vary during peak usage
+
+**Mitigation**: Always have backup scenarios and pre-recorded examples ready.
 
 ---
 

@@ -2,7 +2,10 @@
 
 **Document Status**: DEMO-READY | FACTUAL | NON-NEGOTIABLE  
 **Created**: January 23, 2026  
+**Updated**: January 29, 2026  
 **Purpose**: Explicit boundary separation for HR platform components
+
+**Current System Status**: MongoDB Atlas migration complete, 111 endpoints operational, production-ready
 
 ---
 
@@ -18,25 +21,29 @@ This document establishes clear boundaries between HR-specific logic, reusable p
 These components contain pure HR domain knowledge and workflows:
 
 #### 1. Candidate Management
-- **Location**: `services/gateway/routes/` (candidate-related endpoints)
+- **Location**: `services/gateway/app/main.py` (candidate-related endpoints)
 - **Logic**: 
-  - Candidate profile validation and storage
+  - Candidate profile validation and storage in MongoDB
   - Application status tracking (applied → screened → interviewed → offered → hired/rejected)
   - Experience level categorization (Junior, Mid-level, Senior, Lead)
   - Technical skills parsing and normalization
+  - Values assessment (Integrity, Honesty, Discipline, Hard Work, Gratitude)
 - **HR Domain Concepts**: Recruitment workflows, candidate lifecycle, hiring stages
+- **Current Implementation**: 111 operational endpoints, MongoDB Atlas integration
 
 #### 2. Job Posting & Requirements
-- **Location**: `services/gateway/routes/jobs.py`
+- **Location**: `services/gateway/app/main.py` (job-related endpoints)
 - **Logic**:
   - Job description parsing and requirement extraction
   - Department categorization (Engineering, Sales, Marketing, HR, Finance)
   - Experience level matching requirements
   - Employment type classification (Full-time, Part-time, Contract, Intern)
+  - Client_id based tenant context (single-tenant implementation)
 - **HR Domain Concepts**: Job requisition, role requirements, organizational structure
+- **Current Implementation**: MongoDB collections for jobs, applications, interviews, offers
 
 #### 3. Values-Based Assessment System
-- **Location**: `services/db/consolidated_schema.sql` (feedback table)
+- **Location**: `services/gateway/app/main.py` and MongoDB `feedback` collection
 - **Logic**:
   - Integrity scoring (1-5 scale)
   - Honesty assessment (1-5 scale)
@@ -44,22 +51,27 @@ These components contain pure HR domain knowledge and workflows:
   - Hard work measurement (1-5 scale)
   - Gratitude assessment (1-5 scale)
 - **HR Domain Concepts**: Cultural fit assessment, behavioral evaluation, values alignment
+- **Current Implementation**: Integrated into feedback submission endpoints, stored in MongoDB
 
 #### 4. Interview Scheduling
-- **Location**: `services/db/consolidated_schema.sql` (interviews table)
+- **Location**: `services/gateway/app/main.py` and MongoDB `interviews` collection
 - **Logic**:
   - Interview type classification (Technical, HR, Behavioral, Final, Panel)
   - Scheduling workflow management
   - Interviewer assignment logic
+  - Integration with LangGraph for automated scheduling workflows
 - **HR Domain Concepts**: Interview process, candidate evaluation stages
+- **Current Implementation**: Automated workflows via LangGraph service
 
 #### 5. Offer Management
-- **Location**: `services/db/consolidated_schema.sql` (offers table)
+- **Location**: `services/gateway/app/main.py` and MongoDB `offers` collection
 - **Logic**:
   - Salary negotiation workflows
   - Terms and conditions management
   - Offer acceptance/rejection tracking
+  - Integration with communication services for offer delivery
 - **HR Domain Concepts**: Compensation management, employment agreements
+- **Current Implementation**: Multi-channel notification support (Email, SMS, WhatsApp, Telegram)
 
 ---
 
