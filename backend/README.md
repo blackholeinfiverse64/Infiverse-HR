@@ -121,7 +121,6 @@ backend/
 ├── setup_venv.bat                # Windows virtual environment setup
 ├── test_mongodb_atlas.py         # MongoDB connection tester
 ├── test_mongodb_setup.py         # MongoDB setup validation
-├── MONGODB_VERIFICATION_REPORT.md # MongoDB connection report
 ├── __pycache__/                  # Python bytecode cache
 ├── Ishan's_AI_HR_System-main/    # Legacy AI system (reference only)
 ├── Task/                         # Task documentation files
@@ -158,13 +157,12 @@ services/
 │   │   ├── __init__.py
 │   │   ├── database.py          # MongoDB async connection
 │   │   ├── db_helpers.py        # MongoDB utility functions
-│   │   ├── main.py              # Main application (77+ endpoints)
-│   │   └── monitoring.py        # Monitoring utilities
+│   │   └── main.py              # Main application (77+ endpoints)
 │   ├── config.py                # Configuration management
 │   ├── docker-compose.yml       # Service-specific compose
 │   ├── jwt_auth.py              # JWT authentication
 │   ├── langgraph_integration.py # LangGraph service integration
-│   ├── monitoring.py            # Advanced monitoring
+│   ├── monitoring.py            # Advanced monitoring 
 │   ├── requirements.txt         # Service-specific dependencies
 │   └── routes/                  # Modular route definitions
 ├── langgraph/                    # LangGraph Service (Port 9001)
@@ -172,15 +170,21 @@ services/
 │   ├── README.md                # Service documentation
 │   ├── app/                     # FastAPI + LangGraph application
 │   │   ├── __init__.py
-│   │   ├── app.py               # Main application (25 endpoints)
-│   │   ├── communication/       # Multi-channel communication
+│   │   ├── main.py              # Main application 
+│   │   ├── agents.py            # Agent implementations
+│   │   ├── communication.py     # Multi-channel communication
 │   │   ├── config.py            # Configuration
 │   │   ├── database.py          # MongoDB connection
+│   │   ├── graphs.py            # Graph definitions
+│   │   ├── mongodb_checkpointer.py # Workflow checkpointing
 │   │   ├── mongodb_tracker.py   # Workflow tracking
+│   │   ├── monitoring.py        # Monitoring utilities
 │   │   ├── rl_database.py       # RL data management
-│   │   ├── rl_integration/      # RL components
-│   │   ├── semantic_matcher.py  # Semantic matching
-│   │   └── workflows/           # Workflow definitions
+│   │   ├── rl_engine.py         # RL engine implementation
+│   │   ├── rl_performance_monitor.py # RL performance monitoring
+│   │   ├── state.py             # State management
+│   │   ├── tools.py             # Tool implementations
+│   │   └── rl_integration/      # RL integration components
 │   ├── config.py                # Pydantic configuration
 │   ├── dependencies.py          # Authentication dependencies
 │   ├── docker-compose.yml       # Service-specific compose
@@ -196,21 +200,21 @@ services/
 docs/
 ├── README.md                    # Documentation overview
 ├── analysis/                    # Code analysis reports
-│   ├── CODE_QUALITY_ANALYSIS.md
-│   └── COMPREHENSIVE_CODEBASE_ANALYSIS.md
+│   ├── DOCUMENTATION_UPDATE_SUMMARY.md
+│   └── REFLECTION.md
 ├── api/                         # API documentation
-│   └── API_CONTRACT.md
+│   └── API_DOCUMENTATION.md
 ├── architecture/                # System architecture
-│   ├── ARCHITECTURE.md
-│   ├── SERVICE_DEPENDENCY_GRAPH.md
-│   └── SYSTEM_ARCHITECTURE.md
+│   ├── DEPLOYMENT_STATUS.md
+│   ├── PROJECT_STRUCTURE.md
+│   └── PROJECT_TREE_STRUCTURE.md
 ├── database/                    # Database documentation
 │   ├── DATABASE_DOCUMENTATION.md
-│   ├── DATABASE_SCHEMA.md
+│   ├── DATABASE_FIX_SUMMARY.md
+│   ├── DBEAVER_SETUP_GUIDE.md
 │   ├── MONGODB_ATLAS_SETUP.md
 │   ├── MONGODB_COLLECTIONS.md
-│   ├── POSTGRES_MIGRATION_PLAN.md
-│   └── MONGODB_VERIFICATION_REPORT.md
+│   └── MONGODB_QUICK_QUERIES.md
 ├── guides/                      # Development guides
 │   ├── AUTHENTICATION_FLOW.md
 │   ├── BACKEND_INTEGRATION_GUIDE.md
@@ -301,7 +305,7 @@ git clone <repository-url>
 cd Infiverse-HR
 
 # Run both backend and frontend
-run_project.bat
+../run_project.bat
 ```
 
 #### Option 2: Manual Setup
@@ -871,7 +875,6 @@ python services/gateway/migrate_mongodb_schema.py
 - **`setup_venv.bat`**: Windows script for virtual environment setup
 - **`test_mongodb_atlas.py`**: Test script for MongoDB Atlas connectivity
 - **`test_mongodb_setup.py`**: Comprehensive MongoDB connection testing
-- **`MONGODB_VERIFICATION_REPORT.md`**: Detailed MongoDB connection test report
 - **`__pycache__`**: Python bytecode cache directory
 
 ### Services Directory Deep Dive
@@ -897,19 +900,16 @@ python services/gateway/migrate_mongodb_schema.py
 ### Documentation Structure
 
 **Analysis Documentation (`docs/analysis/`):**
-- Code quality analysis reports
-- Comprehensive codebase analysis
-- Performance and security assessments
+- `DOCUMENTATION_UPDATE_SUMMARY.md`: Summary of documentation updates
+- `REFLECTION.md`: Reflection and analysis document
 
 **API Documentation (`docs/api/`):**
-- Complete API contract documentation
-- Endpoint specifications and schemas
-- Integration guides and examples
+- `API_DOCUMENTATION.md`: Complete API documentation and specifications
 
 **Architecture Documentation (`docs/architecture/`):**
-- System architecture diagrams
-- Service dependency graphs
-- Design patterns and decisions
+- `DEPLOYMENT_STATUS.md`: Deployment status and architecture overview
+- `PROJECT_STRUCTURE.md`: Detailed project structure documentation
+- `PROJECT_TREE_STRUCTURE.md`: Tree structure of the project
 
 **Database Documentation (`docs/database/`):**
 - MongoDB Atlas setup guides
@@ -1011,7 +1011,6 @@ c:\Infiverse-HR\backend\
 ├── setup_venv.bat                # Windows batch script to set up virtual environment
 ├── test_mongodb_atlas.py         # MongoDB Atlas connection test script
 ├── test_mongodb_setup.py         # MongoDB setup test script
-├── MONGODB_VERIFICATION_REPORT.md # MongoDB connection verification report
 ├── __pycache__/                  # Python bytecode cache
 ├── Ishan's_AI_HR_System-main/    # Legacy AI HR system components (Reference Only)
 │   ├── app/
@@ -1060,14 +1059,14 @@ c:\Infiverse-HR\backend\
 ├── docs/                         # Comprehensive documentation
 │   ├── README.md                 # Documentation overview
 │   ├── analysis/                 # Analysis documentation
-│   │   ├── CODE_QUALITY_ANALYSIS.md # Code quality analysis
-│   │   └── COMPREHENSIVE_CODEBASE_ANALYSIS.md # Comprehensive analysis
+│   │   ├── DOCUMENTATION_UPDATE_SUMMARY.md # Documentation update summary
+│   │   └── REFLECTION.md # Reflection and analysis document
 │   ├── api/                      # API documentation
-│   │   └── API_CONTRACT.md       # API contract documentation
+│   │   └── API_DOCUMENTATION.md  # API documentation
 │   ├── architecture/             # Architecture documentation
-│   │   ├── ARCHITECTURE.md       # Architecture overview
-│   │   ├── SERVICE_DEPENDENCY_GRAPH.md # Service dependency graph
-│   │   └── SYSTEM_ARCHITECTURE.md # System architecture
+│   │   ├── DEPLOYMENT_STATUS.md      # Deployment status and architecture overview
+│   │   ├── PROJECT_STRUCTURE.md      # Project structure documentation
+│   │   └── PROJECT_TREE_STRUCTURE.md # Project tree structure
 │   ├── database/                 # Database documentation
 │   │   ├── DATABASE_DOCUMENTATION.md # Database documentation
 │   │   ├── DATABASE_SCHEMA.md    # Database schema
@@ -1320,7 +1319,6 @@ The BHIV HR Platform backend follows a modern microservices architecture with a 
 - **`c:\Infiverse-HR\backend\setup_venv.bat`**: Windows batch script to create and configure a Python virtual environment with all required dependencies.
 - **`c:\Infiverse-HR\backend\test_mongodb_atlas.py`**: Test script to verify connectivity and basic operations with MongoDB Atlas.
 - **`c:\Infiverse-HR\backend\test_mongodb_setup.py`**: Comprehensive test suite for MongoDB connection and schema validation.
-- **`c:\Infiverse-HR\backend\MONGODB_VERIFICATION_REPORT.md`**: Detailed report of MongoDB connection tests and performance metrics.
 - **`c:\Infiverse-HR\backend\__pycache__`**: Automatically generated directory containing Python bytecode cache files.
 
 ### Development Workflow & Best Practices
