@@ -1117,15 +1117,11 @@ c:\Infiverse-HR\backend\
 │   ├── architecture/             # Architecture handover
 │   │   └── ARCHITECTURE_OVERVIEW.md # Architecture overview
 │   ├── integration_maps/         # Integration maps
-│   │   └── SERVICE_INTEGRATION_MAPS.md # Service integration maps
+│   │   └── INTEGRATION_MAPS.md # Integration maps
 │   ├── issues/                   # Issues documentation
-│   │   └── ISSUES_LOG.md         # Issues log
+│   │   └── ISSUES_AND_LIMITATIONS.md         # Issues and limitations log
 │   ├── postman/                  # Postman collections
-│   │   ├── Agent.postman_collection.json # Agent service Postman collection
-│   │   ├── Gateway.postman_collection.json # Gateway service Postman collection
-│   │   ├── LangGraph.postman_collection.json # LangGraph service Postman collection
-│   │   ├── Portal.postman_collection.json # Portal service Postman collection
-│   │   └── bhiv_hr_platform.postman_collection.json # Main Postman collection
+│   │   └── postman_collection.json # Main Postman collection
 │   ├── FAQ.md                    # Frequently asked questions
 │   ├── HOW_TO_TEST.md            # Testing guide
 │   ├── ISOLATION_CHECKLIST.md    # Isolation checklist
@@ -1140,10 +1136,7 @@ c:\Infiverse-HR\backend\
 │   ├── SYSTEM_BEHAVIOR.md        # System behavior
 │   ├── TENANT_ASSUMPTIONS.md     # Tenant assumptions
 │   └── generate_totp.py          # TOTP generation utility
-├── refer_list/                   # Reference lists
-│   ├── AGENT  ENDPOINTS.md       # Agent service endpoints
-│   ├── GATEWAY ENDPOINTS.md      # Gateway service endpoints
-│   └── LANGGRAPH  ENDPOINTS.md   # LangGraph service endpoints
+
 ├── runtime-core/                 # Legacy: Sovereign Application Runtime framework (Reference Only)
 │   ├── README.md                 # Runtime-core README (Legacy Status)
 │   ├── Dockerfile                # Docker configuration
@@ -1165,10 +1158,7 @@ c:\Infiverse-HR\backend\
 │   │   ├── README.md
 │   │   ├── IMPLEMENTATION_GUIDE.md # Implementation guide
 │   │   └── OVERVIEW.md          # Overview documentation
-│   ├── framework/                # Framework components
-│   │   ├── README.md
-│   │   ├── framework.py         # Core framework
-│   │   └── registry.py          # Component registry
+
 │   ├── handover/                 # Runtime handover
 │   │   └── README.md
 │   ├── integration/              # Integration components
@@ -1985,7 +1975,7 @@ For issues or questions:
 
 ---
 
-**Status:** ✅ Production Ready | **Services:** 3/3 Live | **Endpoints:** 108 | **Database:** MongoDB Atlas | **Architecture:** Microservices with AI Integration
+**Status:** ✅ Production Ready | **Services:** 3/3 Live | **Endpoints:** 111 | **Database:** MongoDB Atlas | **Architecture:** Microservices with AI Integration
 
 **Last Updated:** January 22, 2026
 
