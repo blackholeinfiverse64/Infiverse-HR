@@ -7,54 +7,48 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB_NAME=bhiv_hr
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - API_KEY_SECRET=your-api-key-secret
+      - CANDIDATE_JWT_SECRET_KEY=your-candidate-jwt-key-change-in-production
       - AUDIT_LOGGING_ENABLED=true
-      - AUDIT_STORAGE_BACKEND=file
+      - AUDIT_STORAGE_BACKEND=mongodb
       - TENANT_ISOLATION_ENABLED=true
-      - WORKFLOW_STORAGE_BACKEND=memory
-      - DATABASE_URL=postgresql://user:password@db:5432/sar_db
-      - REDIS_URL=redis://redis:6379/0
+      - WORKFLOW_STORAGE_BACKEND=mongodb
+      - ARTHA_API_URL=https://artha-api.example.com
+      - ARTHA_API_KEY=your-artha-key
+      - KARYA_API_URL=https://karya-api.example.com
+      - KARYA_API_KEY=your-karya-key
+      - INSIGHTFLOW_API_URL=https://insightflow-api.example.com
+      - INSIGHTFLOW_API_KEY=your-insightflow-key
+      - BUCKET_API_URL=https://bucket-api.example.com
+      - BUCKET_CREDENTIALS=your-bucket-credentials
     volumes:
       - ./audit_logs:/app/audit_logs
       - ./config:/app/config
     depends_on:
-      - db
-      - redis
+      - mongo
     restart: unless-stopped
     networks:
       - sar-network
 
-  db:
-    image: postgres:15-alpine
-    container_name: sar-postgres
+  mongo:
+    image: mongo:6.0
+    container_name: sar-mongo
     environment:
-      - POSTGRES_DB=sar_db
-      - POSTGRES_USER=sar_user
-      - POSTGRES_PASSWORD=sar_password
-    volumes:
-      - sar_db_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - MONGO_INITDB_ROOT_USERNAME=sar_user
+      - MONGO_INITDB_ROOT_PASSWORD=sar_password
     ports:
-      - "5432:5432"
-    restart: unless-stopped
-    networks:
-      - sar-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: sar-redis
-    ports:
-      - "6379:6379"
+      - "27017:27017"
     volumes:
-      - sar_redis_data:/data
+      - sar_mongo_data:/data/db
     restart: unless-stopped
     networks:
       - sar-network
 
 volumes:
-  sar_db_data:
-  sar_redis_data:
+  sar_mongo_data:
 
 networks:
   sar-network:

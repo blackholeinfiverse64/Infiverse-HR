@@ -20,7 +20,7 @@ from auth.auth_service import sar_auth
 from tenancy.tenant_service import sar_tenant_resolver
 from role_enforcement.rbac_service import sar_rbac
 from audit_logging.audit_service import sar_audit, AuditEventType
-from workflow.workflow_engine import sar_workflow_engine
+from workflow.workflow_service import sar_workflow
 
 
 class E2EValidationTests(unittest.TestCase):
@@ -181,12 +181,12 @@ class E2EValidationTests(unittest.TestCase):
         }
         
         # Register workflow definition
-        success = sar_workflow_engine.register_workflow_definition(workflow_def)
+        success = sar_workflow.register_workflow_definition(workflow_def)
         self.assertTrue(success)
         print("✓ Workflow definition registration works")
         
         # Test workflow instance creation
-        instance_id = sar_workflow_engine.start_workflow(
+        instance_id = sar_workflow.start_workflow(
             workflow_name="test_workflow",
             parameters={
                 "test_param": "test_value",
@@ -198,7 +198,7 @@ class E2EValidationTests(unittest.TestCase):
         print("✓ Workflow instance creation works")
         
         # Test workflow instance retrieval
-        instance = sar_workflow_engine.get_workflow_instance(instance_id)
+        instance = sar_workflow.get_workflow_instance(instance_id)
         self.assertIsNotNone(instance)
         self.assertEqual(instance.workflow_name, "test_workflow")
         print("✓ Workflow instance retrieval works")
