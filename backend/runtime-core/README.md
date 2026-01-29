@@ -1,6 +1,8 @@
-# Sovereign Application Runtime (SAR)
+# Sovereign Application Runtime (SAR) - LEGACY REFERENCE IMPLEMENTATION
 
-The Sovereign Application Runtime (SAR) is a comprehensive, reusable platform extracted from the BHIV HR Platform and evolved to support multiple domains (HR, CRM, ERP, etc.). It provides core infrastructure services including authentication, tenant isolation, role enforcement, audit logging, workflow management, and pluggable integration capabilities.
+⚠️ **IMPORTANT**: This is a LEGACY REFERENCE IMPLEMENTATION only. The production BHIV HR Platform is located in the main `backend/` directory with 111 operational endpoints across 6 services using MongoDB Atlas.
+
+The Sovereign Application Runtime (SAR) is a comprehensive, reusable platform extracted from the BHIV HR Platform and evolved to support multiple domains (HR, CRM, ERP, etc.). It provides core infrastructure services including authentication, tenant isolation, role enforcement, audit logging, workflow management, and pluggable integration capabilities for reference purposes.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -22,6 +24,8 @@ The Sovereign Application Runtime (SAR) is a comprehensive, reusable platform ex
 
 The Sovereign Application Runtime (SAR) is a modular, multi-tenant framework designed for sovereign cloud deployments that can be deployed in KSA/UAE infrastructure, ensuring data sovereignty and compliance with local regulations. The framework provides enterprise-grade infrastructure services that can be reused across multiple business domains.
 
+⚠️ **NOTE**: This is a LEGACY REFERENCE IMPLEMENTATION. The production BHIV HR Platform has been migrated to MongoDB Atlas with 111 operational endpoints across 6 services (Gateway: 80 endpoints, Agent: 6 endpoints, LangGraph: 25 endpoints) and is located in the main `backend/` directory.
+
 ### Features
 - **Multi-tenant SaaS Architecture**: Complete tenant isolation with no cross-tenant data access
 - **Triple Authentication System**: Support for API keys, Client JWT tokens, and Candidate JWT tokens with 2FA capabilities
@@ -31,7 +35,7 @@ The Sovereign Application Runtime (SAR) is a modular, multi-tenant framework des
 - **Integration Adapters**: Pluggable adapters for external systems (Artha, Karya, InsightFlow, Bucket)
 - **Reusable Architecture**: Framework designed for multiple business domains (HR, CRM, ERP, etc.)
 - **Rate Limiting and Security Measures**: Built-in protection against abuse and attacks
-- **MongoDB Integration**: Scalable document-based database storage
+- **MongoDB Atlas Integration**: Scalable document-based database storage (Production: MongoDB Atlas, Reference: Local MongoDB)
 - **Configurable Storage Backends**: Support for multiple storage options
 - **Asynchronous Processing**: Non-blocking operations for improved performance
 - **Event-Driven Architecture**: Scalable and responsive system design
@@ -176,7 +180,7 @@ All adapters follow the same interface and are designed to be optional and fail-
 - [Dockerfile](Dockerfile) - Container configuration
 - [docker-compose.yml](docker-compose.yml) - Local development environment setup
 - [requirements.txt](requirements.txt) - Python dependencies
-- [Framework Handover](handover/FRAEMWORK_HANDOVER.md) - Complete handover documentation
+- [Framework Handover](handover/FRAMEWORK_HANDOVER.md) - Complete handover documentation
 - [Test Files](test/) - Comprehensive test suite
 - [Documentation](docs/) - Additional documentation
 
@@ -373,8 +377,8 @@ The SAR implements multiple layers of security:
 
 ## Important Notes
 
-- **MongoDB Auto-Creation**: The MongoDB database and collections will be automatically created when the application first connects to the database
-- **Local MongoDB Required**: Make sure MongoDB is running locally (or update MONGODB_URI for remote access)
+- **MongoDB Atlas Integration**: The production system uses MongoDB Atlas for scalable, cloud-based storage (Reference implementation: Local MongoDB with auto-creation)
+- **Database Auto-Creation**: The MongoDB database and collections will be automatically created when the application first connects to the database
 - **Default API Key**: The default API key for testing is `default_sar_api_key`
 - **Production Security**: For production use, make sure to use strong, unique secret keys and not the default values
 - **Multi-Tenancy**: The application follows a multi-tenant architecture with complete tenant isolation
@@ -393,13 +397,13 @@ The SAR implements multiple layers of security:
 
 Check the application logs for detailed error information. The audit logging service also maintains comprehensive logs of all operations.
 
-### MongoDB Auto-Creation Behavior
+### MongoDB Atlas Integration
 
-When running the application with MongoDB:
-- The database (`bhiv_hr`) will be automatically created if it doesn't exist
-- Collections will be automatically created when data is first written to them
-- Indexes will be automatically created by the service modules when establishing connections
-- No manual database, collection, or index creation is required
+The production BHIV HR Platform uses MongoDB Atlas for scalable, cloud-based database storage:
+- **Production**: MongoDB Atlas clusters with automated scaling and high availability
+- **Development**: Local MongoDB instance with auto-creation capabilities (reference implementation)
+- Collections and indexes are automatically created when the application first connects
+- No manual database, collection, or index creation is required in either environment
 - The system follows MongoDB's "lazy creation" model where database resources are provisioned on demand
 
 ## Deployment
@@ -422,45 +426,63 @@ runtime-core/
 ├── docker-compose.yml           # Docker Compose configuration
 ├── README.md                    # This documentation
 ├── VERSION                      # Version file
+├── .env.example                 # Environment variables template
 ├── auth/                        # Authentication service
 │   ├── __init__.py
 │   ├── auth_service.py          # Core auth logic
+│   ├── auth_utils.py            # Authentication utilities
+│   ├── middleware.py            # Authentication middleware
 │   └── router.py                # Auth API endpoints
 ├── tenancy/                     # Tenant resolution service
 │   ├── __init__.py
 │   ├── router.py                # Tenant API endpoints
 │   ├── middleware.py            # Tenant isolation middleware
-│   └── tenant_service.py        # Tenant resolution logic
+│   ├── tenant_service.py        # Tenant resolution logic
+│   ├── validators.py            # Tenant validation utilities
+│   └── __init__.py              # Package initialization
 ├── role_enforcement/            # RBAC service
 │   ├── __init__.py
 │   ├── router.py                # Role API endpoints
 │   ├── middleware.py            # Role enforcement middleware
-│   └── rbac_service.py          # Permission checking
+│   ├── rbac_service.py          # Permission checking
+│   ├── role_checker.py          # Role validation utilities
+│   └── validators.py            # Role validation utilities
 ├── audit_logging/               # Audit logging service
 │   ├── __init__.py
 │   ├── router.py                # Audit API endpoints
 │   ├── middleware.py            # Audit logging middleware
-│   └── audit_service.py         # Audit event management
+│   ├── audit_service.py         # Audit event management
+│   └── storage.py               # Audit storage implementation
 ├── workflow/                    # Workflow engine
 │   ├── __init__.py
 │   ├── router.py                # Workflow API endpoints
-│   ├── middleware.py            # Workflow enforcement
-│   ├── integration.py           # AI/RL and cross-service integration
-│   └── workflow_service.py      # Workflow execution
+│   ├── workflow_service.py      # Workflow execution
+│   ├── constants.py             # Workflow constants
+│   ├── exceptions.py            # Workflow exceptions
+│   └── models.py                # Workflow data models
 ├── integration/                 # Integration layer
 │   ├── __init__.py
 │   ├── adapter_manager.py       # Centralized adapter management
-│   └── adapters/                # Individual integration adapters
-│       ├── __init__.py
-│       ├── base_adapter.py      # Base adapter class
-│       ├── artha_adapter.py     # Payroll/finance integration
-│       ├── karya_adapter.py     # Task/workflow integration
-│       ├── insightflow_adapter.py # Analytics integration
-│       └── bucket_adapter.py    # Storage/artifacts integration
+│   ├── adapters/                # Individual integration adapters
+│   │   ├── __init__.py
+│   │   ├── base_adapter.py      # Base adapter class
+│   │   ├── artha_adapter.py     # Payroll/finance integration
+│   │   ├── karya_adapter.py     # Task/workflow integration
+│   │   ├── insightflow_adapter.py # Analytics integration
+│   │   └── bucket_adapter.py    # Storage/artifacts integration
+│   ├── constants.py             # Integration constants
+│   ├── exceptions.py            # Integration exceptions
+│   └── models.py                # Integration data models
 ├── test/                        # Test files
 │   ├── __init__.py              # Package init
 │   ├── test_all_endpoints.py    # Comprehensive endpoint tests (49 tests)
-│   └── test_rbac_bootstrap.py   # RBAC bootstrap script
+│   ├── test_rbac_bootstrap.py   # RBAC bootstrap script
+│   ├── comprehensive_validation.py # Asynchronous validation framework
+│   ├── e2e_validation_test.py   # End-to-end validation tests
+│   ├── test_2fa_validation.py   # 2FA validation tests
+│   ├── test_audit_logging.py    # Audit logging tests
+│   ├── test_tenant_isolation.py # Tenant isolation tests
+│   └── test_workflow_engine.py  # Workflow engine tests
 ├── test_suite/                  # Modular test suite
 │   ├── test_auth_service.py     # Auth service tests
 │   ├── test_tenant_service.py   # Tenant service tests
@@ -472,15 +494,30 @@ runtime-core/
 │   ├── test_system_integration.py # System integration tests
 │   ├── test_unit_tests.py       # Unit tests
 │   └── test_runner.py           # Test runner
-├── handover/                    # Handover documentation
+├── handover/                    # Runtime-core handover documentation
 │   ├── FRAMEWORK_HANDOVER.md    # Framework handover doc
 │   └── UPDATE_SUMMARY.md        # Update summary
-├── docs/                        # Additional documentation
-│   ├── __init__.py
-│   └── system/                  # System docs
+├── docs/                        # Runtime-core documentation
+│   ├── FRONTEND_BACKEND_SYNC.md # Frontend-backend synchronization validation
+│   ├── INTERNAL_TEST_CHECKLIST.md # Internal testing checklist
+│   ├── KNOWN_LIMITATIONS.md     # Known system limitations
+│   ├── QA_CHECKLIST.md          # Quality assurance checklist
+│   ├── REAL_HIRING_LOOP.md      # Real hiring loop validation
+│   ├── TRUTH_MATRIX.md          # Reality audit and truth lock documentation
+│   ├── framework/               # Framework documentation
+│   │   ├── BOUNDARY_DEFINITION.md # Boundary definition for HR-specific vs reusable logic
+│   │   ├── GENERIC_REFACTORING_PLAN.md # Generic refactoring plan
+│   │   ├── HIRING_LOOP_OVERVIEW.md # Hiring loop overview
+│   │   └── REUSABILITY_GUIDE.md # Reusability guide
+│   ├── security/                # Security documentation
+│   │   ├── AUDIT_AND_TRACEABILITY.md # Audit and traceability documentation
+│   │   └── TENANT_ISOLATION_STATUS.md # Tenant isolation status
+│   ├── sovereign/               # Sovereign deployment documentation
+│   │   └── DEPLOYMENT_READINESS.md # Deployment readiness
+│   └── system/                  # System documentation
 │       └── CURRENT_REALITY.md   # Current system reality
 └── demo/                        # Demo materials
-    ├── DEMO_SCOPE.md            # Demo scope
+    ├── DEMO_SCOPE.md            # Demo scope definition
     └── UPDATE_SUMMARY.md        # Demo update summary
 ```
 
