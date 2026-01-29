@@ -1,6 +1,6 @@
 # BHIV HR Platform - Backend
 
-**Enterprise AI-Powered Recruiting Platform**
+**Enterprise AI-Powered Recruiting Platform - Complete Backend Reference Guide**
 
 ---
 
@@ -20,40 +20,297 @@
 
 ---
 
-## 🌐 Service URLs (Localhost)
+## 🏗️ Complete Backend Architecture
 
-| Service | URL | Endpoints | Status | Description |
-|---------|-----|-----------|--------|-------------|
-| **Frontend (React)** | http://localhost:3000 | Web UI | ✅ Running | Main user interface |
-| **API Gateway** | http://localhost:8000/docs | 77 | ✅ Running | Main API entry point (Auth, Jobs, Candidates) |
-| **AI Agent** | http://localhost:9000/docs | 6 | ✅ Running | AI/ML matching engine |
-| **LangGraph** | http://localhost:9001/docs | 25 | ✅ Running | Workflow automation & RL integration |
+The BHIV HR Platform backend implements a modern microservices architecture designed for enterprise-scale AI-powered recruitment processes. The system follows a clean separation of concerns with specialized services handling distinct responsibilities while maintaining cohesive integration through well-defined APIs and shared components.
 
-**Service Details:**
-- **API Gateway (Port 8000)**: Handles authentication, job management, candidate operations, and security features
-- **AI Agent (Port 9000)**: Semantic matching, batch processing, and ML-powered predictions
-- **LangGraph (Port 9001)**: Workflow orchestration, RL integration, and multi-channel communication
+### Core Architecture Principles
 
-**Note:** 
-- Frontend serves the main web application on port 3000
-- Streamlit portals (HR, Client, Candidate) are available via Docker only and are for reference
-- Backend API documentation is available at the `/docs` endpoints
-- Production services are deployed on Render Cloud
+- **Microservices Design**: Independent, loosely-coupled services with single responsibilities
+- **API-First Approach**: Well-documented RESTful APIs with OpenAPI/Swagger documentation
+- **Multi-Tenant SaaS**: Complete tenant isolation with role-based access control
+- **AI/ML Integration**: Advanced semantic matching and reinforcement learning capabilities
+- **Event-Driven**: Asynchronous processing and real-time updates
+- **Cloud-Native**: Containerized deployment with horizontal scalability
+- **Security-First**: Comprehensive authentication, authorization, and data protection
+
+### System Components Overview
+
+```mermaid
+graph TD
+    A[Frontend - React/Tailwind] --> B[API Gateway - Port 8000]
+    B --> C[AI Agent - Port 9000]
+    B --> D[LangGraph - Port 9001]
+    C --> E[MongoDB Atlas]
+    D --> E
+    B --> E
+    D --> F[Communication Services]
+    F --> G[Email - Gmail]
+    F --> H[WhatsApp - Twilio]
+    F --> I[Telegram - Bot API]
+    J[Admin Portal] --> B
+    K[Candidate Portal] --> B
+    L[Client Portal] --> B
+```
+
+## 📊 System Overview
+
+| Metric | Value |
+|--------|-------|
+| **Platform Version** | v4.3.0 |
+| **Last Updated** | January 22, 2026 |
+| **Services** | 3 Core Microservices (Gateway, Agent, LangGraph) |
+| **Total Endpoints** | 111 (80 Gateway + 6 Agent + 25 LangGraph) |
+| **Database** | MongoDB Atlas (fully migrated from PostgreSQL) |
+| **Security Rating** | A+ |
+| **Status** | ✅ Production Ready |
+| **Architecture** | Multi-tenant SaaS with AI/ML integration |
+| **Deployment** | Docker + Render Cloud + Vercel Frontend |
 
 ---
 
-## 🚀 Quick Start
+## 🌐 Service Architecture & Communication
+
+### Core Service Mapping
+
+| Service | Port | Endpoints | Purpose | Health Check | Documentation |
+|---------|------|-----------|---------|--------------|---------------|
+| **API Gateway** | 8000 | 77+ | Main API entry point, authentication, orchestration | `/health` | `/docs` |
+| **AI Agent** | 9000 | 6 | Semantic matching, ML predictions, batch processing | `/health` | `/docs` |
+| **LangGraph** | 9001 | 25 | Workflow automation, RL integration, multi-channel communication | `/health` | `/docs` |
+
+### Service Communication Patterns
+
+**Inter-Service Communication:**
+- **HTTP/REST**: Primary communication protocol between services
+- **API Key Authentication**: Service-to-service authentication using shared secrets
+- **Shared Database**: MongoDB Atlas as central data repository
+- **Event-Driven**: Asynchronous processing with webhook patterns
+- **Health Monitoring**: Continuous health checks and service discovery
+
+**Data Flow Architecture:**
+```
+Frontend → API Gateway → [AI Agent, LangGraph] → MongoDB Atlas
+                              ↓
+                    Communication Services (Email/WhatsApp/Telegram)
+```
+
+### Service Dependencies & Orchestration
+
+**Gateway Service Dependencies:**
+- MongoDB Atlas for data persistence
+- Agent Service for AI matching capabilities  
+- LangGraph for workflow automation
+- External services (Gmail, Twilio, Telegram)
+
+**Agent Service Dependencies:**
+- MongoDB Atlas for job and candidate data
+- Semantic models (all-MiniLM-L6-v2) for embeddings
+- Gateway service for authentication and coordination
+
+**LangGraph Service Dependencies:**
+- MongoDB Atlas for workflow state and RL data
+- Gateway service for data access
+- Agent service for AI predictions
+- Communication services for notifications
+- Google Gemini API for advanced processing
+
+---
+
+## 📁 Complete Backend Directory Structure
+
+### Root Directory Components
+
+```
+backend/
+├── .env.example                    # Environment variables template
+├── .gitignore                     # Git ignore rules
+├── README.md                      # Main documentation
+├── check_services.bat             # Windows service health checker
+├── comprehensive_test_results.json # Test results from integration tests
+├── docker-compose.production.yml  # Production Docker Compose
+├── requirements.txt               # Core Python dependencies
+├── run_services.py                # Main service orchestration script
+├── run_test_simple.py             # Basic test runner
+├── run_with_venv.bat             # Windows venv + service runner
+├── seed_mongodb.py               # Database seeding script
+├── setup_venv.bat                # Windows virtual environment setup
+├── test_mongodb_atlas.py         # MongoDB connection tester
+├── test_mongodb_setup.py         # MongoDB setup validation
+├── MONGODB_VERIFICATION_REPORT.md # MongoDB connection report
+├── __pycache__/                  # Python bytecode cache
+├── Ishan's_AI_HR_System-main/    # Legacy AI system (reference only)
+├── Task/                         # Task documentation files
+├── assets/                       # Static assets and data
+├── docs/                         # Comprehensive documentation
+├── handover/                     # Handover documentation
+├── runtime-core/                 # Legacy framework (reference only)
+├── scripts/                      # Utility scripts
+├── services/                     # Core microservices
+├── tests/                        # Comprehensive test suites
+├── tools/                        # Development and operational tools
+├── validation/                   # Validation scripts
+└── venv/                         # Virtual environment (if exists)
+```
+
+### Services Directory Structure
+
+```
+services/
+├── agent/                        # AI Agent Service (Port 9000)
+│   ├── Dockerfile               # Container configuration
+│   ├── README.md                # Service documentation
+│   ├── app.py                   # Main FastAPI application
+│   ├── database.py              # MongoDB connection management
+│   ├── jwt_auth.py              # Authentication utilities
+│   ├── requirements.txt         # Service-specific dependencies
+│   └── semantic_engine/         # AI/ML semantic matching module
+│       ├── __init__.py
+│       └── phase3_engine.py
+├── gateway/                      # API Gateway Service (Port 8000)
+│   ├── Dockerfile               # Container configuration
+│   ├── README.md                # Service documentation
+│   ├── app/                     # FastAPI application
+│   │   ├── __init__.py
+│   │   ├── database.py          # MongoDB async connection
+│   │   ├── db_helpers.py        # MongoDB utility functions
+│   │   ├── main.py              # Main application (77+ endpoints)
+│   │   └── monitoring.py        # Monitoring utilities
+│   ├── config.py                # Configuration management
+│   ├── docker-compose.yml       # Service-specific compose
+│   ├── jwt_auth.py              # JWT authentication
+│   ├── langgraph_integration.py # LangGraph service integration
+│   ├── monitoring.py            # Advanced monitoring
+│   ├── requirements.txt         # Service-specific dependencies
+│   └── routes/                  # Modular route definitions
+├── langgraph/                    # LangGraph Service (Port 9001)
+│   ├── Dockerfile               # Container configuration
+│   ├── README.md                # Service documentation
+│   ├── app/                     # FastAPI + LangGraph application
+│   │   ├── __init__.py
+│   │   ├── app.py               # Main application (25 endpoints)
+│   │   ├── communication/       # Multi-channel communication
+│   │   ├── config.py            # Configuration
+│   │   ├── database.py          # MongoDB connection
+│   │   ├── mongodb_tracker.py   # Workflow tracking
+│   │   ├── rl_database.py       # RL data management
+│   │   ├── rl_integration/      # RL components
+│   │   ├── semantic_matcher.py  # Semantic matching
+│   │   └── workflows/           # Workflow definitions
+│   ├── config.py                # Pydantic configuration
+│   ├── dependencies.py          # Authentication dependencies
+│   ├── docker-compose.yml       # Service-specific compose
+│   ├── jwt_auth.py              # JWT authentication
+│   ├── requirements.txt         # Service-specific dependencies
+│   └── tests/                   # Integration tests
+└── [Additional services...]      # Portal and supporting services
+```
+
+### Documentation Directory Structure
+
+```
+docs/
+├── README.md                    # Documentation overview
+├── analysis/                    # Code analysis reports
+│   ├── CODE_QUALITY_ANALYSIS.md
+│   └── COMPREHENSIVE_CODEBASE_ANALYSIS.md
+├── api/                         # API documentation
+│   └── API_CONTRACT.md
+├── architecture/                # System architecture
+│   ├── ARCHITECTURE.md
+│   ├── SERVICE_DEPENDENCY_GRAPH.md
+│   └── SYSTEM_ARCHITECTURE.md
+├── database/                    # Database documentation
+│   ├── DATABASE_DOCUMENTATION.md
+│   ├── DATABASE_SCHEMA.md
+│   ├── MONGODB_ATLAS_SETUP.md
+│   ├── MONGODB_COLLECTIONS.md
+│   ├── POSTGRES_MIGRATION_PLAN.md
+│   └── MONGODB_VERIFICATION_REPORT.md
+├── guides/                      # Development guides
+│   ├── AUTHENTICATION_FLOW.md
+│   ├── BACKEND_INTEGRATION_GUIDE.md
+│   ├── CLOUD_DEPLOYMENT_GUIDE.md
+│   ├── DEBUGGING_GUIDE.md
+│   ├── DEVELOPER_ONBOARDING.md
+│   ├── ENVIRONMENT_SETUP.md
+│   ├── FRONTEND_INTEGRATION_GUIDE.md
+│   ├── GATEWAY_SERVICE_GUIDE.md
+│   ├── SERVICES_GUIDE.md
+│   ├── SSL_CERTIFICATE_SETUP.md
+│   └── TROUBLESHOOTING_GUIDE.md
+├── security/                    # Security documentation
+│   ├── API_SECURITY.md
+│   ├── AUTHENTICATION_SECURITY.md
+│   ├── SECURITY_AUDIT.md
+│   └── SECURITY_IMPLEMENTATION.md
+└── testing/                     # Testing documentation
+    ├── COMPREHENSIVE_TESTING_STRATEGY.md
+    ├── ENDPOINT_TESTING.md
+    └── TESTING_APPROACH.md
+```
+
+### Testing Directory Structure
+
+```
+tests/
+├── README.md                    # Test suite documentation
+├── agent/                       # Agent service tests
+├── api/                         # API endpoint tests
+├── database/                    # Database integration tests
+├── deployment/                  # Deployment validation tests
+├── fixes/                       # Fix verification tests
+├── gateway/                     # Gateway service tests
+├── integration/                 # Cross-service integration tests
+├── langgraph/                   # LangGraph service tests
+├── misc/                        # Miscellaneous tests
+├── portal/                      # Portal service tests
+├── rl_integration/              # RL integration tests
+├── security/                    # Security tests
+├── validation/                  # Validation tests
+├── workflows/                   # Workflow tests
+├── comprehensive_endpoint_tests.py # Complete endpoint test suite
+├── fix_postman_collection.py    # Postman collection fixer
+└── requirements.txt             # Test dependencies
+```
+
+### Tools Directory Structure
+
+```
+tools/
+├── README.md                    # Tools documentation
+├── analysis/                    # Code analysis tools
+├── data/                        # Data management tools
+├── database/                    # Database tools
+├── fixes/                       # Fix tools
+├── monitoring/                  # Monitoring tools
+├── portal/                      # Portal tools
+├── security/                    # Security tools
+├── utilities/                   # General utilities
+├── requirements.txt             # Tool dependencies
+└── setup_advanced_tools.py      # Advanced tool setup
+```
+
+## 🚀 Comprehensive Setup Guide
 
 ### Prerequisites
+
+**Development Environment:**
 - **Python 3.12+** - [Download](https://www.python.org/downloads/)
 - **Node.js 18+** - [Download](https://nodejs.org/)
 - **MongoDB Atlas Account** - [Sign Up](https://www.mongodb.com/cloud/atlas/register)
 - **Git** - [Download](https://git-scm.com/downloads/)
-- **Docker Desktop** (Optional - for Docker method)
+- **Docker Desktop** (Recommended for containerized deployment)
 
-### 📝 Complete Setup (Backend + Frontend)
+**Optional Development Tools:**
+- **VS Code** with Python extension
+- **Postman** for API testing
+- **MongoDB Compass** for database visualization
+- **Redis CLI** for caching operations (legacy reference)
 
-**Option 1: Quick Start Script (Windows)**
+### 📝 Complete Setup Process
+
+#### Option 1: Quick Start Script (Windows)
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -63,20 +320,20 @@ cd Infiverse-HR
 run_project.bat
 ```
 
-**Option 2: Manual Setup**
+#### Option 2: Manual Setup
 
-*Terminal 1 - Backend:*
+**Terminal 1 - Backend Setup:**
 ```bash
 cd Infiverse-HR/backend
 python -m venv venv
 venv\Scripts\activate  # Windows
 # source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
-# Configure .env file (see backend setup below)
+# Configure .env file (see environment configuration below)
 python run_services.py
 ```
 
-*Terminal 2 - Frontend:*
+**Terminal 2 - Frontend Setup:**
 ```bash
 cd Infiverse-HR/frontend
 npm install
@@ -88,129 +345,324 @@ npm run dev
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:8000/docs
 
----
+### 📦 Alternative Setup Methods
 
-## 📦 Setup Methods
-
-### Method 1: Python Virtual Environment (Recommended)
-
-#### Step 1: Clone Repository
+#### Method 1: Python Virtual Environment (Recommended)
 ```bash
+# Clone repository
 git clone <repository-url>
 cd Infiverse-HR/backend
-```
 
-#### Step 2: Create Virtual Environment
-
-**Windows:**
-```bash
+# Create virtual environment
 python -m venv venv
-venv\Scripts\activate
-```
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate  # Windows
 
-**Linux/Mac:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-**Or use the setup script (Windows):**
-```bash
-setup_venv.bat
-```
-
-#### Step 3: Install Dependencies
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-#### Step 4: Configure Environment
+# Configure environment
+cp .env.example .env  # Linux/Mac
+# copy .env.example .env  # Windows
 
-**Copy environment template:**
-```bash
-# Windows
-copy .env.example .env
-
-# Linux/Mac
-cp .env.example .env
-```
-
-**Edit `.env` file with your values:**
-```env
-# Database (Required)
-DATABASE_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/bhiv_hr
-
-# Authentication Secrets (Required)
-# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-API_KEY_SECRET=<your-api-key>
-JWT_SECRET_KEY=<your-jwt-secret>
-CANDIDATE_JWT_SECRET_KEY=<your-candidate-jwt-secret>
-GATEWAY_SECRET_KEY=<your-gateway-secret>
-
-# Service URLs (Localhost)
-GATEWAY_SERVICE_URL=http://localhost:8000
-AGENT_SERVICE_URL=http://localhost:9000
-LANGGRAPH_SERVICE_URL=http://localhost:9001
-```
-
-**Generate secrets:**
-```bash
-python -c "import secrets; print('API_KEY_SECRET=' + secrets.token_urlsafe(32))"
-python -c "import secrets; print('JWT_SECRET_KEY=' + secrets.token_urlsafe(32))"
-python -c "import secrets; print('CANDIDATE_JWT_SECRET_KEY=' + secrets.token_urlsafe(32))"
-python -c "import secrets; print('GATEWAY_SECRET_KEY=' + secrets.token_urlsafe(32))"
-```
-
-#### Step 5: Start Backend Services
-
-**Option A: Using run_services.py script (Recommended)**
-```bash
-# Start all services
-cd Infiverse-HR/backend
+# Edit .env with your values
+# Start services
 python run_services.py
 ```
 
-**Option B: Using Windows batch script**
+#### Method 2: Docker Compose (All Services)
 ```bash
+# Clone repository
+git clone <repository-url>
 cd Infiverse-HR/backend
-run_with_venv.bat
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your MongoDB connection and secrets
+
+# Start all services(detact mode)
+docker-compose -f docker-compose.production.yml up -d --build
+
+# Stop all services
+docker-compose -f docker-compose.production.yml down
+
+# View logs
+docker-compose -f docker-compose.production.yml logs -f
 ```
 
-**Option C: Manual start (separate terminals)**
-
-*Terminal 1 - Gateway:*
+#### Method 3: Individual Service Development
 ```bash
+# Terminal 1 - Gateway Service
 cd Infiverse-HR/backend/services/gateway
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
 
-*Terminal 2 - Agent:*
-```bash
+# Terminal 2 - AI Agent Service
 cd Infiverse-HR/backend/services/agent
 uvicorn app:app --host 0.0.0.0 --port 9000 --reload
-```
 
-*Terminal 3 - LangGraph:*
-```bash
+# Terminal 3 - LangGraph Service
 cd Infiverse-HR/backend/services/langgraph
 uvicorn app.main:app --host 0.0.0.0 --port 9001 --reload
 ```
 
-#### Step 6: Verify Services
+### 🛠️ Development Environment Setup
+
+**Windows Development Setup:**
 ```bash
+# Clone repository
+git clone <repository-url>
+cd Infiverse-HR
+
+# Set up backend
+cd backend
+setup_venv.bat
+
+# Run backend services
+run_with_venv.bat
+
+# Set up frontend (in separate terminal)
+cd ../frontend
+npm install
+npm run dev
+```
+
+**Linux/Mac Development Setup:**
+```bash
+# Clone repository
+git clone <repository-url>
+cd Infiverse-HR
+
+# Set up backend
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run backend services
+python run_services.py
+
+# Set up frontend (in separate terminal)
+cd ../frontend
+npm install
+npm run dev
+```
+
+**Verification Steps:**
+```bash
+# Check service health
 curl http://localhost:8000/health
 curl http://localhost:9000/health
 curl http://localhost:9001/health
+
+# Verify API documentation
+# Gateway: http://localhost:8000/docs
+# Agent: http://localhost:9000/docs
+# LangGraph: http://localhost:9001/docs
 ```
 
-**Expected Response:**
-```json
-{
-  "status": "healthy",
-  "service": "BHIV HR Gateway",
-  "version": "4.2.0",
-  "timestamp": "2026-01-16T11:28:38.848959+00:00"
-}
+---
+
+## 🛠️ Configuration Requirements
+
+### Environment Variables
+
+The system requires comprehensive configuration through environment variables. All services share a common configuration approach using `.env` files.
+
+#### Core Environment Variables
+
+**Database Configuration:**
+```env
+# MongoDB Atlas Connection String
+DATABASE_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>
+
+# Database Name (optional, defaults to bhiv_hr)
+MONGODB_DB_NAME=bhiv_hr
+```
+
+**Authentication Secrets:**
+```env
+# Primary API Key for service-to-service communication
+API_KEY_SECRET=<your-api-key>
+
+# JWT Secret for general authentication (client users)
+JWT_SECRET_KEY=<your-jwt-secret>
+
+# JWT Secret specifically for candidate authentication
+CANDIDATE_JWT_SECRET_KEY=<your-candidate-jwt-secret>
+
+# Gateway service authentication
+GATEWAY_SECRET_KEY=<your-gateway-secret>
+```
+
+**Service URLs:**
+```env
+# Local development URLs
+GATEWAY_SERVICE_URL=http://localhost:8000
+AGENT_SERVICE_URL=http://localhost:9000
+LANGGRAPH_SERVICE_URL=http://localhost:9001
+
+# Production URLs (will be auto-populated on Render)
+RENDER_EXTERNAL_URL=<auto-set-by-render>
+```
+
+**AI/ML Services:**
+```env
+# Google Gemini API for advanced AI features
+GEMINI_API_KEY=<your-gemini-key>
+
+# OpenAI API (alternative provider)
+OPENAI_API_KEY=<your-openai-key>
+```
+
+**Communication Services:**
+```env
+# Gmail SMTP for Email Notifications
+GMAIL_EMAIL=<your-email>
+GMAIL_APP_PASSWORD_SECRET_KEY=<your-app-password>
+
+# Twilio for WhatsApp/SMS Notifications
+TWILIO_ACCOUNT_SID=<your-twilio-sid>
+TWILIO_AUTH_TOKEN_SECRET_KEY=<your-twilio-token>
+TWILIO_WHATSAPP_NUMBER=<your-whatsapp-number>
+
+# Telegram Bot for Telegram Notifications
+TELEGRAM_BOT_TOKEN_SECRET_KEY=<your-telegram-token>
+```
+
+**System Configuration:**
+```env
+# Environment (development/production)
+ENVIRONMENT=development
+
+# Logging level
+LOG_LEVEL=INFO
+
+# Performance Settings
+MAX_CANDIDATES_PER_REQUEST=50
+AI_MATCHING_TIMEOUT=15
+
+# Rate Limiting Configuration
+RATE_LIMIT_DEFAULT=60
+RATE_LIMIT_PREMIUM=300
+RATE_LIMIT_ENTERPRISE=500
+
+# Security Configuration
+MAX_LOGIN_ATTEMPTS=5
+LOCKOUT_DURATION_MINUTES=30
+JWT_EXPIRATION_HOURS=24
+MIN_PASSWORD_LENGTH=8
+REQUIRE_PASSWORD_COMPLEXITY=true
+```
+
+#### Environment Generation
+
+**Generate Secure Secrets:**
+```bash
+# Generate API Key
+python -c "import secrets; print('API_KEY_SECRET=' + secrets.token_urlsafe(32))"
+
+# Generate JWT Secret
+python -c "import secrets; print('JWT_SECRET_KEY=' + secrets.token_urlsafe(32))"
+
+# Generate Candidate JWT Secret
+python -c "import secrets; print('CANDIDATE_JWT_SECRET_KEY=' + secrets.token_urlsafe(32))"
+
+# Generate Gateway Secret
+python -c "import secrets; print('GATEWAY_SECRET_KEY=' + secrets.token_urlsafe(32))"
+```
+
+#### Configuration Best Practices
+
+**Security Best Practices:**
+- Never commit `.env` files to version control
+- Use different secrets for development/staging/production
+- Rotate secrets regularly (recommended every 90 days)
+- Store secrets securely using environment variables
+- Use strong, randomly generated secrets
+
+**Performance Optimization:**
+- Adjust rate limiting based on expected traffic
+- Configure timeouts based on system capabilities
+- Optimize database connection pooling settings
+- Set appropriate memory and CPU limits for containers
+
+**Development Configuration:**
+- Use development environment settings during development
+- Enable detailed logging for debugging
+- Configure appropriate timeout values for local development
+- Set up proper CORS settings for frontend integration
+
+---
+
+## 🎨 Service-Specific Setup
+
+### Gateway Service Configuration
+
+**Location:** `services/gateway/`
+
+**Key Features:**
+- Central API gateway for all requests
+- Authentication and authorization
+- Service orchestration
+- Monitoring and health checks
+- Security features (rate limiting, input validation)
+
+**Configuration:**
+```bash
+# Navigate to gateway service
+cd services/gateway
+
+# Install service-specific dependencies
+pip install -r requirements.txt
+
+# Start the service
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### AI Agent Service Configuration
+
+**Location:** `services/agent/`
+
+**Key Features:**
+- AI-powered semantic candidate matching
+- Batch processing capabilities
+- Company-specific learning
+- Cultural fit analysis
+- Real-time analysis
+
+**Configuration:**
+```bash
+# Navigate to agent service
+cd services/agent
+
+# Install service-specific dependencies
+pip install -r requirements.txt
+
+# Start the service
+uvicorn app:app --host 0.0.0.0 --port 9000 --reload
+```
+
+### LangGraph Service Configuration
+
+**Location:** `services/langgraph/`
+
+**Key Features:**
+- Workflow orchestration
+- Reinforcement learning integration
+- Multi-channel communication
+- Real-time updates
+- Performance monitoring
+
+**Configuration:**
+```bash
+# Navigate to langgraph service
+cd services/langgraph
+
+# Install service-specific dependencies
+pip install -r requirements.txt
+
+# Start the service
+uvicorn app.main:app --host 0.0.0.0 --port 9001 --reload
 ```
 
 ---
@@ -273,74 +725,222 @@ docker-compose -f docker-compose.production.yml down -v
 
 ---
 
-## 🎨 Frontend Setup (Port 3000)
+## 🎨 Frontend Integration
 
-**Modern React TypeScript frontend with three portal system**
+**Complete frontend integration with React TypeScript and multi-portal system**
 
-### Prerequisites
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **npm or yarn** - Comes with Node.js
+### Frontend Architecture
 
-### Frontend Setup Steps
+**Multi-Portal System:**
+- **Recruiter Console:** Job management, candidate review, feedback
+- **Candidate Portal:** Profile management, applications, interview scheduling
+- **Client View:** Analytics, shortlist review, approvals and decision making
 
-#### Step 1: Navigate to Frontend Directory
+**Technology Stack:**
+- **Frontend Framework:** React 18 with TypeScript
+- **Build Tool:** Vite for fast development and builds
+- **Styling:** Tailwind CSS for responsive design
+- **Routing:** React Router for navigation
+- **API Communication:** Axios for HTTP requests
+- **State Management:** Context API for global state
+
+### Frontend Setup Process
+
+#### Complete Frontend Setup
 ```bash
+# Navigate to frontend directory
 cd Infiverse-HR/frontend
-```
 
-#### Step 2: Install Dependencies
-```bash
+# Install dependencies
 npm install
-```
 
-#### Step 3: Configure Environment
-```bash
-# Windows
-copy .env.example .env
+# Configure environment
+cp .env.example .env  # Linux/Mac
+# copy .env.example .env  # Windows
 
-# Linux/Mac
-cp .env.example .env
-```
+# Edit .env file
+# VITE_API_BASE_URL=http://localhost:8000
 
-**Edit `.env` file:**
-```env
-# API Configuration
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-#### Step 4: Start Frontend Development Server
-```bash
+# Start development server
 npm run dev
 ```
 
-#### Step 5: Access Frontend
-Open your browser and navigate to: **http://localhost:3000**
+### Frontend Configuration
 
-### Frontend Features
+**Environment Variables:**
+```env
+# API Base URL for backend services
+VITE_API_BASE_URL=http://localhost:8000
 
-| Portal | URL | Features |
-|--------|-----|----------|
-| **Recruiter Console** | `/recruiter` | Job creation, applicant management, feedback |
-| **Candidate Portal** | `/candidate` | Profile management, applications, interviews |
-| **Client View** | `/client` | Analytics, shortlist review, approvals |
+# Frontend-specific configurations
+VITE_APP_TITLE=BHIV HR Platform
+VITE_API_TIMEOUT=30000
+VITE_FILE_UPLOAD_MAX_SIZE=10485760  # 10MB in bytes
+```
 
-### Frontend Build Commands
+**API Integration Points:**
+- **Gateway Service:** Primary API endpoint for authentication and data
+- **Agent Service:** AI matching results and analysis
+- **LangGraph Service:** Workflow status and communication updates
 
-| Command | Purpose |
-|---------|----------|
-| `npm run dev` | Start development server (Port 3000) |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Type checking |
+### Frontend-Backend Communication
 
-### Tech Stack
-- **React 18** with TypeScript
-- **Vite** for fast builds
-- **Tailwind CSS** for styling
-- **React Router** for navigation
-- **Axios** for API calls
+**API Communication Patterns:**
+- **RESTful APIs:** Standard HTTP methods for data operations
+- **JWT Authentication:** Secure token-based authentication
+- **Real-time Updates:** WebSocket connections for live updates
+- **File Uploads:** Multi-part form data for resume uploads
+- **Batch Operations:** Bulk operations for efficiency
+
+**Integration Endpoints:**
+- **Authentication:** Login, registration, 2FA
+- **Job Management:** Creation, listing, updates, deletion
+- **Candidate Management:** Profiles, applications, interviews
+- **AI Matching:** Semantic matching results and analysis
+- **Workflows:** Status updates and communication logs
 
 ---
+
+## 🔧 Backend Scripts Reference
+
+### Core Service Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `run_services.py` | Start all or specific services | `python run_services.py [gateway\|agent\|langgraph]` |
+| `setup_venv.bat` | Create venv & install packages (Windows) | `setup_venv.bat` |
+| `run_with_venv.bat` | Activate venv & run services (Windows) | `run_with_venv.bat` |
+| `seed_mongodb.py` | Seed database with sample data | `python seed_mongodb.py` |
+| `test_mongodb_atlas.py` | Test MongoDB connection | `python test_mongodb_atlas.py` |
+| `check_services.bat` | Check service health (Windows) | `check_services.bat` |
+
+### Database Management Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `services/gateway/verify_mongodb_schema.py` | Verify MongoDB schema and collections | `python services/gateway/verify_mongodb_schema.py` |
+| `services/gateway/create_mongodb_indexes.py` | Create recommended MongoDB indexes | `python services/gateway/create_mongodb_indexes.py` |
+| `services/gateway/migrate_mongodb_schema.py` | Migrate existing MongoDB data (add role fields) | `python services/gateway/migrate_mongodb_schema.py` |
+
+### Testing Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `test_authentication_changes.py` | Test authentication flows (candidate, recruiter, client) | `python test_authentication_changes.py` |
+| `test_mongodb_scripts.py` | Test MongoDB schema management scripts | `python test_mongodb_scripts.py` |
+
+**Quick Test Commands:**
+```bash
+# Test authentication flows
+python test_authentication_changes.py
+
+# Test MongoDB scripts
+python test_mongodb_scripts.py
+
+# Verify MongoDB schema
+python services/gateway/verify_mongodb_schema.py
+
+# Create MongoDB indexes
+python services/gateway/create_mongodb_indexes.py
+
+# Migrate MongoDB schema
+python services/gateway/migrate_mongodb_schema.py
+```
+
+### Utility Scripts
+
+**Development Utilities:**
+- `seed_mongodb.py`: Populate database with sample data
+- `test_mongodb_atlas.py`: Test MongoDB connection
+- `test_mongodb_setup.py`: Test MongoDB setup
+- `check_services.bat`: Check service health on Windows
+- `setup_venv.bat`: Windows virtual environment setup
+- `run_with_venv.bat`: Run services with virtual environment
+
+**Database Utilities:**
+- `verify_mongodb_schema.py`: Verify schema integrity
+- `create_mongodb_indexes.py`: Create performance indexes
+- `migrate_mongodb_schema.py`: Schema migration tools
+
+**Testing Utilities:**
+- `test_authentication_changes.py`: Authentication testing
+- `test_mongodb_scripts.py`: Database testing
+- `comprehensive_endpoint_tests.py`: Complete endpoint testing
+
+---
+
+## 📁 Project Structure Deep Dive
+
+### Root Level Components
+
+- **`.env.example`**: Template with all required environment variables for database connections, API keys, and service configurations
+- **`.gitignore`**: Specifies files to ignore, including environment files, cache directories, and local configurations
+- **`README.md`**: Main documentation with setup instructions and architecture overview
+- **`check_services.bat`**: Windows script for verifying service health
+- **`comprehensive_test_results.json`**: JSON file with integration test results for CI/CD
+- **`docker-compose.production.yml`**: Production Docker Compose for containerized deployment
+- **`requirements.txt`**: Python dependencies for backend services
+- **`run_services.py`**: Main orchestration script for starting services
+- **`run_test_simple.py`**: Lightweight test runner for basic verification
+- **`run_with_venv.bat`**: Windows script to activate venv and start services
+- **`seed_mongodb.py`**: Script to populate MongoDB with sample data
+- **`setup_venv.bat`**: Windows script for virtual environment setup
+- **`test_mongodb_atlas.py`**: Test script for MongoDB Atlas connectivity
+- **`test_mongodb_setup.py`**: Comprehensive MongoDB connection testing
+- **`MONGODB_VERIFICATION_REPORT.md`**: Detailed MongoDB connection test report
+- **`__pycache__`**: Python bytecode cache directory
+
+### Services Directory Deep Dive
+
+**Gateway Service (`services/gateway/`):**
+- **Purpose**: Main API entry point, authentication, orchestration
+- **Endpoints**: 77+ endpoints for jobs, candidates, AI integration, security
+- **Technology**: FastAPI, MongoDB, JWT authentication
+- **Key Files**: `app/main.py`, `jwt_auth.py`, `routes/`, `database.py`
+
+**Agent Service (`services/agent/`):**
+- **Purpose**: AI-powered semantic matching and analysis
+- **Endpoints**: 6 endpoints for candidate matching and analysis
+- **Technology**: FastAPI, Sentence Transformers, PyTorch
+- **Key Files**: `app.py`, `semantic_engine/`, `database.py`
+
+**LangGraph Service (`services/langgraph/`):**
+- **Purpose**: Workflow automation, RL integration, communication
+- **Endpoints**: 25 endpoints for workflows, RL, communication
+- **Technology**: FastAPI, LangGraph, LangChain, Google Gemini
+- **Key Files**: `app/main.py`, `workflows/`, `communication/`, `rl_integration/`
+
+### Documentation Structure
+
+**Analysis Documentation (`docs/analysis/`):**
+- Code quality analysis reports
+- Comprehensive codebase analysis
+- Performance and security assessments
+
+**API Documentation (`docs/api/`):**
+- Complete API contract documentation
+- Endpoint specifications and schemas
+- Integration guides and examples
+
+**Architecture Documentation (`docs/architecture/`):**
+- System architecture diagrams
+- Service dependency graphs
+- Design patterns and decisions
+
+**Database Documentation (`docs/database/`):**
+- MongoDB Atlas setup guides
+- Collection schemas and relationships
+- Migration plans and verification
+
+**Security Documentation (`docs/security/`):**
+- Authentication flow documentation
+- Security implementation details
+- Audit and compliance requirements
+
+**Testing Documentation (`docs/testing/`):**
+- Comprehensive testing strategies
+- Test approach and methodology
+- Endpoint testing procedures
 
 ## 🔧 Backend Scripts Reference
 
