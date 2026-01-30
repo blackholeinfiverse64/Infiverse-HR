@@ -23,7 +23,10 @@ api.interceptors.request.use(
     // If token is missing but user is authenticated, don't clear immediately - might be a race condition
     if (!token) {
       const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-      if (isAuthenticated) {
+      const isHealthCheck = config.url?.includes('/health');
+      if (isHealthCheck) {
+        // /health is often called without auth - do not warn
+      } else if (isAuthenticated) {
         // Only warn, don't clear - might be a timing issue
         console.warn('⚠️ Token missing but user is authenticated for request:', config.url);
         console.warn('This might be a race condition. Available localStorage keys:', Object.keys(localStorage));
@@ -31,8 +34,8 @@ api.interceptors.request.use(
         console.warn('⚠️ No auth_token found in localStorage for request:', config.url);
       }
     } else {
-      // Only log for non-health check endpoints to reduce noise
-      if (!config.url?.includes('/health')) {
+      // Only log for non-health check endpoints to reduce noise (optional: gate by import.meta.env.DEV)
+      if (!config.url?.includes('/health') && import.meta.env.DEV) {
         console.log('✅ Adding Authorization header for request:', config.url);
       }
       config.headers.Authorization = `Bearer ${token}`;

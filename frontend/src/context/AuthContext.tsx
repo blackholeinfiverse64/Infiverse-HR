@@ -204,6 +204,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('client_id', result.user.id);
         }
         
+        // Store candidate id from registration so it's available before login completes
+        if ((role === 'candidate' || role === 'recruiter') && result.user.id) {
+          localStorage.setItem('backend_candidate_id', String(result.user.id));
+          localStorage.setItem('candidate_id', String(result.user.id));
+        }
+        
         // Set user in state
         setUser(result.user);
         
@@ -259,13 +265,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('backend_candidate_id', loginResult.user.id);
           }
           
-          // Update user object with role
+          // Update user object with role (do not setUser until token is verified)
           const userWithRole = { ...loginResult.user, role: extractedRole };
-          setUser(userWithRole);
           
           // Set the auth token in axios defaults
           const axios = (await import('axios')).default;
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Verify token is visible to subsequent synchronous reads (avoid race with dashboard mount)
+          const verifyToken = () => {
+            const stored = localStorage.getItem('auth_token');
+            return stored === token;
+          };
+          if (!verifyToken()) {
+            console.error('❌ AuthContext: Token verification failed immediately after store');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('isAuthenticated');
+            return { error: 'Failed to persist authentication. Please log in manually.' };
+          }
+          // Yield so any pending layout/effect runs after token is committed
+          await new Promise((r) => setTimeout(r, 0));
+          if (!verifyToken()) {
+            console.error('❌ AuthContext: Token disappeared after yield');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('isAuthenticated');
+            return { error: 'Authentication state lost. Please log in manually.' };
+          }
+          
+          // Only set user after token is verified so consumers never see user without a valid token
+          setUser(userWithRole);
           
           console.log('✅ AuthContext: Registration and auto-login successful for role:', extractedRole);
           return { error: null, user: userWithRole };

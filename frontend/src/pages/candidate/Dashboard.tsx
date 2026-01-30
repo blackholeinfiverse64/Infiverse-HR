@@ -29,13 +29,21 @@ export default function CandidateDashboard() {
   const [recentApplications, setRecentApplications] = useState<Application[]>([])
   const [upcomingInterviews, setUpcomingInterviews] = useState<Interview[]>([])
   const [loading, setLoading] = useState(true)
+  // Only trust token that was present at mount; do not set authReady from user updates,
+  // since AuthContext may set user before token verification completes during signup.
+  const [authReady] = useState(() => !!localStorage.getItem('auth_token'))
 
   useEffect(() => {
+    if (!authReady || !candidateId) {
+      setLoading(false)
+      return
+    }
     loadDashboardData()
-  }, [])
+  }, [authReady, candidateId])
 
   const loadDashboardData = async () => {
-    if (!candidateId) {
+    const token = localStorage.getItem('auth_token')
+    if (!candidateId || !token) {
       setLoading(false)
       return
     }
