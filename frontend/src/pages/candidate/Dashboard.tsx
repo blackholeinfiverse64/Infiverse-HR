@@ -13,11 +13,8 @@ import { useAuth } from '../../context/AuthContext'
 
 export default function CandidateDashboard() {
   const navigate = useNavigate()
-  const { user, userName: authUserName } = useAuth()
+  const { userName: authUserName } = useAuth()
   const userName = authUserName || localStorage.getItem('user_name') || 'Candidate'
-  // Get backend candidate ID (integer) for API calls
-  const backendCandidateId = localStorage.getItem('backend_candidate_id')
-  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   const [stats, setStats] = useState<DashboardStats>({
     total_applications: 0,
@@ -34,16 +31,19 @@ export default function CandidateDashboard() {
   const [authReady] = useState(() => !!localStorage.getItem('auth_token'))
 
   useEffect(() => {
-    if (!authReady || !candidateId) {
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    if (!authReady || !currentBackendId) {
       setLoading(false)
       return
     }
     loadDashboardData()
-  }, [authReady, candidateId])
+  }, [authReady])
 
   const loadDashboardData = async () => {
     const token = localStorage.getItem('auth_token')
-    if (!candidateId || !token) {
+    // Use backend_candidate_id for API calls (MongoDB ObjectId string format)
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    if (!currentBackendId || !token) {
       setLoading(false)
       return
     }
@@ -51,9 +51,9 @@ export default function CandidateDashboard() {
     try {
       setLoading(true)
       const [statsData, applicationsData, interviewsData] = await Promise.all([
-        getCandidateDashboardStats(candidateId),
-        getCandidateApplications(candidateId),
-        getInterviews(candidateId)
+        getCandidateDashboardStats(currentBackendId),
+        getCandidateApplications(currentBackendId),
+        getInterviews(currentBackendId)
       ])
       
       setStats(statsData)

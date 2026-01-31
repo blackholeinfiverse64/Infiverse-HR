@@ -9,9 +9,6 @@ export default function CandidateFeedback() {
   const [loading, setLoading] = useState(true)
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
 
-  // Get backend candidate ID (integer) for API calls
-  const backendCandidateId = localStorage.getItem('backend_candidate_id')
-  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadFeedback()
@@ -27,8 +24,11 @@ export default function CandidateFeedback() {
       return
     }
 
+    // Get the latest backend_candidate_id from localStorage (MongoDB ObjectId string format)
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    
     // If authenticated but no candidate ID, show empty state
-    if (!candidateId) {
+    if (!currentBackendId) {
       setFeedbacks([])
       setLoading(false)
       return
@@ -36,7 +36,7 @@ export default function CandidateFeedback() {
 
     try {
       setLoading(true)
-      const data = await getCandidateFeedback(candidateId).catch(() => [])
+      const data = await getCandidateFeedback(currentBackendId).catch(() => [])
       setFeedbacks(data)
     } catch (error) {
       console.error('Failed to load feedback:', error)

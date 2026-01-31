@@ -589,8 +589,11 @@ export const getTasks = async (candidateId: string): Promise<Task[]> => {
     return response.data.tasks || response.data || []
   } catch (error: any) {
     // Tasks endpoint doesn't exist on backend - return empty array
+    // Only log in development to reduce console noise
     if (error?.response?.status === 404) {
-      console.warn('Tasks endpoint not available on backend')
+      if (import.meta.env.DEV) {
+        console.warn('Tasks endpoint not available on backend (expected - feature not implemented yet)')
+      }
       return []
     }
     console.error('Error fetching tasks:', error)
@@ -602,7 +605,15 @@ export const submitTask = async (taskId: string, submissionUrl: string) => {
   try {
     const response = await api.put(`/v1/tasks/${taskId}/submit`, { submission_url: submissionUrl })
     return response.data
-  } catch (error) {
+  } catch (error: any) {
+    // Tasks endpoint doesn't exist on backend
+    if (error?.response?.status === 404) {
+      const message = 'Task submission feature is not available yet. Please contact support.'
+      if (import.meta.env.DEV) {
+        console.warn('Tasks submit endpoint not available on backend:', message)
+      }
+      throw new Error(message)
+    }
     console.error('Error submitting task:', error)
     throw error
   }

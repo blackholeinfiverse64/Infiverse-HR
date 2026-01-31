@@ -14,9 +14,6 @@ export default function InterviewTaskPanel() {
   const [submitting, setSubmitting] = useState<string | null>(null)
   const [submitModal, setSubmitModal] = useState<{ task: Task; url: string } | null>(null)
 
-  // Get backend candidate ID (integer) for API calls
-  const backendCandidateId = localStorage.getItem('backend_candidate_id')
-  const candidateId = backendCandidateId || user?.id || localStorage.getItem('candidate_id') || ''
 
   useEffect(() => {
     loadData()
@@ -32,8 +29,11 @@ export default function InterviewTaskPanel() {
       return
     }
 
+    // Get the latest backend_candidate_id from localStorage (MongoDB ObjectId string format)
+    const currentBackendId = localStorage.getItem('backend_candidate_id')
+    
     // If authenticated but no candidate ID, show empty state
-    if (!candidateId) {
+    if (!currentBackendId) {
       setInterviews([])
       setTasks([])
       setLoading(false)
@@ -43,8 +43,8 @@ export default function InterviewTaskPanel() {
     try {
       setLoading(true)
       const [interviewsData, tasksData] = await Promise.all([
-        getInterviews(candidateId).catch(() => []),
-        getTasks(candidateId).catch(() => [])
+        getInterviews(currentBackendId).catch(() => []),
+        getTasks(currentBackendId).catch(() => [])
       ])
       setInterviews(interviewsData)
       setTasks(tasksData)
@@ -144,24 +144,24 @@ export default function InterviewTaskPanel() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700 opacity-60">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{pendingTasks.length}</p>
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">—</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Pending Tasks</p>
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700 opacity-60">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{completedTasks.length}</p>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">—</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Tasks Submitted</p>
             </div>
           </div>
@@ -183,13 +183,22 @@ export default function InterviewTaskPanel() {
           </button>
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 py-3 rounded-lg font-medium transition-colors relative ${
               activeTab === 'tasks'
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
             }`}
           >
-            Tasks ({tasks.length})
+            <span className="flex items-center justify-center gap-2">
+              Tasks ({tasks.length})
+              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                activeTab === 'tasks'
+                  ? 'bg-blue-400/30 text-white'
+                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+              }`}>
+                Coming Soon
+              </span>
+            </span>
           </button>
         </div>
       </div>
@@ -401,11 +410,21 @@ export default function InterviewTaskPanel() {
 
           {tasks.length === 0 && (
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center shadow-sm border border-gray-100 dark:border-slate-700">
-              <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tasks assigned</h3>
-              <p className="text-gray-500 dark:text-gray-400">Your assigned tasks will appear here</p>
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 mb-6">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Tasks Feature Coming Soon</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
+                We're working on bringing you a comprehensive task management system. You'll be able to view, track, and submit assigned tasks soon!
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Stay tuned for updates</span>
+              </div>
             </div>
           )}
         </div>

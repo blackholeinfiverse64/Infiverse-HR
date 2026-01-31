@@ -22,7 +22,7 @@ export default function AppliedJobs() {
       return
     }
 
-    // Get the latest backend_candidate_id from localStorage
+    // Get the latest backend_candidate_id from localStorage (MongoDB ObjectId string format)
     const currentBackendId = localStorage.getItem('backend_candidate_id')
     
     // If authenticated but no candidate ID, show empty state
@@ -35,7 +35,7 @@ export default function AppliedJobs() {
     try {
       setLoading(true)
       console.log('Loading applications for candidate:', currentBackendId)
-      // Use backend_candidate_id for applications
+      // Use backend_candidate_id (ObjectId string) for applications
       const data = await getCandidateApplications(currentBackendId)
       console.log('Loaded applications:', data)
       setApplications(data || [])
