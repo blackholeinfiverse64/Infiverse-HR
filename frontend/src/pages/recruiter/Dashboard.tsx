@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getJobs, getRecruiterStats, getCandidatesByJob, getAllInterviews, getAllOffers, type Job, type RecruiterStats } from '../../services/api'
@@ -6,50 +6,23 @@ import StatsCard from '../../components/StatsCard'
 import Table from '../../components/Table'
 import Loading from '../../components/Loading'
 
-// Component to display jobs with real applicant counts from backend
-function JobTableWithStats({ jobs }: { jobs: Job[] }) {
-  const [jobStats, setJobStats] = useState<Record<string, { applicants: number; shortlisted: number }>>({})
-  const [loadingStats, setLoadingStats] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    // Load stats for all jobs
-    const loadJobStats = async () => {
-      for (const job of jobs) {
-        if (!jobStats[job.id] && !loadingStats[job.id]) {
-          setLoadingStats(prev => ({ ...prev, [job.id]: true }))
-          try {
-            const candidates = await getCandidatesByJob(job.id)
-            setJobStats(prev => ({
-              ...prev,
-              [job.id]: {
-                applicants: candidates.length,
-                shortlisted: candidates.filter((c: any) => c.status === 'shortlisted' || c.match_score >= 80).length
-              }
-            }))
-          } catch (error) {
-            console.error(`Failed to load stats for job ${job.id}:`, error)
-            setJobStats(prev => ({
-              ...prev,
-              [job.id]: { applicants: 0, shortlisted: 0 }
-            }))
-          } finally {
-            setLoadingStats(prev => ({ ...prev, [job.id]: false }))
-          }
-        }
-      }
-    }
-    if (jobs.length > 0) {
-      loadJobStats()
-    }
-  }, [jobs])
-
+// Component to display jobs with applicant counts; stats come from parent (single source, no duplicate fetches)
+function JobTableWithStats({
+  jobs,
+  jobStats,
+  loading
+}: {
+  jobs: Job[]
+  jobStats: Record<string, { applicants: number; shortlisted: number }>
+  loading: boolean
+}) {
   return (
     <Table
       columns={['Job Title', 'Department', 'Location', 'Type', 'Applicants', 'Shortlisted', 'Actions']}
       data={jobs}
       renderRow={(job) => {
         const stats = jobStats[job.id] || { applicants: 0, shortlisted: 0 }
-        const isLoading = loadingStats[job.id]
+        const isLoading = loading
         return (
           <>
             <td className="font-semibold text-gray-900 dark:text-white">{job.title}</td>
@@ -98,6 +71,7 @@ function JobTableWithStats({ jobs }: { jobs: Job[] }) {
 
 export default function RecruiterDashboard() {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [jobStats, setJobStats] = useState<Record<string, { applicants: number; shortlisted: number }>>({})
   const [stats, setStats] = useState<RecruiterStats>({
     total_jobs: 0,
     total_applicants: 0,
@@ -107,16 +81,22 @@ export default function RecruiterDashboard() {
     hired: 0
   })
   const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
     loadDashboardData()
-    // Auto-refresh every 30 seconds for real-time data
-    const interval = setInterval(loadDashboardData, 30000)
+    // Auto-refresh every 60s; skip if previous load still in progress to avoid overlapping
+    // match requests and agent overload during extended run.
+    const interval = setInterval(() => {
+      if (!loadingRef.current) loadDashboardData()
+    }, 60000)
     return () => clearInterval(interval)
   }, [])
 
   const loadDashboardData = async () => {
+    if (loadingRef.current) return
     try {
+      loadingRef.current = true
       setLoading(true)
       
       // Load all data in parallel for accurate stats
@@ -128,26 +108,28 @@ export default function RecruiterDashboard() {
       ])
       
       setJobs(jobsData)
-      
-      // If stats endpoint doesn't provide data, calculate from actual data
+
+      // Single fetch for per-job applicant counts (first 10 jobs); used for table and aggregate stats
+      const perJob: Record<string, { applicants: number; shortlisted: number }> = {}
+      let totalApplicants = 0
+      let totalShortlisted = 0
+      for (const job of jobsData.slice(0, 10)) {
+        try {
+          const candidates = await getCandidatesByJob(job.id)
+          const applicants = candidates.length
+          const shortlisted = candidates.filter((c: any) => c.status === 'shortlisted' || (c.score != null && c.score >= 80)).length
+          perJob[job.id] = { applicants, shortlisted }
+          totalApplicants += applicants
+          totalShortlisted += shortlisted
+        } catch {
+          perJob[job.id] = { applicants: 0, shortlisted: 0 }
+        }
+      }
+      setJobStats(perJob)
+
       if (statsData && statsData.total_applicants > 0) {
         setStats(statsData)
       } else {
-        // Calculate stats from actual backend data
-        let totalApplicants = 0
-        let totalShortlisted = 0
-        
-        // Get candidates for each job to calculate accurate counts
-        for (const job of jobsData.slice(0, 10)) { // Limit to first 10 jobs for performance
-          try {
-            const candidates = await getCandidatesByJob(job.id)
-            totalApplicants += candidates.length
-            totalShortlisted += candidates.filter((c: any) => c.status === 'shortlisted' || c.match_score >= 80).length
-          } catch (error) {
-            // Continue if one job fails
-          }
-        }
-        
         setStats({
           total_jobs: jobsData.length,
           total_applicants: totalApplicants,
@@ -161,6 +143,7 @@ export default function RecruiterDashboard() {
       console.error('Failed to load dashboard data:', error)
       toast.error('Failed to connect to backend API')
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
   }
@@ -282,7 +265,7 @@ export default function RecruiterDashboard() {
         {loading ? (
           <Loading message="Loading jobs..." />
         ) : (
-          <JobTableWithStats jobs={jobs} />
+          <JobTableWithStats jobs={jobs} jobStats={jobStats} loading={loading} />
         )}
       </div>
     </div>

@@ -85,13 +85,18 @@ export default function Table({ columns, data, onRowClick, renderRow }: TablePro
                 <div className="space-y-3">
                   {columns.map((column, colIndex) => {
                     const cell = cells[colIndex]
+                    // Extract content only: avoid rendering <td> inside <div> (invalid DOM)
+                    const cellContent =
+                      React.isValidElement(cell) && cell.props && 'children' in cell
+                        ? (cell.props as { children?: React.ReactNode }).children
+                        : cell
                     return (
                       <div key={colIndex} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-2 border-b border-gray-100 dark:border-slate-700 last:border-0">
                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                           {column}:
                         </span>
                         <div className="text-sm text-gray-900 dark:text-white flex-1">
-                          {cell || '-'}
+                          {cellContent ?? '-'}
                         </div>
                       </div>
                     )

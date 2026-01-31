@@ -457,13 +457,22 @@ export const updateCandidateProfile = async (candidateId: string, data: Partial<
   }
 }
 
+// Match endpoint: gateway tries agent (default 20s) then fallback; use 70s so we get
+// either AI results or fallback (supports AGENT_MATCH_TIMEOUT=60 when set).
+const MATCH_REQUEST_TIMEOUT_MS = 70_000
+
 export const getCandidatesByJob = async (jobId: string) => {
   try {
-    const response = await api.get(`/v1/match/${jobId}/top`)
+    const response = await api.get(`/v1/match/${jobId}/top`, {
+      timeout: MATCH_REQUEST_TIMEOUT_MS
+    })
     return response.data.matches || response.data || []
   } catch (error) {
-    console.error('Error fetching candidates:', error)
-    throw error
+    // Timeout or agent unreachable: return [] so dashboard still loads; avoid flooding console
+    if (import.meta.env.DEV) {
+      console.warn('Match endpoint failed for job', jobId, '(showing 0 applicants):', (error as Error)?.message || error)
+    }
+    return []
   }
 }
 
@@ -778,10 +787,39 @@ export interface MatchingStats {
   low_matches: number
 }
 
+/** Normalize gateway match response to MatchResult (gateway uses name/score, UI expects candidate_name/match_score/matched_skills). */
+function normalizeMatchToResult(m: any): MatchResult {
+  const skillsStr = m.skills_match ?? ''
+  const matchedSkills = Array.isArray(m.matched_skills)
+    ? m.matched_skills
+    : (typeof skillsStr === 'string' ? skillsStr.split(',').map((s: string) => s.trim()).filter(Boolean) : [])
+  const score = typeof m.score === 'number' ? m.score : (typeof m.match_score === 'number' ? m.match_score : 0)
+  const loc = m.location_match
+  const locationPct = typeof loc === 'number' ? loc : (loc === true ? 100 : 0)
+  const exp = m.experience_match
+  const experiencePct = typeof exp === 'number' ? exp : (typeof exp === 'string' && /^\d+/.test(exp) ? parseInt(exp, 10) : 0)
+  const skillsPct = typeof m.skills_match === 'number' ? m.skills_match : (matchedSkills.length ? Math.min(100, matchedSkills.length * 25) : 0)
+  return {
+    candidate_id: m.candidate_id ?? m.id ?? '',
+    candidate_name: m.candidate_name ?? m.name ?? '',
+    email: m.email ?? '',
+    match_score: score,
+    skills_match: skillsPct,
+    experience_match: experiencePct,
+    location_match: locationPct,
+    matched_skills: matchedSkills,
+    missing_skills: Array.isArray(m.missing_skills) ? m.missing_skills : [],
+    recommendation: m.recommendation ?? m.recommendation_strength ?? m.reasoning ?? ''
+  }
+}
+
 export const getTopMatches = async (jobId: string, limit: number = 10): Promise<MatchResult[]> => {
   try {
-    const response = await api.get(`/v1/match/${jobId}/top?limit=${limit}`)
-    return response.data.matches || response.data || []
+    const response = await api.get(`/v1/match/${jobId}/top?limit=${limit}`, {
+      timeout: MATCH_REQUEST_TIMEOUT_MS
+    })
+    const raw = response.data.matches || response.data || []
+    return Array.isArray(raw) ? raw.map(normalizeMatchToResult) : []
   } catch (error) {
     console.error('Error fetching top matches:', error)
     throw error

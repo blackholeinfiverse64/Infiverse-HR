@@ -566,9 +566,69 @@ async def list_jobs():
     except Exception as e:
         return {"jobs": [], "count": 0, "error": str(e)}
 
+@app.get("/v1/jobs/{job_id}", tags=["Job Management"])
+async def get_job_by_id(job_id: str):
+    """Get a single job by ID (MongoDB ObjectId string or legacy id)."""
+    if not job_id:
+        raise HTTPException(status_code=400, detail="Job ID is required")
+    try:
+        db = await get_mongo_db()
+        try:
+            doc = await db.jobs.find_one({"_id": ObjectId(job_id)})
+        except Exception:
+            doc = await db.jobs.find_one({"id": job_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return {
+            "id": str(doc["_id"]),
+            "title": doc.get("title"),
+            "department": doc.get("department"),
+            "location": doc.get("location"),
+            "experience_level": doc.get("experience_level"),
+            "requirements": doc.get("requirements"),
+            "description": doc.get("description"),
+            "job_type": doc.get("job_type"),
+            "employment_type": doc.get("employment_type"),
+            "status": doc.get("status"),
+            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ShortlistRequest(BaseModel):
+    candidate_id: str
+
+@app.post("/v1/jobs/{job_id}/shortlist", tags=["Job Management"])
+async def shortlist_candidate_for_job(job_id: str, body: ShortlistRequest, auth=Depends(get_auth)):
+    """Mark a candidate as shortlisted for a job (upsert job_application with status shortlisted)."""
+    if not job_id or not body.candidate_id:
+        raise HTTPException(status_code=400, detail="job_id and candidate_id are required")
+    try:
+        db = await get_mongo_db()
+        now = datetime.now(timezone.utc)
+        existing = await db.job_applications.find_one({"job_id": job_id, "candidate_id": body.candidate_id})
+        if existing:
+            await db.job_applications.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"status": "shortlisted", "updated_at": now}}
+            )
+        else:
+            await db.job_applications.insert_one({
+                "job_id": job_id,
+                "candidate_id": body.candidate_id,
+                "status": "shortlisted",
+                "created_at": now,
+                "updated_at": now,
+            })
+        return {"message": "Candidate shortlisted", "job_id": job_id, "candidate_id": body.candidate_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Candidate Management (5 endpoints)
 @app.get("/v1/candidates", tags=["Candidate Management"])
-async def get_all_candidates(limit: int = 50, offset: int = 0, api_key: str = Depends(get_api_key)):
+async def get_all_candidates(limit: int = 50, offset: int = 0, auth=Depends(get_auth)):
     """Get All Candidates with Pagination"""
     try:
         db = await get_mongo_db()
@@ -604,7 +664,7 @@ async def get_all_candidates(limit: int = 50, offset: int = 0, api_key: str = De
 
 # Analytics & Statistics - Move stats endpoint before parameterized routes
 @app.get("/v1/candidates/stats", tags=["Analytics & Statistics"])
-async def get_candidate_stats(api_key: str = Depends(get_api_key)):
+async def get_candidate_stats(auth=Depends(get_auth)):
     """Dynamic Candidate Statistics for HR Dashboard Analytics
     
     **Authentication:** Bearer token required
@@ -692,7 +752,7 @@ async def search_candidates(
     skills: Optional[str] = None, 
     location: Optional[str] = None, 
     experience_min: Optional[int] = None, 
-    api_key: str = Depends(get_api_key)
+    auth=Depends(get_auth)
 ):
     """Search & Filter Candidates"""
     if skills:
@@ -779,7 +839,7 @@ async def get_candidates_by_job(job_id: str, api_key: str = Depends(get_api_key)
         return {"candidates": [], "job_id": job_id, "count": 0, "error": str(e)}
 
 @app.get("/v1/candidates/{candidate_id}", tags=["Candidate Management"])
-async def get_candidate_by_id(candidate_id: str, api_key: str = Depends(get_api_key)):
+async def get_candidate_by_id(candidate_id: str, auth=Depends(get_auth)):
     """Get Specific Candidate by ID"""
     try:
         db = await get_mongo_db()
@@ -881,9 +941,10 @@ async def get_top_matches(job_id: str, limit: int = 10, auth = Depends(get_auth)
     try:
         import httpx
         agent_url = os.getenv("AGENT_SERVICE_URL")
-        
-        # Call agent service for AI matching
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # Use a shorter default (20s) so we fall back to DB quickly when agent is slow
+        # or degraded after extended run; set AGENT_MATCH_TIMEOUT=60 for full AI/ML time.
+        agent_timeout = float(os.getenv("AGENT_MATCH_TIMEOUT", "20"))
+        async with httpx.AsyncClient(timeout=agent_timeout) as client:
             response = await client.post(
                 f"{agent_url}/match",
                 json={"job_id": job_id, "candidate_ids": []},
