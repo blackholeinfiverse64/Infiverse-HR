@@ -56,6 +56,25 @@ export default function BatchOperations() {
       return
     }
 
+    // Validate candidates have required fields with quality check
+    const invalidCandidates = candidates.filter(c => {
+      const hasValidEmail = c.email && c.email.trim() && c.email.includes('@') && 
+                           c.email !== 'test@example.com' && 
+                           !c.email.startsWith('test@')
+      const hasValidPhone = c.phone && c.phone.trim() && 
+                           c.phone.replace(/[^0-9+]/g, '').length >= 10 && 
+                           c.phone !== '+1234567890' &&
+                           c.phone !== '1234567890'
+      return !hasValidEmail && !hasValidPhone
+    })
+    
+    if (invalidCandidates.length > 0) {
+      toast.error(`${invalidCandidates.length} candidate(s) have invalid contact info (need real email or 10+ digit phone)`, {
+        duration: 6000
+      })
+      return
+    }
+
     setSendingNotifications(true)
     try {
       // Call LangGraph service for bulk notifications via Gateway API
@@ -66,6 +85,13 @@ export default function BatchOperations() {
       const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null
       const jobTitle = selectedJob?.title || 'Position'
       const jobIdForNotification = selectedJob?.id || null
+      
+      console.log('📧 Sending bulk notifications:', {
+        candidatesCount: candidates.length,
+        notificationType,
+        jobTitle,
+        candidates: candidates.map(c => ({ name: c.name, email: c.email, phone: c.phone }))
+      })
       
       // Use new consistent endpoint path
       const response = await fetch(`${langgraphUrl}/automation/notifications/bulk`, {
@@ -90,14 +116,32 @@ export default function BatchOperations() {
 
       if (response.ok) {
         const result = await response.json()
-        const successCount = result.bulk_result?.success_count || candidates.length
-        toast.success(`Bulk notifications sent to ${successCount}/${candidates.length} candidates`)
+        console.log('✅ Notification response:', result)
+        
+        const successCount = result.bulk_result?.success_count || 0
+        const failedCount = result.bulk_result?.failed_count || 0
+        const totalCount = result.bulk_result?.total_candidates || candidates.length
+        
+        if (successCount > 0) {
+          toast.success(`✅ Bulk notifications sent to ${successCount}/${totalCount} candidates (${failedCount} failed)`, {
+            duration: 5000
+          })
+        } else if (failedCount > 0) {
+          toast.error(`❌ Failed to send notifications to all ${failedCount} candidates. Check backend logs for details.`)
+        } else {
+          toast('⚠️ Notifications processed but no confirmations received', {
+            icon: '⚠️',
+            duration: 5000
+          })
+        }
       } else {
-        throw new Error('Failed to send notifications')
+        const errorText = await response.text()
+        console.error('❌ Notification error response:', errorText)
+        throw new Error(`Failed to send notifications: ${response.status} ${response.statusText}`)
       }
     } catch (error) {
-      console.error('Notification error:', error)
-      toast.error('Failed to send bulk notifications. Service may be offline.')
+      console.error('❌ Notification error:', error)
+      toast.error(`Failed to send bulk notifications: ${error instanceof Error ? error.message : 'Service may be offline'}`)
     } finally {
       setSendingNotifications(false)
     }

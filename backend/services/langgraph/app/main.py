@@ -706,6 +706,9 @@ async def send_bulk_notifications(
     candidates: Optional[List[dict]] = None,
     sequence_type: Optional[str] = None,
     job_data: Optional[dict] = None,
+    job_title: Optional[str] = None,
+    job_id: Optional[str] = None,
+    matching_score: Optional[str] = None,
     api_key: str = Depends(get_api_key)
 ):
     """Send Bulk Notifications to Multiple Candidates"""
@@ -720,7 +723,21 @@ async def send_bulk_notifications(
         else:
             cands = candidates or []
             seq_type = sequence_type or "application_received"
+            # Build job_data from separate fields if provided
             job = job_data or {}
+            if job_title:
+                job['job_title'] = job_title
+            if job_id:
+                job['job_id'] = job_id
+            if matching_score:
+                job['matching_score'] = matching_score
+            # Set defaults if not provided
+            if 'job_title' not in job:
+                job['job_title'] = 'Position'
+            if 'matching_score' not in job:
+                job['matching_score'] = 'High'
+        
+        logger.info(f"📨 Bulk notification request: {len(cands)} candidates, type: {seq_type}, job: {job.get('job_title', 'N/A')}")
         
         result = await comm_manager.send_bulk_notifications(cands, seq_type, job)
         

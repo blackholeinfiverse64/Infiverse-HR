@@ -296,6 +296,7 @@ class CommunicationManager:
             results.append(email_result)
         else:
             logger.info("Skipping email - no valid email provided")
+            results.append({"status": "skipped", "channel": "email", "reason": "No valid email provided", "recipient": candidate_email or "none"})
         
         # Send WhatsApp with interactive options for certain sequences
         candidate_phone = payload.get('candidate_phone')
@@ -321,6 +322,9 @@ class CommunicationManager:
             else:
                 whatsapp_result = await self.send_whatsapp(payload['candidate_phone'], sequence["whatsapp"])
             results.append(whatsapp_result)
+        else:
+            logger.info("Skipping WhatsApp - no valid phone provided")
+            results.append({"status": "skipped", "channel": "whatsapp", "reason": "No valid phone provided", "recipient": candidate_phone or "none"})
         
         return results
     
@@ -483,21 +487,28 @@ _Thank you for your interest in BHIV!_"""
             
             for candidate in candidates:
                 try:
+                    # Handle both formats: old format (name, email) and new format (candidate_name, candidate_email)
                     payload = {
                         **job_data,
-                        "candidate_name": candidate.get('name', 'Candidate'),
-                        "candidate_email": candidate.get('email', ''),
-                        "candidate_phone": candidate.get('phone', ''),
-                        "candidate_id": candidate.get('id')
+                        "candidate_name": candidate.get('candidate_name') or candidate.get('name', 'Candidate'),
+                        "candidate_email": candidate.get('candidate_email') or candidate.get('email', ''),
+                        "candidate_phone": candidate.get('candidate_phone') or candidate.get('phone', ''),
+                        "candidate_id": candidate.get('candidate_id') or candidate.get('id')
                     }
+                    
+                    logger.info(f"📧 Processing notification for: {payload['candidate_name']} ({payload['candidate_email']}, {payload['candidate_phone']})")
                     
                     candidate_results = await self.send_automated_sequence(payload, sequence_type)
                     results.extend(candidate_results)
                     
-                    # Count successes
+                    # Count successes (exclude mock_sent and skipped from both success and failure)
                     for result in candidate_results:
-                        if result.get('status') == 'success':
+                        status = result.get('status')
+                        if status == 'success':
                             success_count += 1
+                        elif status in ['skipped', 'mock_sent']:
+                            # Don't count as success or failure - these are informational
+                            logger.info(f"ℹ️ Notification {status}: {result.get('channel')} - {result.get('reason', 'N/A')}")
                         else:
                             failed_count += 1
                             
