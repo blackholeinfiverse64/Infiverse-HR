@@ -714,6 +714,7 @@ async def send_bulk_notifications(
     """Send Bulk Notifications to Multiple Candidates"""
     try:
         from .communication import comm_manager
+        from datetime import datetime
         
         # Support both JSON body and separate params
         if request:
@@ -741,10 +742,124 @@ async def send_bulk_notifications(
         
         result = await comm_manager.send_bulk_notifications(cands, seq_type, job)
         
+        # Log notifications to MongoDB for history tracking
+        try:
+            if tracker._db is not None:
+                notification_logs_collection = tracker._db.notification_logs
+                timestamp = datetime.utcnow()
+                
+                # Log each notification result
+                for notification_result in result.get('results', []):
+                    if notification_result.get('status') in ['success', 'mock_sent']:
+                        log_entry = {
+                            'candidate_id': notification_result.get('candidate_id'),
+                            'candidate_name': notification_result.get('candidate_name'),
+                            'channel': notification_result.get('channel'),
+                            'notification_type': seq_type,
+                            'status': notification_result.get('status'),
+                            'recipient': notification_result.get('recipient'),
+                            'job_id': job.get('job_id'),
+                            'job_title': job.get('job_title'),
+                            'sent_at': timestamp,
+                            'message_id': notification_result.get('message_id')
+                        }
+                        notification_logs_collection.insert_one(log_entry)
+                
+                logger.info(f"✅ Logged {len(result.get('results', []))} notifications to history")
+        except Exception as log_error:
+            logger.warning(f"⚠️ Failed to log notifications to database: {log_error}")
+            # Don't fail the request if logging fails
+        
         return {
             "success": True,
             "bulk_result": result,
             "sent_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/automation/notifications/preview", tags=["Automation - Notifications"])
+async def preview_notification(
+    sequence_type: str,
+    candidate_name: str = "John Doe",
+    job_title: str = "Software Engineer",
+    job_id: str = "job_123",
+    matching_score: str = "85",
+    interview_date: str = "2024-02-15",
+    interview_time: str = "2:00 PM",
+    interviewer: str = "HR Team",
+    application_id: str = "APP_001",
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Preview Notification Templates
+    
+    Shows what the notification message will look like for different channels
+    without actually sending them. Useful for testing and UI preview.
+    
+    **Supported notification types:**
+    - application_received
+    - interview_scheduled
+    - shortlisted
+    - rejection_sent
+    """
+    try:
+        # Build sample payload
+        payload = {
+            'candidate_name': candidate_name,
+            'job_title': job_title,
+            'job_id': job_id,
+            'matching_score': matching_score,
+            'interview_date': interview_date,
+            'interview_time': interview_time,
+            'interviewer': interviewer,
+            'application_id': application_id
+        }
+        
+        # Template definitions (same as in communication.py)
+        sequences = {
+            "application_received": {
+                "email": {
+                    "subject": f"✅ Application Received - {payload['job_title']} | BHIV HR",
+                    "body": f"""Dear {payload['candidate_name']},\n\nThank you for applying to {payload['job_title']} at BHIV.\n\nYour application is under review. We'll contact you within 3-5 business days.\n\nApplication ID: {payload.get('application_id', 'N/A')}\n\nNext Steps:\n• AI screening in progress\n• HR review within 24-48 hours\n• Interview scheduling if shortlisted\n\nBest regards,\nBHIV HR Team""",
+                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #2c5aa0;'>✅ Application Received</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>Thank you for applying to <strong>{payload['job_title']}</strong> at BHIV.</p>\n<div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<h3>Application Details:</h3>\n<p><strong>Position:</strong> {payload['job_title']}<br>\n<strong>Application ID:</strong> {payload.get('application_id', 'N/A')}<br>\n<strong>Status:</strong> Under Review</p>\n</div>\n<h3>Next Steps:</h3>\n<ul>\n<li>🤖 AI screening in progress</li>\n<li>👥 HR review within 24-48 hours</li>\n<li>📅 Interview scheduling if shortlisted</li>\n</ul>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
+                },
+                "whatsapp": f"""🎯 *Application Received*\n\n*Position:* {payload['job_title']}\n*Application ID:* {payload.get('application_id', 'N/A')}\n*Status:* Under Review\n\n📋 *Next Steps:*\n• AI screening in progress\n• HR review within 24-48 hours\n\nWe'll update you within 3-5 days!\n\n_BHIV HR Team_"""
+            },
+            "interview_scheduled": {
+                "email": {
+                    "subject": f"📅 Interview Scheduled - {payload['job_title']} | BHIV HR",
+                    "body": f"""Dear {payload['candidate_name']},\n\nYour interview is scheduled!\n\n📅 Date: {payload.get('interview_date', 'TBD')}\n🕐 Time: {payload.get('interview_time', 'TBD')}\n👤 Interviewer: {payload.get('interviewer', 'HR Team')}\n🎥 Format: Video Call\n⏱️ Duration: 45 minutes\n\nInterview Preparation:\n• Review the job description\n• Prepare examples of your work\n• Test your video call setup\n\nPlease confirm your availability by replying to this email.\n\nBest regards,\nBHIV HR Team""",
+                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #28a745;'>📅 Interview Scheduled</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>Your interview for <strong>{payload['job_title']}</strong> is confirmed!</p>\n<div style='background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<h3>Interview Details:</h3>\n<p><strong>📅 Date:</strong> {payload.get('interview_date', 'TBD')}<br>\n<strong>🕐 Time:</strong> {payload.get('interview_time', 'TBD')}<br>\n<strong>👤 Interviewer:</strong> {payload.get('interviewer', 'HR Team')}<br>\n<strong>🎥 Format:</strong> Video Call<br>\n<strong>⏱️ Duration:</strong> 45 minutes</p>\n</div>\n<h3>📋 Preparation Checklist:</h3>\n<ul>\n<li>✅ Review the job description</li>\n<li>✅ Prepare examples of your work</li>\n<li>✅ Test your video call setup</li>\n</ul>\n<p><strong>Please confirm your availability by replying to this email.</strong></p>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
+                },
+                "whatsapp": f"""📅 *Interview Scheduled*\n\n*Job:* {payload['job_title']}\n*Date:* {payload.get('interview_date', 'TBD')}\n*Time:* {payload.get('interview_time', 'TBD')}\n*Interviewer:* {payload.get('interviewer', 'HR Team')}\n\n📋 *Preparation:*\n• Review job description\n• Prepare work examples\n• Test video setup\n\nPlease confirm! 👍"""
+            },
+            "shortlisted": {
+                "email": {
+                    "subject": f"🎉 Congratulations! Shortlisted - {payload['job_title']} | BHIV HR",
+                    "body": f"""Dear {payload['candidate_name']},\n\n🎉 Congratulations! You've been shortlisted for {payload['job_title']}!\n\nOur AI matching system scored your profile highly based on:\n• Technical skills alignment\n• Experience relevance\n• Cultural fit assessment\n\nMatching Score: {payload.get('matching_score', 'High')}/100\n\nNext Steps:\n• Our HR team will contact you within 24 hours\n• Interview scheduling will follow\n• Please keep your calendar flexible\n\nWe're excited about the possibility of you joining our team!\n\nBest regards,\nBHIV HR Team""",
+                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #ffc107;'>🎉 Congratulations! You're Shortlisted!</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>We're excited to inform you that you've been <strong>shortlisted</strong> for the <strong>{payload['job_title']}</strong> position!</p>\n<div style='background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<h3>🎯 AI Assessment Results:</h3>\n<p><strong>Matching Score:</strong> {payload.get('matching_score', 'High')}/100<br>\n<strong>Technical Skills:</strong> Excellent alignment<br>\n<strong>Experience:</strong> Highly relevant<br>\n<strong>Cultural Fit:</strong> Strong match</p>\n</div>\n<h3>🚀 Next Steps:</h3>\n<ul>\n<li>📞 HR team will contact you within 24 hours</li>\n<li>📅 Interview scheduling will follow</li>\n<li>🗓️ Please keep your calendar flexible</li>\n</ul>\n<p><strong>We're excited about the possibility of you joining our team!</strong></p>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
+                },
+                "whatsapp": f"""🎉 *SHORTLISTED!*\n\n*Job:* {payload['job_title']}\n*AI Score:* {payload.get('matching_score', 'High')}/100\n\n🎯 *Why you were selected:*\n• Technical skills alignment\n• Experience relevance\n• Cultural fit assessment\n\n📞 We'll call you within 24 hours!\n\n_Congratulations! 🎊_"""
+            },
+            "rejection_sent": {
+                "email": {
+                    "subject": f"Application Update - {payload['job_title']} | BHIV HR",
+                    "body": f"""Dear {payload['candidate_name']},\n\nThank you for your interest in the {payload['job_title']} position at BHIV and for taking the time to apply.\n\nAfter careful consideration, we have decided to move forward with other candidates whose qualifications more closely match our current needs.\n\nWe were impressed by your background and encourage you to apply for future opportunities that align with your skills and experience.\n\nYour application will remain in our system for future consideration. We'll notify you when suitable positions become available.\n\nWe wish you all the best in your job search and future endeavors.\n\nBest regards,\nBHIV HR Team""",
+                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #6c757d;'>Application Update</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>Thank you for your interest in the <strong>{payload['job_title']}</strong> position at BHIV and for taking the time to apply.</p>\n<div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<p>After careful consideration, we have decided to move forward with other candidates whose qualifications more closely match our current needs.</p>\n</div>\n<p>We were impressed by your background and encourage you to apply for future opportunities that align with your skills and experience.</p>\n<h3>💼 Future Opportunities:</h3>\n<ul>\n<li>Your application remains in our system</li>\n<li>We'll notify you of suitable positions</li>\n<li>Feel free to apply for other roles</li>\n</ul>\n<p>We wish you all the best in your job search and future endeavors.</p>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
+                },
+                "whatsapp": f"""📋 *Application Update*\n\n*Job:* {payload['job_title']}\n\nThank you for applying to BHIV. After careful review, we've decided to move forward with other candidates.\n\n💼 *Your profile remains active:*\n• We'll notify you of future opportunities\n• Feel free to apply for other roles\n\nWe wish you the best in your job search!\n\n_BHIV HR Team_"""
+            }
+        }
+        
+        # Get templates for the requested sequence type
+        templates = sequences.get(sequence_type, sequences["application_received"])
+        
+        return {
+            "success": True,
+            "notification_type": sequence_type,
+            "templates": templates,
+            "sample_data": payload
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

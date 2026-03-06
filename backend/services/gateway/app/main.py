@@ -1022,17 +1022,461 @@ async def shortlist_candidate_for_job(job_id: str, body: ShortlistRequest, auth=
 
 # Candidate Management (5 endpoints)
 @app.get("/v1/candidates", tags=["Candidate Management"])
-async def get_all_candidates(limit: int = 50, offset: int = 0, auth=Depends(get_auth)):
-    """Get All Candidates with Pagination"""
+async def get_all_candidates(
+    limit: int = 50, 
+    offset: int = 0,
+    # Data isolation
+    recruiter_id: Optional[str] = None,
+    client_id: Optional[str] = None,  # Added client_id support
+    job_id: Optional[str] = None,  # Filter by specific job
+    # Status filtering
+    status: Optional[str] = None,  # Single status or comma-separated
+    exclude_statuses: Optional[str] = None,  # Comma-separated statuses to exclude
+    # Date filtering
+    created_at_gte: Optional[str] = None,  # ISO date string YYYY-MM-DD
+    interview_date_gte: Optional[str] = None,  # ISO date string
+    interview_date_lt: Optional[str] = None,  # ISO date string
+    # Interview filtering
+    has_interview: Optional[bool] = None,
+    # Score filtering
+    matching_score_gte: Optional[int] = None,
+    # Feedback filtering
+    feedback_submitted: Optional[bool] = None,
+    # Never applied filtering
+    include_never_applied: Optional[bool] = None,  # Include candidates with no job applications
+    auth=Depends(get_auth)
+):
+    """
+    Get All Candidates with Advanced Filtering
+    
+    Supports filtering by:
+    - recruiter_id: Data isolation - only candidates who applied to recruiter's jobs
+    - client_id: Data isolation - only candidates who applied to client's jobs
+    - job_id: Filter candidates who applied to a specific job
+    - status: Single status or comma-separated list (e.g., "shortlisted" or "shortlisted,interview_scheduled")
+                NOTE: When recruiter_id/client_id/job_id is provided, status filters by job_applications.status
+    - exclude_statuses: Comma-separated statuses to exclude
+    - created_at_gte: Filter candidates created on or after this date (YYYY-MM-DD)
+    - interview_date_gte/lt: Filter by interview date range
+    - has_interview: Filter candidates with/without interviews
+    - matching_score_gte: Minimum matching score
+    - feedback_submitted: Filter by feedback submission status
+    - include_never_applied: Include candidates who have never applied to any job (no job_applications records)
+    """
     try:
         db = await get_mongo_db()
-        cursor = db.candidates.find({}).sort("created_at", -1).skip(offset).limit(limit)
+        
+        # Fallback: Use authenticated user's ID if recruiter_id not provided
+        if not recruiter_id and not client_id and auth:
+            user_role = auth.get("role", "")
+            user_id = auth.get("sub") or auth.get("user_id")
+            if user_role == "recruiter" and user_id:
+                recruiter_id = user_id
+                print(f"🔍 DEBUG [AUTH]: Using authenticated recruiter_id={recruiter_id}")
+            elif user_role == "client" and user_id:
+                client_id = user_id
+                print(f"🔍 DEBUG [AUTH]: Using authenticated client_id={client_id}")
+        
+        # Build MongoDB query filter
+        query_filter: Dict[str, Any] = {}
+        
+        # Data isolation: Filter by recruiter_id (candidates who applied to recruiter's jobs)
+        candidate_ids_filter = None
+        use_application_status = False  # Track if we should filter by job_applications.status
+        
+        # PRIORITY 1: Filter by specific job_id
+        if job_id:
+            use_application_status = True
+            # Build application query
+            app_query: Dict[str, Any] = {"job_id": job_id}
+            
+            print(f"🔍 DEBUG [JOB_ID]: Filtering by job_id={job_id}")
+            
+            # Add status filter to job_applications query
+            if status:
+                status_list = [s.strip() for s in status.split(',') if s.strip()]
+                if len(status_list) == 1:
+                    app_query["status"] = status_list[0]
+                elif len(status_list) > 1:
+                    app_query["status"] = {"$in": status_list}
+                print(f"🔍 DEBUG [JOB_ID]: Status filter applied: {status_list}")
+            
+            # Add exclude_statuses filter
+            if exclude_statuses:
+                exclude_list = [s.strip() for s in exclude_statuses.split(',') if s.strip()]
+                if exclude_list:
+                    if "status" in app_query:
+                        # Combine with existing status filter
+                        if "$in" in app_query["status"]:
+                            app_query["status"] = {"$in": app_query["status"]["$in"], "$nin": exclude_list}
+                        else:
+                            app_query["status"] = {"$eq": app_query["status"], "$nin": exclude_list}
+                    else:
+                        app_query["status"] = {"$nin": exclude_list}
+            
+            # Add interview date filtering to job_applications query
+            if interview_date_gte:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.fromisoformat(interview_date_gte.replace('Z', '+00:00'))
+                    app_query["interview_date"] = {"$gte": date_obj}
+                    print(f"🔍 DEBUG [JOB_ID]: Interview date filter >= {interview_date_gte}")
+                except:
+                    pass
+            if interview_date_lt:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.fromisoformat(interview_date_lt.replace('Z', '+00:00'))
+                    if "interview_date" in app_query:
+                        app_query["interview_date"]["$lt"] = date_obj
+                    else:
+                        app_query["interview_date"] = {"$lt": date_obj}
+                    print(f"🔍 DEBUG [JOB_ID]: Interview date filter < {interview_date_lt}")
+                except:
+                    pass
+            
+            print(f"🔍 DEBUG [JOB_ID]: Final app_query: {app_query}")
+            
+            # Get candidate_ids from job_applications
+            pipeline = [
+                {"$match": app_query},
+                {"$group": {"_id": "$candidate_id"}}
+            ]
+            candidate_ids = []
+            async for agg_doc in db.job_applications.aggregate(pipeline):
+                cid = agg_doc.get("_id")
+                if cid:
+                    candidate_ids.append(cid)
+            
+            print(f"✅ DEBUG [JOB_ID]: Found {len(candidate_ids)} candidate_ids from job_applications")
+            
+            if candidate_ids:
+                from bson import ObjectId
+                oid_list = []
+                for cid in candidate_ids:
+                    try:
+                        oid_list.append(ObjectId(cid) if isinstance(cid, str) else cid)
+                    except:
+                        pass
+                if oid_list:
+                    candidate_ids_filter = {"_id": {"$in": oid_list}}
+            else:
+                # No candidates found for this job with given filters
+                print(f"⚠️ DEBUG [JOB_ID]: No candidates found for job {job_id} with status filter")
+                return {
+                    "candidates": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "count": 0
+                }
+        # PRIORITY 2: Filter by recruiter_id
+        elif recruiter_id:
+            use_application_status = True
+            # Get jobs for this recruiter (active only - matches dashboard logic)
+            recruiter_jobs_cursor = db.jobs.find({"status": "active", "recruiter_id": recruiter_id}, {"_id": 1})
+            recruiter_jobs = await recruiter_jobs_cursor.to_list(length=500)
+            job_ids = [str(doc["_id"]) for doc in recruiter_jobs]
+            
+            print(f"🔍 DEBUG: Recruiter {recruiter_id} has {len(job_ids)} active jobs")
+            
+            if job_ids:
+                # Build application query with status filters
+                app_query: Dict[str, Any] = {"job_id": {"$in": job_ids}}
+                
+                # Add status filter to job_applications query
+                if status:
+                    status_list = [s.strip() for s in status.split(',') if s.strip()]
+                    if len(status_list) == 1:
+                        app_query["status"] = status_list[0]
+                    elif len(status_list) > 1:
+                        app_query["status"] = {"$in": status_list}
+                
+                print(f"🔍 DEBUG: app_query before exclude_statuses: {app_query}")
+                
+                # Add exclude_statuses filter
+                if exclude_statuses:
+                    exclude_list = [s.strip() for s in exclude_statuses.split(',') if s.strip()]
+                    if exclude_list:
+                        if "status" in app_query:
+                            if "$in" in app_query["status"]:
+                                app_query["status"] = {"$in": app_query["status"]["$in"], "$nin": exclude_list}
+                            else:
+                                app_query["status"] = {"$eq": app_query["status"], "$nin": exclude_list}
+                        else:
+                            app_query["status"] = {"$nin": exclude_list}
+                
+                # Add interview date filtering to job_applications query
+                if interview_date_gte:
+                    try:
+                        from datetime import datetime
+                        date_obj = datetime.fromisoformat(interview_date_gte.replace('Z', '+00:00'))
+                        app_query["interview_date"] = {"$gte": date_obj}
+                        print(f"🔍 DEBUG [RECRUITER]: Interview date filter >= {interview_date_gte}")
+                    except:
+                        pass
+                if interview_date_lt:
+                    try:
+                        from datetime import datetime
+                        date_obj = datetime.fromisoformat(interview_date_lt.replace('Z', '+00:00'))
+                        if "interview_date" in app_query:
+                            app_query["interview_date"]["$lt"] = date_obj
+                        else:
+                            app_query["interview_date"] = {"$lt": date_obj}
+                        print(f"🔍 DEBUG [RECRUITER]: Interview date filter < {interview_date_lt}")
+                    except:
+                        pass
+                
+                print(f"🔍 DEBUG: Final app_query: {app_query}")
+                print(f"🔍 DEBUG: Searching job_applications collection...")
+                
+                # Get candidate_ids who applied to these jobs with status filters
+                pipeline = [
+                    {"$match": app_query},
+                    {"$group": {"_id": "$candidate_id"}}
+                ]
+                candidate_ids = []
+                async for agg_doc in db.job_applications.aggregate(pipeline):
+                    cid = agg_doc.get("_id")
+                    if cid:
+                        candidate_ids.append(cid)
+                
+                print(f"✅ DEBUG: Found {len(candidate_ids)} candidate_ids from job_applications")
+                
+                if candidate_ids:
+                    # Convert to ObjectId if needed
+                    from bson import ObjectId
+                    oid_list = []
+                    for cid in candidate_ids:
+                        try:
+                            oid_list.append(ObjectId(cid) if isinstance(cid, str) else cid)
+                        except:
+                            pass
+                    if oid_list:
+                        candidate_ids_filter = {"_id": {"$in": oid_list}}
+                else:
+                    # No candidates found for this recruiter
+                    print(f"⚠️ DEBUG: No candidates found for recruiter {recruiter_id} with status filter")
+                    return {
+                        "candidates": [],
+                        "total": 0,
+                        "limit": limit,
+                        "offset": offset,
+                        "count": 0
+                    }
+            else:
+                # Recruiter has no jobs
+                return {
+                    "candidates": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "count": 0
+                }
+        
+        # Data isolation: Filter by client_id (candidates who applied to client's jobs)
+        # Supports both direct client jobs and jobs from connected recruiters
+        if client_id and not recruiter_id and not job_id:  # Only apply if recruiter_id/job_id not already used
+            use_application_status = True
+            # Get job IDs for this client (own jobs + connected recruiters' jobs)
+            client_job_ids = await _client_job_ids_for_dashboard(db, client_id)
+            
+            if client_job_ids:
+                # Build application query with status filters
+                app_query: Dict[str, Any] = {"job_id": {"$in": client_job_ids}}
+                
+                # Add status filter to job_applications query
+                if status:
+                    status_list = [s.strip() for s in status.split(',') if s.strip()]
+                    if len(status_list) == 1:
+                        app_query["status"] = status_list[0]
+                    elif len(status_list) > 1:
+                        app_query["status"] = {"$in": status_list}
+                
+                # Add exclude_statuses filter
+                if exclude_statuses:
+                    exclude_list = [s.strip() for s in exclude_statuses.split(',') if s.strip()]
+                    if exclude_list:
+                        if "status" in app_query:
+                            if "$in" in app_query["status"]:
+                                app_query["status"] = {"$in": app_query["status"]["$in"], "$nin": exclude_list}
+                            else:
+                                app_query["status"] = {"$eq": app_query["status"], "$nin": exclude_list}
+                        else:
+                            app_query["status"] = {"$nin": exclude_list}
+                
+                # Get candidate_ids who applied to these jobs with status filters
+                pipeline = [
+                    {"$match": app_query},
+                    {"$group": {"_id": "$candidate_id"}}
+                ]
+                candidate_ids = []
+                async for agg_doc in db.job_applications.aggregate(pipeline):
+                    cid = agg_doc.get("_id")
+                    if cid:
+                        candidate_ids.append(cid)
+                
+                if candidate_ids:
+                    # Convert to ObjectId if needed
+                    from bson import ObjectId
+                    oid_list = []
+                    for cid in candidate_ids:
+                        try:
+                            oid_list.append(ObjectId(cid) if isinstance(cid, str) else cid)
+                        except:
+                            pass
+                    if oid_list:
+                        candidate_ids_filter = {"_id": {"$in": oid_list}}
+                else:
+                    # No candidates found for this client
+                    return {
+                        "candidates": [],
+                        "total": 0,
+                        "limit": limit,
+                        "offset": offset,
+                        "count": 0
+                    }
+            else:
+                # Client has no jobs
+                return {
+                    "candidates": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "count": 0
+                }
+        
+        if candidate_ids_filter:
+            query_filter.update(candidate_ids_filter)
+        
+        # Status filtering (single or array)
+        # NOTE: If use_application_status is True, status was already applied to job_applications query above
+        # Only apply to candidates collection if we're NOT filtering by recruiter/client/job
+        if status and not use_application_status:
+            status_list = [s.strip() for s in status.split(',') if s.strip()]
+            if len(status_list) == 1:
+                query_filter["status"] = status_list[0]
+            elif len(status_list) > 1:
+                query_filter["status"] = {"$in": status_list}
+        
+        # Exclude statuses
+        if exclude_statuses and not use_application_status:
+            exclude_list = [s.strip() for s in exclude_statuses.split(',') if s.strip()]
+            if exclude_list:
+                if "status" not in query_filter:
+                    # No status filter yet, just add $nin
+                    query_filter["status"] = {"$nin": exclude_list}
+                else:
+                    # Status filter exists, combine with $nin
+                    existing_status = query_filter["status"]
+                    if isinstance(existing_status, dict):
+                        # Already a dict (has $in), add $nin
+                        query_filter["status"]["$nin"] = exclude_list
+                    else:
+                        # It's a string, convert to dict with both filters
+                        query_filter["status"] = {"$eq": existing_status, "$nin": exclude_list}
+        
+        # Date filtering
+        if created_at_gte:
+            try:
+                from datetime import datetime
+                date_obj = datetime.fromisoformat(created_at_gte.replace('Z', '+00:00'))
+                query_filter["created_at"] = {"$gte": date_obj}
+            except:
+                pass
+        
+        # Interview date filtering
+        # NOTE: Only apply to candidates collection if NOT using job_applications filtering
+        # When use_application_status=True, interview_date was already filtered in job_applications query
+        if (interview_date_gte or interview_date_lt) and not use_application_status:
+            interview_filter = {}
+            if interview_date_gte:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.fromisoformat(interview_date_gte.replace('Z', '+00:00'))
+                    interview_filter["$gte"] = date_obj
+                except:
+                    pass
+            if interview_date_lt:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.fromisoformat(interview_date_lt.replace('Z', '+00:00'))
+                    interview_filter["$lt"] = date_obj
+                except:
+                    pass
+            if interview_filter:
+                query_filter["interview_date"] = interview_filter
+        
+        # Has interview filter
+        if has_interview is not None and not use_application_status:
+            if has_interview:
+                query_filter["interview_date"] = {"$exists": True, "$ne": None}
+            else:
+                query_filter["$or"] = [
+                    {"interview_date": {"$exists": False}},
+                    {"interview_date": None}
+                ]
+        
+        # Matching score filter
+        if matching_score_gte is not None:
+            query_filter["matching_score"] = {"$gte": matching_score_gte}
+        
+        # Feedback submitted filter
+        if feedback_submitted is not None:
+            if feedback_submitted:
+                query_filter["feedback_submitted"] = True
+            else:
+                query_filter["$or"] = [
+                    {"feedback_submitted": {"$exists": False}},
+                    {"feedback_submitted": False},
+                    {"feedback_submitted": None}
+                ]
+        
+        # Never applied filter - exclude candidates who have job applications
+        if include_never_applied:
+            # Find all candidate_ids that have applied to any job
+            pipeline = [
+                {"$group": {"_id": "$candidate_id"}}
+            ]
+            applied_candidate_ids = []
+            async for agg_doc in db.job_applications.aggregate(pipeline):
+                cid = agg_doc.get("_id")
+                if cid:
+                    applied_candidate_ids.append(cid)
+            
+            # Exclude these candidates (only show those who never applied)
+            if applied_candidate_ids:
+                from bson import ObjectId
+                oid_list = []
+                for cid in applied_candidate_ids:
+                    try:
+                        oid_list.append(ObjectId(cid) if isinstance(cid, str) else cid)
+                    except:
+                        pass
+                if oid_list:
+                    # Add $nin filter to exclude applied candidates
+                    if "_id" in query_filter:
+                        # Merge with existing _id filter
+                        if "$in" in query_filter["_id"]:
+                            # If there's already an $in, we need to combine filters properly
+                            existing_ids = query_filter["_id"]["$in"]
+                            query_filter["_id"] = {"$in": existing_ids, "$nin": oid_list}
+                        else:
+                            query_filter["_id"]["$nin"] = oid_list
+                    else:
+                        query_filter["_id"] = {"$nin": oid_list}
+        
+        # Execute query
+        print(f"🔍 DEBUG: Final query_filter for candidates collection: {query_filter}")
+        cursor = db.candidates.find(query_filter).sort("created_at", -1).skip(offset).limit(limit)
         candidates_list = await cursor.to_list(length=limit)
+        print(f"✅ DEBUG: Found {len(candidates_list)} candidates from candidates collection")
         
         candidates = []
         for doc in candidates_list:
             candidates.append({
                 "id": str(doc["_id"]),
+                "candidate_id": str(doc["_id"]),  # Alias for compatibility
                 "name": doc.get("name"),
                 "email": doc.get("email"),
                 "phone": doc.get("phone"),
@@ -1041,10 +1485,16 @@ async def get_all_candidates(limit: int = 50, offset: int = 0, auth=Depends(get_
                 "technical_skills": doc.get("technical_skills"),
                 "seniority_level": doc.get("seniority_level"),
                 "education_level": doc.get("education_level"),
+                "status": doc.get("status"),
+                "matching_score": doc.get("matching_score") or doc.get("match_score"),  # Support both field names
+                "interview_date": doc.get("interview_date").isoformat() if doc.get("interview_date") else None,
+                "feedback_submitted": doc.get("feedback_submitted", False),
                 "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None
             })
         
-        total_count = await db.candidates.count_documents({})
+        total_count = await db.candidates.count_documents(query_filter)
+        
+        print(f"📊 DEBUG: Returning {len(candidates)} candidates (total: {total_count})")
         
         return {
             "candidates": candidates,
@@ -1054,7 +1504,56 @@ async def get_all_candidates(limit: int = 50, offset: int = 0, auth=Depends(get_
             "count": len(candidates)
         }
     except Exception as e:
+        import traceback
+        print(f"❌ Error in get_all_candidates: {str(e)}")
+        print(traceback.format_exc())
         return {"candidates": [], "total": 0, "error": str(e)}
+
+@app.get("/v1/notifications/history/{candidate_id}", tags=["Candidate Management"])
+async def get_notification_history(
+    candidate_id: str,
+    limit: int = 20,
+    auth=Depends(get_auth)
+):
+    """
+    Get Notification History for a Candidate
+    
+    Returns all notifications sent to a specific candidate, sorted by most recent first.
+    """
+    try:
+        db = await get_mongo_db()
+        
+        # Query notification_logs collection
+        cursor = db.notification_logs.find(
+            {"candidate_id": candidate_id}
+        ).sort("sent_at", -1).limit(limit)
+        
+        logs = await cursor.to_list(length=limit)
+        
+        # Format response
+        history = []
+        for log in logs:
+            history.append({
+                "id": str(log["_id"]),
+                "channel": log.get("channel"),
+                "notification_type": log.get("notification_type"),
+                "status": log.get("status"),
+                "recipient": log.get("recipient"),
+                "job_title": log.get("job_title"),
+                "sent_at": log.get("sent_at").isoformat() if log.get("sent_at") else None,
+                "message_id": log.get("message_id")
+            })
+        
+        return {
+            "candidate_id": candidate_id,
+            "history": history,
+            "count": len(history)
+        }
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in get_notification_history: {str(e)}")
+        print(traceback.format_exc())
+        return {"candidate_id": candidate_id, "history": [], "error": str(e)}
 
 # Analytics & Statistics - Move stats endpoint before parameterized routes
 @app.get("/v1/candidates/stats", tags=["Analytics & Statistics"])
@@ -2604,6 +3103,44 @@ async def schedule_interview(interview: InterviewSchedule, auth=Depends(get_auth
             document["meeting_phone"] = interview.meeting_phone
         result = await db.interviews.insert_one(document)
         interview_id = str(result.inserted_id)
+        
+        # Update job_application status to 'interview_scheduled' for consistency
+        # This ensures bulk notifications can filter by job_applications.status
+        # Also store interview_date for date-based filtering
+        try:
+            # Convert interview_date string to datetime object for proper MongoDB querying
+            interview_date_obj = None
+            if interview.interview_date:
+                try:
+                    # Try parsing ISO format with timezone
+                    interview_date_obj = datetime.fromisoformat(interview.interview_date.replace('Z', '+00:00'))
+                except:
+                    try:
+                        # Try parsing without timezone
+                        interview_date_obj = datetime.strptime(interview.interview_date, '%Y-%m-%dT%H:%M:%S')
+                    except:
+                        # Fallback: just use the string
+                        print(f"⚠️ Could not parse interview_date: {interview.interview_date}")
+            
+            update_data = {
+                "status": "interview_scheduled",
+                "updated_at": datetime.now(timezone.utc)
+            }
+            
+            if interview_date_obj:
+                update_data["interview_date"] = interview_date_obj  # Store as datetime object
+                
+            await db.job_applications.update_one(
+                {
+                    "candidate_id": interview.candidate_id,
+                    "job_id": interview.job_id
+                },
+                {"$set": update_data}
+            )
+            print(f"✅ Updated job_application status to 'interview_scheduled' with date {interview.interview_date} (stored as datetime: {interview_date_obj})")
+        except Exception as e:
+            # Don't fail the interview creation if update fails
+            print(f"⚠️ Failed to update job_application status: {e}")
         
         return {
             "message": "Interview scheduled successfully",

@@ -1283,23 +1283,146 @@ export const getRecruiterStats = async (): Promise<RecruiterStats> => {
   }
 }
 
-export const getAllCandidates = async (filters?: {
+export interface CandidateFilters {
   skills?: string
   experience?: string
   location?: string
   search?: string
-}) => {
+  status?: string | string[]
+  has_interview?: boolean
+  interview_date_gte?: string
+  interview_date_lt?: string
+  matching_score_gte?: number
+  created_at_gte?: string
+  feedback_submitted?: boolean
+  exclude_statuses?: string[]
+  limit?: number
+  recruiter_id?: string
+  client_id?: string  // Added for client data isolation
+  include_never_applied?: boolean  // Include candidates who never applied to any job
+  job_id?: string  // Filter candidates by specific job
+}
+
+export const getAllCandidates = async (filters?: CandidateFilters) => {
   try {
     const params = new URLSearchParams()
-    if (filters?.skills) params.append('skills', filters.skills)
-    if (filters?.experience) params.append('experience', filters.experience)
-    if (filters?.location) params.append('location', filters.location)
-    if (filters?.search) params.append('search', filters.search)
     
-    const response = await api.get(`/v1/candidates?${params.toString()}`)
+    if (filters) {
+      // Legacy filters
+      if (filters.skills) params.append('skills', filters.skills)
+      if (filters.experience) params.append('experience', filters.experience)
+      if (filters.location) params.append('location', filters.location)
+      if (filters.search) params.append('search', filters.search)
+      
+      // New notification filtering
+      if (filters.status) {
+        const statusParam = Array.isArray(filters.status) 
+          ? filters.status.join(',') 
+          : filters.status
+        params.append('status', statusParam)
+      }
+      
+      if (filters.has_interview !== undefined) {
+        params.append('has_interview', filters.has_interview.toString())
+      }
+      
+      if (filters.interview_date_gte) {
+        params.append('interview_date_gte', filters.interview_date_gte)
+      }
+      
+      if (filters.interview_date_lt) {
+        params.append('interview_date_lt', filters.interview_date_lt)
+      }
+      
+      if (filters.matching_score_gte) {
+        params.append('matching_score_gte', filters.matching_score_gte.toString())
+      }
+      
+      if (filters.created_at_gte) {
+        params.append('created_at_gte', filters.created_at_gte)
+      }
+      
+      if (filters.feedback_submitted !== undefined) {
+        params.append('feedback_submitted', filters.feedback_submitted.toString())
+      }
+      
+      if (filters.exclude_statuses && filters.exclude_statuses.length > 0) {
+        params.append('exclude_statuses', filters.exclude_statuses.join(','))
+      }
+      
+      if (filters.limit) {
+        params.append('limit', filters.limit.toString())
+      }
+      
+      if (filters.recruiter_id) {
+        params.append('recruiter_id', filters.recruiter_id)
+      }
+      
+      if (filters.client_id) {
+        params.append('client_id', filters.client_id)
+      }
+      
+      if (filters.include_never_applied !== undefined) {
+        params.append('include_never_applied', filters.include_never_applied.toString())
+      }
+      
+      if (filters.job_id) {
+        params.append('job_id', filters.job_id)
+      }
+    }
+    
+    const queryString = params.toString()
+    const url = queryString ? `/v1/candidates?${queryString}` : '/v1/candidates'
+    
+    const response = await api.get(url)
     return response.data.candidates || response.data || []
   } catch (error) {
     console.error('Error fetching candidates:', error)
+    throw error
+  }
+}
+
+export const getNotificationHistory = async (candidateId: string) => {
+  try {
+    const response = await api.get(`/v1/notifications/history/${candidateId}`)
+    return response.data.history || []
+  } catch (error) {
+    console.error('Error fetching notification history:', error)
+    return []
+  }
+}
+
+export const previewNotification = async (notificationType: string, sampleData?: any) => {
+  try {
+    const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
+    const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+    
+    const params = new URLSearchParams({
+      sequence_type: notificationType,
+      candidate_name: sampleData?.candidate_name || 'John Doe',
+      job_title: sampleData?.job_title || 'Software Engineer',
+      job_id: sampleData?.job_id || 'job_123',
+      matching_score: sampleData?.matching_score || '85',
+      interview_date: sampleData?.interview_date || '2024-02-15',
+      interview_time: sampleData?.interview_time || '2:00 PM',
+      interviewer: sampleData?.interviewer || 'HR Team',
+      application_id: sampleData?.application_id || 'APP_001'
+    })
+    
+    const response = await fetch(`${langgraphUrl}/automation/notifications/preview?${params.toString()}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      return await response.json()
+    }
+    throw new Error('Failed to fetch preview')
+  } catch (error) {
+    console.error('Error fetching notification preview:', error)
     throw error
   }
 }
