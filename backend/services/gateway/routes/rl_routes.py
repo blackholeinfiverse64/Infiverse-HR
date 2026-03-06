@@ -19,11 +19,11 @@ async def rl_predict_match(
 ):
     """Proxy RL prediction to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
-                f"{langgraph_url}/rl/predict",
+                f"{langgraph_service_url}/rl/predict",
                 json=request_data,
                 headers={"Authorization": f"Bearer {api_key}"}
             )
@@ -43,11 +43,11 @@ async def submit_rl_feedback(
 ):
     """Proxy RL feedback to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
-                f"{langgraph_url}/rl/feedback",
+                f"{langgraph_service_url}/rl/feedback",
                 json=feedback_data,
                 headers={"Authorization": f"Bearer {api_key}"}
             )
@@ -64,11 +64,11 @@ async def submit_rl_feedback(
 async def get_rl_analytics(api_key: str = Depends(get_api_key)):
     """Proxy RL analytics to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.get(
-                f"{langgraph_url}/rl/analytics",
+                f"{langgraph_service_url}/rl/analytics",
                 headers={"Authorization": f"Bearer {api_key}"}
             )
             
@@ -84,11 +84,11 @@ async def get_rl_analytics(api_key: str = Depends(get_api_key)):
 async def get_rl_performance(api_key: str = Depends(get_api_key)):
     """Proxy RL performance to LangGraph service"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.get(
-                f"{langgraph_url}/rl/performance",
+                f"{langgraph_service_url}/rl/performance",
                 headers={"Authorization": f"Bearer {api_key}"}
             )
             

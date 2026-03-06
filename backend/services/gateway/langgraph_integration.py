@@ -26,7 +26,7 @@ class WorkflowStatus(BaseModel):
     workflow_id: str
 
 # LangGraph service configuration  
-LANGGRAPH_SERVICE_URL = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+LANGGRAPH_SERVICE_URL = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
 
 def get_langgraph_service_url():
     """Get LangGraph service URL"""

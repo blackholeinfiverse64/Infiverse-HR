@@ -17,6 +17,7 @@ import string
 import random
 import jwt
 import bcrypt
+import httpx
 from collections import defaultdict
 # MongoDB imports (migrated from SQLAlchemy/PostgreSQL)
 from app.database import get_mongo_db, get_mongo_client
@@ -508,6 +509,11 @@ class JobApplication(BaseModel):
     candidate_id: str  # Changed from int to str for MongoDB ObjectId
     job_id: str  # Changed from int to str for MongoDB ObjectId
     cover_letter: Optional[str] = None
+
+class PerJobNotificationRequest(BaseModel):
+    candidate_ids: List[str]
+    notification_type: str
+    recruiter_id: Optional[str] = None
 
 # Legacy get_db_engine function - replaced by MongoDB
 # MongoDB connection is handled by app.database module
@@ -4551,6 +4557,38 @@ async def candidate_register(candidate_data: CandidateRegister):
         result = await db.candidates.insert_one(document)
         candidate_id = str(result.inserted_id)
         
+        # Send welcome email asynchronously (don't block registration)
+        try:
+            langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
+            api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+            
+            print(f"🔧 [Welcome Email] Using LangGraph URL: {langgraph_service_url}")
+            
+            # Send welcome email only for candidates (not recruiters)
+            if user_role == "candidate":
+                welcome_payload = {
+                    "candidates": [{
+                        "candidate_name": candidate_data.name,
+                        "candidate_email": candidate_data.email,
+                        "candidate_phone": candidate_data.phone or "",
+                        "candidate_id": candidate_id
+                    }],
+                    "sequence_type": "welcome",
+                    "job_title": None,
+                    "job_id": None
+                }
+                
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(
+                        f"{langgraph_service_url}/automation/notifications/bulk",
+                        json=welcome_payload,
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                print(f"✅ Welcome email sent successfully to {candidate_data.email}")
+        except Exception as email_error:
+            # Log error but don't fail registration
+            print(f"❌ Failed to send welcome email to {candidate_data.email}: {email_error}")
+        
         return {
             "success": True,
             "message": "Registration successful",
@@ -4558,6 +4596,290 @@ async def candidate_register(candidate_data: CandidateRegister):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@app.post("/v1/notifications/send-grouped-by-candidate", tags=["Notifications"])
+async def send_grouped_notifications(request: PerJobNotificationRequest, auth=Depends(get_auth)):
+    """
+    Send ONE email per candidate with ALL their job applications listed.
+    
+    For example:
+    - Candidate A applied to 2 jobs → Gets 1 email listing both jobs
+    - Candidate B applied to 1 job → Gets 1 email with that job
+    - Candidate C applied to 3 jobs → Gets 1 email listing all 3 jobs
+    
+    Used for bulk application_received notifications.
+    """
+    try:
+        db = await get_mongo_db()
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
+        api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+        
+        # Get recruiter_id from auth if not provided
+        recruiter_id = request.recruiter_id
+        if not recruiter_id and auth:
+            user_role = auth.get("role", "")
+            if user_role == "recruiter":
+                recruiter_id = auth.get("user_id")
+        
+        total_emails_sent = 0
+        success_count = 0
+        failed_count = 0
+        notifications_sent = []
+        
+        # Process each candidate
+        for candidate_id_str in request.candidate_ids:
+            try:
+                # Get candidate details
+                candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id_str)})
+                if not candidate:
+                    print(f"⚠️ Candidate {candidate_id_str} not found")
+                    failed_count += 1
+                    continue
+                
+                # Get all job applications for this candidate
+                app_query = {"candidate_id": candidate_id_str}
+                
+                # Filter by recruiter's jobs if recruiter_id is provided
+                if recruiter_id:
+                    recruiter_jobs_cursor = db.jobs.find(
+                        {"status": "active", "recruiter_id": recruiter_id},
+                        {"_id": 1}
+                    )
+                    recruiter_jobs = await recruiter_jobs_cursor.to_list(length=500)
+                    job_ids = [str(doc["_id"]) for doc in recruiter_jobs]
+                    if job_ids:
+                        app_query["job_id"] = {"$in": job_ids}
+                    else:
+                        # Recruiter has no jobs, skip this candidate
+                        failed_count += 1
+                        continue
+                
+                # Get job applications
+                applications_cursor = db.job_applications.find(app_query)
+                applications = await applications_cursor.to_list(length=100)
+                
+                if not applications:
+                    print(f"⚠️ No applications found for candidate {candidate_id_str}")
+                    failed_count += 1
+                    continue
+                
+                # Collect all job titles for this candidate
+                job_titles = []
+                for app in applications:
+                    job_id = app.get("job_id")
+                    job = await db.jobs.find_one({"_id": ObjectId(job_id)})
+                    if job:
+                        job_titles.append(job.get("title", "Position"))
+                
+                if not job_titles:
+                    failed_count += 1
+                    continue
+                
+                # Create grouped job title string
+                if len(job_titles) == 1:
+                    grouped_job_title = job_titles[0]
+                else:
+                    grouped_job_title = ", ".join(job_titles[:-1]) + f" and {job_titles[-1]}"
+                
+                # Send ONE email with all jobs
+                notification_payload = {
+                    "candidates": [{
+                        "candidate_name": candidate.get("name", "Candidate"),
+                        "candidate_email": candidate.get("email", ""),
+                        "candidate_phone": candidate.get("phone", ""),
+                        "candidate_id": candidate_id_str
+                    }],
+                    "sequence_type": request.notification_type,
+                    "job_title": grouped_job_title,
+                    "job_count": len(job_titles),
+                    "job_id": None,  # Multiple jobs, so no single job_id
+                    "matching_score": "N/A"
+                }
+                
+                # Send to LangGraph
+                try:
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        response = await client.post(
+                            f"{langgraph_service_url}/automation/notifications/bulk",
+                            json=notification_payload,
+                            headers={"Authorization": f"Bearer {api_key}"}
+                        )
+                        
+                        if response.status_code == 200:
+                            total_emails_sent += 1
+                            success_count += 1
+                            notifications_sent.append({
+                                "candidate_id": candidate_id_str,
+                                "candidate_name": candidate.get("name"),
+                                "job_count": len(job_titles),
+                                "jobs": job_titles
+                            })
+                            print(f"✅ Sent grouped notification to {candidate.get('name')} for {len(job_titles)} job(s): {grouped_job_title}")
+                        else:
+                            failed_count += 1
+                            print(f"❌ Failed to send notification to {candidate.get('name')}: {response.status_code}")
+                except Exception as send_error:
+                    failed_count += 1
+                    print(f"❌ Error sending notification: {send_error}")
+                
+                # Small delay to prevent overwhelming the email service
+                await asyncio.sleep(0.5)
+            
+            except Exception as candidate_error:
+                failed_count += 1
+                print(f"❌ Error processing candidate {candidate_id_str}: {candidate_error}")
+        
+        return {
+            "success": True,
+            "total_emails_sent": total_emails_sent,
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "notifications_sent": notifications_sent
+        }
+    
+    except Exception as e:
+        print(f"❌ Error in send_grouped_notifications: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "total_emails_sent": 0,
+            "success_count": 0,
+            "failed_count": 0
+        }
+
+@app.post("/v1/notifications/send-per-job", tags=["Notifications"])
+async def send_per_job_notifications(request: PerJobNotificationRequest, auth=Depends(get_auth)):
+    """
+    Send separate notifications to candidates for each job they applied to.
+    
+    For each candidate:
+    - Gets all their job applications
+    - Sends a separate notification for each job application
+    - Useful for application_received notifications where each job application should get its own email
+    """
+    try:
+        db = await get_mongo_db()
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
+        api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+        
+        print(f"🔧 [Per-Job Notifications] Using LangGraph URL: {langgraph_service_url}")
+        
+        # Get recruiter_id from auth if not provided
+        recruiter_id = request.recruiter_id
+        if not recruiter_id and auth:
+            user_role = auth.get("role", "")
+            if user_role == "recruiter":
+                recruiter_id = auth.get("user_id")
+        
+        total_notifications = 0
+        success_count = 0
+        failed_count = 0
+        notifications_sent = []
+        
+        # Process each candidate
+        for candidate_id_str in request.candidate_ids:
+            try:
+                # Get candidate details
+                candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id_str)})
+                if not candidate:
+                    print(f"⚠️ Candidate {candidate_id_str} not found")
+                    failed_count += 1
+                    continue
+                
+                # Get all job applications for this candidate
+                app_query = {"candidate_id": candidate_id_str}
+                
+                # Filter by recruiter's jobs if recruiter_id is provided
+                if recruiter_id:
+                    recruiter_jobs_cursor = db.jobs.find(
+                        {"status": "active", "recruiter_id": recruiter_id},
+                        {"_id": 1}
+                    )
+                    recruiter_jobs = await recruiter_jobs_cursor.to_list(length=500)
+                    job_ids = [str(doc["_id"]) for doc in recruiter_jobs]
+                    app_query["job_id"] = {"$in": job_ids}
+                
+                # Get job applications
+                applications_cursor = db.job_applications.find(app_query)
+                applications = await applications_cursor.to_list(length=100)
+                
+                if not applications:
+                    print(f"⚠️ No applications found for candidate {candidate_id_str}")
+                    failed_count += 1
+                    continue
+                
+                # Send a separate notification for each job application
+                for app in applications:
+                    total_notifications += 1
+                    job_id = app.get("job_id")
+                    
+                    # Get job details
+                    job = await db.jobs.find_one({"_id": ObjectId(job_id)})
+                    job_title = job.get("title", "Position") if job else "Position"
+                    
+                    # Prepare notification payload
+                    notification_payload = {
+                        "candidates": [{
+                            "candidate_name": candidate.get("name", "Candidate"),
+                            "candidate_email": candidate.get("email", ""),
+                            "candidate_phone": candidate.get("phone", ""),
+                            "candidate_id": candidate_id_str
+                        }],
+                        "sequence_type": request.notification_type,
+                        "job_title": job_title,
+                        "job_id": job_id,
+                        "matching_score": str(app.get("matching_score", "N/A"))
+                    }
+                    
+                    # Send to LangGraph
+                    try:
+                        async with httpx.AsyncClient(timeout=30.0) as client:
+                            response = await client.post(
+                                f"{langgraph_service_url}/automation/notifications/bulk",
+                                json=notification_payload,
+                                headers={"Authorization": f"Bearer {api_key}"}
+                            )
+                            
+                            # Wait a bit between requests to prevent overwhelming the service
+                            await asyncio.sleep(0.3)
+                            
+                            if response.status_code == 200:
+                                success_count += 1
+                                notifications_sent.append({
+                                    "candidate_id": candidate_id_str,
+                                    "candidate_name": candidate.get("name"),
+                                    "job_id": job_id,
+                                    "job_title": job_title
+                                })
+                                print(f"✅ Sent notification to {candidate.get('name')} for job {job_title}")
+                            else:
+                                failed_count += 1
+                                print(f"❌ Failed to send notification to {candidate.get('name')} for job {job_title}: {response.status_code}")
+                    except Exception as send_error:
+                        failed_count += 1
+                        print(f"❌ Error sending notification: {send_error}")
+            
+            except Exception as candidate_error:
+                failed_count += 1
+                print(f"❌ Error processing candidate {candidate_id_str}: {candidate_error}")
+        
+        return {
+            "success": True,
+            "total_notifications": total_notifications,
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "notifications_sent": notifications_sent
+        }
+    
+    except Exception as e:
+        print(f"❌ Error in send_per_job_notifications: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "total_notifications": 0,
+            "success_count": 0,
+            "failed_count": 0
+        }
 
 @app.post("/v1/candidate/login", tags=["Candidate Portal"])
 async def candidate_login(login_data: CandidateLogin):

@@ -88,11 +88,11 @@ export const NOTIFICATION_TYPES = {
   },
   APPLICATION_RECEIVED: {
     id: 'application_received',
-    label: '✉️ Application Received (New Applicants)',
-    description: 'Recent applicants (last 7 days) + candidates who never applied to any job',
+    label: '✉️ Application Received',
+    description: 'Candidates who applied to jobs but not yet shortlisted, interviewed, or rejected',
     filterCriteria: {
-      // TWO groups: (1) Recent applicants (7 days) OR (2) Never applied
-      // Backend needs to support: created_at_gte OR no job_applications record
+      // Applicants in pending status - not yet processed
+      // Excludes: shortlisted, interview_scheduled, rejected, withdrawn, hired
       statuses: [
         CANDIDATE_STATUS.PENDING,
         CANDIDATE_STATUS.NEW,

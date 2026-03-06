@@ -13,13 +13,7 @@ import {
   UI_CONFIG,
 } from '../../config/notifications.config'
 
-// Helper functions for date calculations
-const getDateDaysAgo = (days: number): string => {
-  const date = new Date()
-  date.setDate(date.getDate() - days)
-  return date.toISOString().split('T')[0]
-}
-
+// Helper function for date calculations
 const getTodayDate = (): string => {
   return new Date().toISOString().split('T')[0]
 }
@@ -103,12 +97,18 @@ export default function BatchOperations() {
         }
       
       case 'application_received':
-        // Recent applicants from last 7 days + candidates who NEVER applied
+        // Candidates who applied to jobs but NOT yet shortlisted/interviewed/rejected
+        // Shows ONLY applicants who are still in pending/new status
         return {
           ...baseFilter,
           status: [CANDIDATE_STATUS.PENDING, CANDIDATE_STATUS.NEW, CANDIDATE_STATUS.APPLICATION_RECEIVED],
-          created_at_gte: getDateDaysAgo(FILTER_CONFIG.NEW_APPLICANT_DAYS),
-          include_never_applied: true  // Include candidates with no job_applications
+          exclude_statuses: [
+            CANDIDATE_STATUS.SHORTLISTED,
+            CANDIDATE_STATUS.INTERVIEW_SCHEDULED,
+            CANDIDATE_STATUS.REJECTED,
+            CANDIDATE_STATUS.WITHDRAWN,
+            CANDIDATE_STATUS.HIRED
+          ]
         }
       
       case 'rejection_sent':
@@ -307,67 +307,117 @@ export default function BatchOperations() {
 
     setSendingNotifications(true)
     try {
-      // Call LangGraph service for bulk notifications via Gateway API
-      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
+      // SMART LOGIC FOR APPLICATION RECEIVED:
+      // - If NO job selected: Send grouped notifications (1 email per candidate with all their jobs)
+      // - If JOB selected: Send individual notifications (1 email per candidate for that job)
       
-      // Get job title if a job is selected, otherwise use generic title
-      const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null
-      const jobTitle = selectedJob?.title || 'Position'
-      const jobIdForNotification = selectedJob?.id || null
-      
-      console.log('📧 Sending bulk notifications:', {
-        candidatesCount: candidates.length,
-        notificationType,
-        jobTitle,
-        candidates: candidates.map(c => ({ name: c.name, email: c.email, phone: c.phone }))
-      })
-      
-      // Use new consistent endpoint path
-      const response = await fetch(`${langgraphUrl}/automation/notifications/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify({
-          candidates: candidates.map(c => ({
-            candidate_name: c.name,
-            candidate_email: c.email,
-            candidate_phone: c.phone,
-            candidate_id: c.candidate_id
-          })),
-          sequence_type: notificationType,
-          job_title: jobTitle,
-          job_id: jobIdForNotification,
-          matching_score: 'High'
+      if (notificationType === 'application_received' && !selectedJobId) {
+        // GROUPED NOTIFICATIONS: 1 email per candidate with ALL their jobs listed
+        const GATEWAY_URL = import.meta.env.VITE_REACT_APP_GATEWAY_URL || 'http://localhost:8000'
+        const token = localStorage.getItem('recruiter_token')
+        
+        console.log('📧 Sending grouped notifications (Application Received - No Job Selected):', {
+          candidatesCount: candidates.length,
+          notificationType,
+          mode: 'grouped-by-candidate'
         })
-      })
+        
+        const response = await fetch(`${GATEWAY_URL}/v1/notifications/send-grouped-by-candidate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            candidate_ids: candidates.map(c => c.candidate_id),
+            notification_type: notificationType
+          })
+        })
 
-      if (response.ok) {
-        const result = await response.json()
-        console.log('✅ Notification response:', result)
-        
-        const successCount = result.bulk_result?.success_count || 0
-        const failedCount = result.bulk_result?.failed_count || 0
-        const totalCount = result.bulk_result?.total_candidates || candidates.length
-        
-        if (successCount > 0) {
-          toast.success(TOAST_MESSAGES.BULK_SEND_SUCCESS(successCount, totalCount, failedCount), {
-            duration: UI_CONFIG.TOAST_DURATION.MEDIUM
-          })
-        } else if (failedCount > 0) {
-          toast.error(TOAST_MESSAGES.BULK_SEND_FAILED(failedCount))
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Grouped notification response:', result)
+          
+          const successCount = result.success_count || 0
+          const failedCount = result.failed_count || 0
+          const totalEmails = result.total_emails_sent || 0
+          
+          if (successCount > 0) {
+            toast.success(`Successfully sent ${totalEmails} email(s) to ${successCount} candidate(s). ${failedCount > 0 ? `${failedCount} failed.` : ''}`, {
+              duration: UI_CONFIG.TOAST_DURATION.LONG
+            })
+          } else {
+            toast.error(`Failed to send notifications. ${failedCount} failed.`)
+          }
         } else {
-          toast(TOAST_MESSAGES.BULK_SEND_PARTIAL, {
-            icon: '⚠️',
-            duration: UI_CONFIG.TOAST_DURATION.MEDIUM
-          })
+          const errorText = await response.text()
+          console.error('❌ Grouped notification error response:', errorText)
+          throw new Error(`Failed to send grouped notifications: ${response.status} ${response.statusText}`)
         }
       } else {
-        const errorText = await response.text()
-        console.error('❌ Notification error response:', errorText)
-        throw new Error(`Failed to send notifications: ${response.status} ${response.statusText}`)
+        // STANDARD BULK NOTIFICATION: 1 email per candidate (for selected job or other notification types)
+        const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
+        const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
+        
+        // Get job title if a job is selected, otherwise use generic title
+        const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null
+        const jobTitle = selectedJob?.title || 'Position'
+        const jobIdForNotification = selectedJob?.id || null
+        
+        console.log('📧 Sending standard bulk notifications:', {
+          candidatesCount: candidates.length,
+          notificationType,
+          jobTitle,
+          jobId: jobIdForNotification,
+          candidates: candidates.map(c => ({ name: c.name, email: c.email, phone: c.phone }))
+        })
+        
+        // Use new consistent endpoint path
+        const response = await fetch(`${langgraphUrl}/automation/notifications/bulk`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            candidates: candidates.map(c => ({
+              candidate_name: c.name,
+              candidate_email: c.email,
+              candidate_phone: c.phone,
+              candidate_id: c.candidate_id
+            })),
+            sequence_type: notificationType,
+            job_title: jobTitle,
+            job_id: jobIdForNotification,
+            matching_score: 'High'
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Notification response:', result)
+          
+          const successCount = result.bulk_result?.success_count || 0
+          const failedCount = result.bulk_result?.failed_count || 0
+          const totalCount = result.bulk_result?.total_candidates || candidates.length
+          
+          if (successCount > 0) {
+            toast.success(TOAST_MESSAGES.BULK_SEND_SUCCESS(successCount, totalCount, failedCount), {
+              duration: UI_CONFIG.TOAST_DURATION.MEDIUM
+            })
+          } else if (failedCount > 0) {
+            toast.error(TOAST_MESSAGES.BULK_SEND_FAILED(failedCount))
+          } else {
+            toast(TOAST_MESSAGES.BULK_SEND_PARTIAL, {
+              icon: '⚠️',
+              duration: UI_CONFIG.TOAST_DURATION.MEDIUM
+            })
+          }
+        } else {
+          const errorText = await response.text()
+          console.error('❌ Notification error response:', errorText)
+          throw new Error(`Failed to send notifications: ${response.status} ${response.statusText}`)
+        }
       }
     } catch (error) {
       console.error('❌ Notification error:', error)
@@ -582,6 +632,26 @@ export default function BatchOperations() {
               </div>
             </div>
 
+            {/* Smart Notification Info for Application Received */}
+            {notificationType === 'application_received' && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                      Smart Notification Mode
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                      <div>• <strong>No job selected:</strong> Each candidate receives 1 email listing ALL their job applications</div>
+                      <div>• <strong>Job selected:</strong> Each candidate receives 1 email for THAT specific job only</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Job Selection (Optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -786,10 +856,20 @@ export default function BatchOperations() {
               
               <button
                 onClick={handleBulkNotifications}
-                disabled={candidates.length === 0 || sendingNotifications}
-                className="flex-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                disabled={candidates.length === 0 || sendingNotifications || loading || !notificationType}
+                className="flex-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
               >
-                {sendingNotifications ? '📧 Sending...' : '📧 Send Bulk Notifications'}
+                {sendingNotifications ? (
+                  <>
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  '📧 Send Bulk Notifications'
+                )}
               </button>
             </div>
             )}

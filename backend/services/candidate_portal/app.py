@@ -365,8 +365,8 @@ def job_search_page():
                     if "error" not in result and result.get("success"):
                         # Trigger application notification
                         try:
-                            langgraph_url = config.LANGGRAPH_SERVICE_URL
-                            requests.post(f"{langgraph_url}/test/send-automated-sequence",
+                            langgraph_service_url = config.LANGGRAPH_SERVICE_URL
+                            requests.post(f"{langgraph_service_url}/test/send-automated-sequence",
                                         json={
                                             "candidate_name": st.session_state.candidate_data.get('name', 'Candidate'),
                                             "candidate_email": st.session_state.candidate_data.get('email', 'test@example.com'),
@@ -502,8 +502,8 @@ def profile_management_page():
             if "error" not in result and result.get("success"):
                 # Trigger profile update notification to HR
                 try:
-                    langgraph_url = config.LANGGRAPH_SERVICE_URL
-                    requests.post(f"{langgraph_url}/automation/workflows/trigger",
+                    langgraph_service_url = config.LANGGRAPH_SERVICE_URL
+                    requests.post(f"{langgraph_service_url}/automation/workflows/trigger",
                                 json={
                                     "event_type": "candidate_profile_updated",
                                     "payload": {

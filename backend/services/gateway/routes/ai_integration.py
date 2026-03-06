@@ -29,7 +29,7 @@ async def test_communication_system(
 ) -> Dict:
     """Test communication system via LangGraph"""
     try:
-        langgraph_url = os.getenv("LANGGRAPH_SERVICE_URL", "http://localhost:9001")
+        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
         
         # Route to appropriate test endpoint based on channel
         channel = test_data.channel
@@ -40,7 +40,7 @@ async def test_communication_system(
                 subject = test_data.subject or "BHIV HR Test Email"
                 message = test_data.message or "This is a test email from BHIV HR Platform"
                 
-                response = await client.post(f"{langgraph_url}/test/send-email",
+                response = await client.post(f"{langgraph_service_url}/test/send-email",
                                           params={
                                               "recipient_email": recipient,
                                               "subject": subject,
@@ -51,7 +51,7 @@ async def test_communication_system(
                 phone = test_data.phone or "+919284967526"
                 message = test_data.message or "Test message from BHIV HR Platform"
                 
-                response = await client.post(f"{langgraph_url}/test/send-whatsapp", 
+                response = await client.post(f"{langgraph_service_url}/test/send-whatsapp", 
                                           params={
                                               "phone": phone,
                                               "message": message
@@ -61,7 +61,7 @@ async def test_communication_system(
                 chat_id = test_data.chat_id or "test_chat_id"
                 message = test_data.message or "Test message from BHIV HR Platform"
                 
-                response = await client.post(f"{langgraph_url}/test/send-telegram",
+                response = await client.post(f"{langgraph_service_url}/test/send-telegram",
                                           params={
                                               "chat_id": chat_id,
                                               "message": message
