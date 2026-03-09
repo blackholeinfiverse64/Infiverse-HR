@@ -309,8 +309,8 @@ Client Request
 ```
 
 **Credentials Used:**
-- Account SID: AC0d60737a56a91ceae2cf07795efd3b81
-- Auth Token: ce7926ca215e006bd48b528ae3a38a54
+- Account SID: [REDACTED]
+- Auth Token: [REDACTED]
 - Sandbox Number: +14155238886
 
 ---
