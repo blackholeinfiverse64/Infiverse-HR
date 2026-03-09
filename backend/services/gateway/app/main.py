@@ -5102,6 +5102,56 @@ async def apply_for_job(application: JobApplication, auth = Depends(get_auth)):
         
         print(f"Application inserted successfully - application_id: {application_id}")
         
+        # Send application received email asynchronously (don't block the response)
+        try:
+            langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
+            api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+            
+            # Get candidate details
+            candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id_str)})
+            if not candidate:
+                # Try with string ID
+                candidate = await db.candidates.find_one({"id": candidate_id_str})
+            
+            # Get job details
+            job = await db.jobs.find_one({"_id": ObjectId(job_id_str)})
+            if not job:
+                job = await db.jobs.find_one({"id": job_id_str})
+            
+            if candidate and job:
+                candidate_name = candidate.get("name", "Candidate")
+                candidate_email = candidate.get("email", "")
+                candidate_phone = candidate.get("phone", "")
+                job_title = job.get("title", "Position")
+                
+                print(f"📧 [Application Email] Sending to {candidate_email} for job: {job_title}")
+                
+                application_payload = {
+                    "candidates": [{
+                        "candidate_name": candidate_name,
+                        "candidate_email": candidate_email,
+                        "candidate_phone": candidate_phone,
+                        "candidate_id": candidate_id_str
+                    }],
+                    "sequence_type": "application_received",
+                    "job_title": job_title,
+                    "job_id": job_id_str,
+                    "application_id": application_id
+                }
+                
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(
+                        f"{langgraph_service_url}/automation/notifications/bulk",
+                        json=application_payload,
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                print(f"✅ Application email sent successfully to {candidate_email}")
+            else:
+                print(f"⚠️ Could not send email - candidate or job not found")
+        except Exception as email_error:
+            # Log error but don't fail the application
+            print(f"❌ Failed to send application email: {email_error}")
+        
         return {
             "success": True,
             "message": "Application submitted successfully",

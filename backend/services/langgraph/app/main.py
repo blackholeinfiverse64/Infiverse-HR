@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Depends, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 # Optional imports - LangGraph workflow engine
@@ -702,13 +702,7 @@ class BulkNotificationRequest(BaseModel):
 
 @app.post("/automation/notifications/bulk", tags=["Automation - Notifications"])
 async def send_bulk_notifications(
-    request: BulkNotificationRequest = None,
-    candidates: Optional[List[dict]] = None,
-    sequence_type: Optional[str] = None,
-    job_data: Optional[dict] = None,
-    job_title: Optional[str] = None,
-    job_id: Optional[str] = None,
-    matching_score: Optional[str] = None,
+    request_obj: Request,
     api_key: str = Depends(get_api_key)
 ):
     """Send Bulk Notifications to Multiple Candidates"""
@@ -716,27 +710,29 @@ async def send_bulk_notifications(
         from .communication import comm_manager
         from datetime import datetime
         
-        # Support both JSON body and separate params
-        if request:
-            cands = request.candidates
-            seq_type = request.sequence_type
-            job = request.job_data
-        else:
-            cands = candidates or []
-            seq_type = sequence_type or "application_received"
-            # Build job_data from separate fields if provided
-            job = job_data or {}
-            if job_title:
-                job['job_title'] = job_title
-            if job_id:
-                job['job_id'] = job_id
-            if matching_score:
-                job['matching_score'] = matching_score
-            # Set defaults if not provided
-            if 'job_title' not in job:
-                job['job_title'] = 'Position'
-            if 'matching_score' not in job:
-                job['matching_score'] = 'High'
+        # Parse JSON body manually to avoid FastAPI parameter conflicts
+        try:
+            body = await request_obj.json()
+        except Exception as parse_error:
+            logger.error(f"❌ Failed to parse request body: {parse_error}")
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        
+        # Extract data from body
+        cands = body.get('candidates', [])
+        seq_type = body.get('sequence_type', 'application_received')
+        job_data = body.get('job_data', {})
+        
+        # Support both nested job_data and top-level job fields
+        job_title = body.get('job_title') or job_data.get('job_title', 'Position')
+        job_id = body.get('job_id') or job_data.get('job_id')
+        matching_score = body.get('matching_score') or job_data.get('matching_score', 'High')
+        
+        # Build final job object
+        job = {
+            'job_title': job_title,
+            'job_id': job_id,
+            'matching_score': matching_score
+        }
         
         logger.info(f"📨 Bulk notification request: {len(cands)} candidates, type: {seq_type}, job: {job.get('job_title', 'N/A')}")
         

@@ -69,7 +69,31 @@ export default function BatchOperations() {
 
   // Get filter criteria based on notification type
   const getFiltersForNotificationType = (type: string): CandidateFilters => {
-    const recruiterId = authStorage.getItem('user_id') || authStorage.getItem('recruiter_id')
+    // Try multiple possible ID storage keys
+    const recruiterId = authStorage.getItem('user_id') || 
+                        authStorage.getItem('recruiter_id') || 
+                        authStorage.getItem('backend_candidate_id') ||
+                        authStorage.getItem('candidate_id')
+    
+    // Debug: Log auth storage contents if no recruiter_id found
+    if (!recruiterId) {
+      console.log('🔍 AUTH DEBUG - All storage keys:', {
+        user_id: authStorage.getItem('user_id'),
+        recruiter_id: authStorage.getItem('recruiter_id'),
+        backend_candidate_id: authStorage.getItem('backend_candidate_id'),
+        candidate_id: authStorage.getItem('candidate_id'),
+        user_data: (() => {
+          try {
+            const ud = authStorage.getItem('user_data')
+            return ud ? JSON.parse(ud) : null
+          } catch (e) {
+            return null
+          }
+        })(),
+        auth_token: authStorage.getItem('auth_token') ? 'PRESENT' : 'MISSING',
+        all_keys: typeof sessionStorage !== 'undefined' ? Object.keys(sessionStorage) : []
+      })
+    }
     
     const baseFilter: CandidateFilters = {
       limit: FILTER_CONFIG.MAX_CANDIDATES,
