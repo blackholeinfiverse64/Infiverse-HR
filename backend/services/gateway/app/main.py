@@ -1026,6 +1026,54 @@ async def shortlist_candidate_for_job(job_id: str, body: ShortlistRequest, auth=
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class RejectRequest(BaseModel):
+    candidate_id: str
+
+@app.post("/v1/jobs/{job_id}/reject", tags=["Job Management"])
+async def reject_candidate_for_job(job_id: str, body: RejectRequest, auth=Depends(get_auth)):
+    """Mark a candidate as rejected for a job (upsert job_application with status rejected). Client/Recruiter: only own jobs."""
+    if not job_id or not body.candidate_id:
+        raise HTTPException(status_code=400, detail="job_id and candidate_id are required")
+    try:
+        db = await get_mongo_db()
+        
+        # Authorization check for clients
+        if auth.get("type") == "jwt_token" and auth.get("role") == "client":
+            client_id = str(auth.get("user_id", ""))
+            job_ids = await _client_job_ids_for_dashboard(db, client_id)
+            if job_id not in job_ids:
+                raise HTTPException(status_code=403, detail="You can only reject candidates for your own jobs")
+        
+        # Authorization check for recruiters
+        if auth.get("type") == "jwt_token" and auth.get("role") == "recruiter":
+            recruiter_id = str(auth.get("user_id", ""))
+            job = await db.jobs.find_one({"_id": ObjectId(job_id)}) if ObjectId.is_valid(job_id) else await db.jobs.find_one({"id": job_id})
+            if job and str(job.get("recruiter_id")) != recruiter_id:
+                raise HTTPException(status_code=403, detail="You can only reject candidates for your own jobs")
+        
+        now = datetime.now(timezone.utc)
+        existing = await db.job_applications.find_one({"job_id": job_id, "candidate_id": body.candidate_id})
+        
+        if existing:
+            await db.job_applications.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"status": "rejected", "updated_at": now}}
+            )
+        else:
+            await db.job_applications.insert_one({
+                "job_id": job_id,
+                "candidate_id": body.candidate_id,
+                "status": "rejected",
+                "created_at": now,
+                "updated_at": now,
+            })
+        
+        return {"message": "Candidate rejected", "job_id": job_id, "candidate_id": body.candidate_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Candidate Management (5 endpoints)
 @app.get("/v1/candidates", tags=["Candidate Management"])
 async def get_all_candidates(

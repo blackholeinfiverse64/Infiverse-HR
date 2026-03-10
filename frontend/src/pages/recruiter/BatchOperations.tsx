@@ -871,7 +871,7 @@ export default function BatchOperations() {
                     Sending...
                   </>
                 ) : (
-                  '📧 Send Bulk Notifications'
+                  '📧 Send Notifications'
                 )}
               </button>
             </div>
