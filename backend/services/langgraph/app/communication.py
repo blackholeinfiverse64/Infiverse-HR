@@ -2,9 +2,10 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, List
+from typing import Dict, List, Optional
 from twilio.rest import Client
 from telegram import Bot
+from bson import ObjectId
 import sys
 import os
 
@@ -12,9 +13,11 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from config import settings
+    from .database import get_mongo_db
 except ImportError:
     # Fallback for Docker environment
     import os
+    from .database import get_mongo_db
     class Settings:
         twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
         twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
@@ -241,6 +244,63 @@ class CommunicationManager:
         """Send automated email/WhatsApp sequences based on triggers"""
         results = []
         
+        # Format interview date and time if present
+        def format_interview_datetime(date_str, time_str):
+            """Format interview date and time into readable format"""
+            try:
+                from datetime import datetime
+                
+                # If date_str contains both date and time (e.g., "2026-03-31 13:23:00")
+                if date_str and date_str != 'TBD' and ' ' in str(date_str):
+                    try:
+                        dt = datetime.fromisoformat(str(date_str).replace('Z', '+00:00'))
+                        formatted_date = dt.strftime('%A, %B %d, %Y')  # e.g., "Monday, March 31, 2026"
+                        formatted_time = dt.strftime('%I:%M %p')  # e.g., "01:23 PM"
+                        return formatted_date, formatted_time
+                    except:
+                        pass
+                
+                # Otherwise use separate date and time
+                formatted_date = date_str if date_str and date_str != 'TBD' else 'TBD'
+                formatted_time = time_str if time_str and time_str != 'TBD' else 'TBD'
+                
+                # Try to parse and format the date if it's a date string
+                if formatted_date != 'TBD':
+                    try:
+                        if isinstance(formatted_date, str) and '-' in formatted_date:
+                            dt = datetime.fromisoformat(formatted_date.split()[0])
+                            formatted_date = dt.strftime('%A, %B %d, %Y')
+                    except:
+                        pass
+                
+                # Try to format time if it's a time string
+                if formatted_time != 'TBD':
+                    try:
+                        if isinstance(formatted_time, str) and ':' in formatted_time:
+                            # Parse time (handle formats like "13:23:00" or "13:23")
+                            time_parts = formatted_time.split(':')
+                            hour = int(time_parts[0])
+                            minute = int(time_parts[1])
+                            period = 'AM' if hour < 12 else 'PM'
+                            hour_12 = hour if hour <= 12 else hour - 12
+                            hour_12 = 12 if hour_12 == 0 else hour_12
+                            formatted_time = f"{hour_12:02d}:{minute:02d} {period}"
+                    except:
+                        pass
+                
+                return formatted_date, formatted_time
+            except Exception as e:
+                logger.warning(f"⚠️ Date/time formatting error: {e}")
+                return date_str or 'TBD', time_str or 'TBD'
+        
+        # Format interview details for this payload if it's an interview
+        if sequence_type == "interview_scheduled":
+            interview_date = payload.get('interview_date', 'TBD')
+            interview_time = payload.get('interview_time', 'TBD')
+            formatted_date, formatted_time = format_interview_datetime(interview_date, interview_time)
+            payload['formatted_interview_date'] = formatted_date
+            payload['formatted_interview_time'] = formatted_time
+        
         sequences = {
             "welcome": {
                 "email": {
@@ -261,10 +321,10 @@ class CommunicationManager:
             "interview_scheduled": {
                 "email": {
                     "subject": f"📅 Interview Scheduled - {payload['job_title']} | BHIV HR",
-                    "body": f"""Dear {payload['candidate_name']},\n\nYour interview is scheduled!\n\n📅 Date: {payload.get('interview_date', 'TBD')}\n🕐 Time: {payload.get('interview_time', 'TBD')}\n👤 Interviewer: {payload.get('interviewer', 'HR Team')}\n🎥 Format: Video Call\n⏱️ Duration: 45 minutes\n\nInterview Preparation:\n• Review the job description\n• Prepare examples of your work\n• Test your video call setup\n\nPlease confirm your availability by replying to this email.\n\nBest regards,\nBHIV HR Team""",
-                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #28a745;'>📅 Interview Scheduled</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>Your interview for <strong>{payload['job_title']}</strong> is confirmed!</p>\n<div style='background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<h3>Interview Details:</h3>\n<p><strong>📅 Date:</strong> {payload.get('interview_date', 'TBD')}<br>\n<strong>🕐 Time:</strong> {payload.get('interview_time', 'TBD')}<br>\n<strong>👤 Interviewer:</strong> {payload.get('interviewer', 'HR Team')}<br>\n<strong>🎥 Format:</strong> Video Call<br>\n<strong>⏱️ Duration:</strong> 45 minutes</p>\n</div>\n<h3>📋 Preparation Checklist:</h3>\n<ul>\n<li>✅ Review the job description</li>\n<li>✅ Prepare examples of your work</li>\n<li>✅ Test your video call setup</li>\n</ul>\n<p><strong>Please confirm your availability by replying to this email.</strong></p>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
+                    "body": f"""Dear {payload['candidate_name']},\n\nYour interview is scheduled for {payload['job_title']}!\n\n📅 Date: {payload.get('formatted_interview_date', payload.get('interview_date', 'TBD'))}\n🕐 Time: {payload.get('formatted_interview_time', payload.get('interview_time', 'TBD'))}\n👤 Interviewer: {payload.get('interviewer', 'HR Team')}\n🎥 Format: Video Call\n\nInterview Preparation:\n• Review the job description\n• Prepare examples of your work\n• Test your video call setup\n\nBest regards,\nBHIV HR Team""",
+                    "html_body": f"""<html><body style='font-family: Arial, sans-serif; color: #333;'>\n<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>\n<h2 style='color: #28a745;'>📅 Interview Scheduled</h2>\n<p>Dear <strong>{payload['candidate_name']}</strong>,</p>\n<p>Your interview for <strong>{payload['job_title']}</strong> is confirmed!</p>\n<div style='background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n<h3>Interview Details:</h3>\n<p><strong>📅 Date:</strong> {payload.get('formatted_interview_date', payload.get('interview_date', 'TBD'))}<br>\n<strong>🕐 Time:</strong> {payload.get('formatted_interview_time', payload.get('interview_time', 'TBD'))}<br>\n<strong>👤 Interviewer:</strong> {payload.get('interviewer', 'HR Team')}<br>\n<strong>🎥 Format:</strong> Video Call</p>\n</div>\n<h3>📋 Preparation Checklist:</h3>\n<ul>\n<li>✅ Review the job description</li>\n<li>✅ Prepare examples of your work</li>\n<li>✅ Test your video call setup</li>\n</ul>\n<p>Best regards,<br><strong>BHIV HR Team</strong></p>\n</div></body></html>"""
                 },
-                "whatsapp": f"""📅 *Interview Scheduled*\n\n*Job:* {payload['job_title']}\n*Date:* {payload.get('interview_date', 'TBD')}\n*Time:* {payload.get('interview_time', 'TBD')}\n*Interviewer:* {payload.get('interviewer', 'HR Team')}\n\n📋 *Preparation:*\n• Review job description\n• Prepare work examples\n• Test video setup\n\nPlease confirm! 👍"""
+                "whatsapp": f"""📅 *Interview Scheduled*\n\n*Job:* {payload['job_title']}\n*Date:* {payload.get('formatted_interview_date', payload.get('interview_date', 'TBD'))}\n*Time:* {payload.get('formatted_interview_time', payload.get('interview_time', 'TBD'))}\n*Interviewer:* {payload.get('interviewer', 'HR Team')}\n\n📋 *Preparation:*\n• Review job description\n• Prepare work examples\n• Test video setup\n\nGood luck! 🎯"""
             },
             "shortlisted": {
                 "email": {
@@ -309,13 +369,7 @@ class CommunicationManager:
         # Send WhatsApp with interactive options for certain sequences
         candidate_phone = payload.get('candidate_phone')
         if candidate_phone and candidate_phone != "+1234567890":
-            if sequence_type == "interview_scheduled":
-                whatsapp_result = await self.send_whatsapp_with_buttons(
-                    payload['candidate_phone'],
-                    sequence["whatsapp"],
-                    ["✅ Confirm", "❌ Reschedule", "❓ More Info"]
-                )
-            elif sequence_type == "shortlisted":
+            if sequence_type == "shortlisted":
                 whatsapp_result = await self.send_whatsapp_with_buttons(
                     payload['candidate_phone'],
                     sequence["whatsapp"],
@@ -484,10 +538,152 @@ _Thank you for your interest in BHIV!_"""
         except Exception as e:
             logger.error(f"❌ Portal notification error: {str(e)}")
     
+    async def _auto_detect_candidate_jobs(self, candidate_id: str, sequence_type: str) -> List[Dict]:
+        """Auto-detect jobs for candidate based on sequence type
+        
+        Different notification types filter by different statuses:
+        - 'application_received': finds jobs where candidate status is 'applied' or 'pending'
+        - 'shortlisted': finds jobs where candidate status is 'shortlisted'
+        - 'interview_scheduled': finds jobs where candidate status is 'interview_scheduled' or 'interview'
+        - 'rejection_sent': finds jobs where candidate status is 'rejected'
+        - 'feedback_request': finds jobs with any completed status (rejected, hired, or closed)
+        
+        Returns list of job details with title, id, and matching score
+        """
+        try:
+            db = get_mongo_db()
+            candidate_jobs = []
+            
+            # Query job_applications to find candidate's applications
+            query = {"candidate_id": candidate_id}
+            
+            # Filter by status based on notification type
+            if sequence_type == "application_received":
+                # Find applications that were just received (applied, pending, or under_review)
+                query["status"] = {"$in": ["applied", "pending", "under_review"]}
+            elif sequence_type == "shortlisted":
+                query["status"] = "shortlisted"
+            elif sequence_type == "interview_scheduled":
+                # Find applications with interview scheduled
+                query["status"] = {"$in": ["interview_scheduled", "interview", "interviewing"]}
+            elif sequence_type == "rejection_sent":
+                query["status"] = "rejected"
+            elif sequence_type == "feedback_request":
+                # Feedback can be requested for any completed application
+                query["status"] = {"$in": ["rejected", "hired", "closed", "completed"]}
+            # For other types (like welcome), don't filter by status - get all applications
+            
+            job_applications = list(db.job_applications.find(query))
+            
+            logger.info(f"🔍 Found {len(job_applications)} job applications for candidate {candidate_id} (type: {sequence_type})")
+            
+            # Get job details for each application
+            for app in job_applications:
+                job_id = app.get('job_id')
+                if not job_id:
+                    continue
+                
+                # Try to find job by ObjectId first, then by string id
+                job = None
+                if ObjectId.is_valid(job_id):
+                    job = db.jobs.find_one({"_id": ObjectId(job_id)})
+                if not job:
+                    job = db.jobs.find_one({"id": job_id})
+                
+                if job:
+                    # Get additional details for interview if available
+                    interview_date = app.get('interview_date', 'TBD')
+                    interview_time = app.get('interview_time', 'TBD')
+                    interviewer = app.get('interviewer', 'HR Team')
+                    application_id = str(app.get('_id', 'N/A'))
+                    
+                    candidate_jobs.append({
+                        'job_id': str(job.get('_id', job_id)),
+                        'job_title': job.get('title', 'Position'),
+                        'matching_score': app.get('matching_score', app.get('score', 'High')),
+                        'company': job.get('company', 'BHIV'),
+                        'location': job.get('location', ''),
+                        'employment_type': job.get('employment_type', ''),
+                        'application_id': application_id,
+                        'interview_date': interview_date,
+                        'interview_time': interview_time,
+                        'interviewer': interviewer
+                    })
+                    logger.info(f"✅ Found job: {job.get('title')} (ID: {job_id}, Status: {app.get('status')})")
+            
+            return candidate_jobs
+            
+        except Exception as e:
+            logger.error(f"❌ Error auto-detecting jobs for candidate {candidate_id}: {str(e)}")
+            return []
+    
+    async def _get_application_details(self, candidate_id: str, job_id: str) -> Dict:
+        """Get application-specific details (interview date/time, interviewer, application_id) 
+        for a candidate's application to a specific job.
+        
+        Returns dict with: interview_date, interview_time, interviewer, application_id, matching_score
+        """
+        try:
+            db = get_mongo_db()
+            
+            # Find the application for this candidate+job combination
+            application = db.job_applications.find_one({
+                "candidate_id": candidate_id,
+                "job_id": job_id
+            })
+            
+            if application:
+                logger.info(f"✅ Found application for candidate {candidate_id} + job {job_id}")
+                return {
+                    'interview_date': application.get('interview_date', 'TBD'),
+                    'interview_time': application.get('interview_time', 'TBD'),
+                    'interviewer': application.get('interviewer', 'HR Team'),
+                    'application_id': str(application.get('_id', 'N/A')),
+                    'matching_score': application.get('matching_score', application.get('score', 'High'))
+                }
+            else:
+                logger.warning(f"⚠️ No application found for candidate {candidate_id} + job {job_id}")
+                return {
+                    'interview_date': 'TBD',
+                    'interview_time': 'TBD',
+                    'interviewer': 'HR Team',
+                    'application_id': 'N/A',
+                    'matching_score': 'High'
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Error fetching application details for candidate {candidate_id} + job {job_id}: {str(e)}")
+            return {
+                'interview_date': 'TBD',
+                'interview_time': 'TBD',
+                'interviewer': 'HR Team',
+                'application_id': 'N/A',
+                'matching_score': 'High'
+            }
+    
     async def send_bulk_notifications(self, candidates: List[Dict], sequence_type: str, job_data: Dict) -> Dict:
-        """Send bulk notifications to multiple candidates"""
+        """Send bulk notifications to multiple candidates
+        
+        Auto-detects job information when no specific job is selected:
+        - 'application_received': finds jobs with status 'applied'/'pending'/'under_review'
+        - 'shortlisted': finds jobs where candidate status is 'shortlisted'
+        - 'interview_scheduled': finds jobs with status 'interview_scheduled'/'interview'
+        - 'rejection_sent': finds jobs where candidate status is 'rejected'
+        - 'feedback_request': finds any completed jobs (rejected/hired/closed)
+        - Sends individual notifications for each detected job with full job details
+        """
         try:
             logger.info(f"📨 Sending bulk notifications to {len(candidates)} candidates")
+            
+            # Check if job selection is generic (no specific job selected)
+            is_generic_job = (
+                not job_data.get('job_title') or 
+                job_data.get('job_title') in ['Position', ''] or
+                not job_data.get('job_id')
+            )
+            
+            if is_generic_job:
+                logger.info(f"🔍 No specific job selected - auto-detection mode enabled")
             
             results = []
             success_count = 0
@@ -496,29 +692,82 @@ _Thank you for your interest in BHIV!_"""
             for candidate in candidates:
                 try:
                     # Handle both formats: old format (name, email) and new format (candidate_name, candidate_email)
-                    payload = {
-                        **job_data,
-                        "candidate_name": candidate.get('candidate_name') or candidate.get('name', 'Candidate'),
-                        "candidate_email": candidate.get('candidate_email') or candidate.get('email', ''),
-                        "candidate_phone": candidate.get('candidate_phone') or candidate.get('phone', ''),
-                        "candidate_id": candidate.get('candidate_id') or candidate.get('id')
-                    }
+                    candidate_id = candidate.get('candidate_id') or candidate.get('id')
+                    candidate_name = candidate.get('candidate_name') or candidate.get('name', 'Candidate')
+                    candidate_email = candidate.get('candidate_email') or candidate.get('email', '')
+                    candidate_phone = candidate.get('candidate_phone') or candidate.get('phone', '')
                     
-                    logger.info(f"📧 Processing notification for: {payload['candidate_name']} ({payload['candidate_email']}, {payload['candidate_phone']})")
-                    
-                    candidate_results = await self.send_automated_sequence(payload, sequence_type)
-                    results.extend(candidate_results)
-                    
-                    # Count successes (exclude mock_sent and skipped from both success and failure)
-                    for result in candidate_results:
-                        status = result.get('status')
-                        if status == 'success':
-                            success_count += 1
-                        elif status in ['skipped', 'mock_sent']:
-                            # Don't count as success or failure - these are informational
-                            logger.info(f"ℹ️ Notification {status}: {result.get('channel')} - {result.get('reason', 'N/A')}")
-                        else:
-                            failed_count += 1
+                    # Auto-detect jobs if no specific job is selected
+                    if is_generic_job and candidate_id:
+                        detected_jobs = await self._auto_detect_candidate_jobs(candidate_id, sequence_type)
+                        
+                        if not detected_jobs:
+                            logger.warning(f"⚠️ No jobs found for candidate {candidate_name} - skipping")
+                            results.append({
+                                'candidate_id': candidate_id,
+                                'candidate_name': candidate_name,
+                                'status': 'skipped',
+                                'channel': 'auto-detect',
+                                'reason': f'No {sequence_type} jobs found for candidate'
+                            })
+                            continue
+                        
+                        # Send notification for each detected job
+                        logger.info(f"📧 Sending {len(detected_jobs)} notifications to {candidate_name} (one per job)")
+                        for job in detected_jobs:
+                            payload = {
+                                **job,  # job_title, job_id, matching_score, company, location, employment_type
+                                "candidate_name": candidate_name,
+                                "candidate_email": candidate_email,
+                                "candidate_phone": candidate_phone,
+                                "candidate_id": candidate_id
+                            }
+                            
+                            logger.info(f"  → Job: {job['job_title']} (Score: {job.get('matching_score', 'N/A')})")
+                            
+                            candidate_results = await self.send_automated_sequence(payload, sequence_type)
+                            results.extend(candidate_results)
+                            
+                            # Count successes
+                            for result in candidate_results:
+                                status = result.get('status')
+                                if status == 'success':
+                                    success_count += 1
+                                elif status in ['skipped', 'mock_sent']:
+                                    logger.info(f"ℹ️ Notification {status}: {result.get('channel')} - {result.get('reason', 'N/A')}")
+                                else:
+                                    failed_count += 1
+                    else:
+                        # Use provided job_data (specific job selected)
+                        # Fetch application-specific details (interview date/time, etc.)
+                        application_details = {}
+                        if candidate_id and job_data.get('job_id'):
+                            application_details = await self._get_application_details(candidate_id, job_data['job_id'])
+                        
+                        payload = {
+                            **job_data,
+                            **application_details,  # Merge application details (interview_date, interview_time, interviewer, etc.)
+                            "candidate_name": candidate_name,
+                            "candidate_email": candidate_email,
+                            "candidate_phone": candidate_phone,
+                            "candidate_id": candidate_id
+                        }
+                        
+                        logger.info(f"📧 Processing notification for: {payload['candidate_name']} (Job: {payload.get('job_title', 'N/A')})")
+                        
+                        candidate_results = await self.send_automated_sequence(payload, sequence_type)
+                        results.extend(candidate_results)
+                        
+                        # Count successes (exclude mock_sent and skipped from both success and failure)
+                        for result in candidate_results:
+                            status = result.get('status')
+                            if status == 'success':
+                                success_count += 1
+                            elif status in ['skipped', 'mock_sent']:
+                                # Don't count as success or failure - these are informational
+                                logger.info(f"ℹ️ Notification {status}: {result.get('channel')} - {result.get('reason', 'N/A')}")
+                            else:
+                                failed_count += 1
                             
                 except Exception as candidate_error:
                     logger.error(f"❌ Bulk notification error for candidate {candidate.get('id')}: {str(candidate_error)}")
