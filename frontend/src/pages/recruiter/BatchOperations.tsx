@@ -337,7 +337,7 @@ export default function BatchOperations() {
       if (notificationType === 'application_received' && !selectedJobId) {
         // GROUPED NOTIFICATIONS: 1 email per candidate with ALL their jobs listed
         const GATEWAY_URL = import.meta.env.VITE_REACT_APP_GATEWAY_URL || 'http://localhost:8000'
-        const token = localStorage.getItem('recruiter_token')
+        const token = authStorage.getItem('auth_token')
         
         console.log('📧 Sending grouped notifications (Application Received - No Job Selected):', {
           candidatesCount: candidates.length,
