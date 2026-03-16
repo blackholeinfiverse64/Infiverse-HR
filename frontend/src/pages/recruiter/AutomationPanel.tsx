@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { triggerAutomation } from '../../services/api'
+import {
+  getNotificationServiceHealth,
+  sendNotification,
+  testNotificationSequence,
+  triggerAutomation,
+} from '../../services/api'
 
 export default function AutomationPanel() {
   const [loading, setLoading] = useState<string | null>(null)
@@ -23,17 +28,9 @@ export default function AutomationPanel() {
   const checkServiceStatus = async () => {
     setServiceStatus('checking')
     try {
-      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
-      
-      const response = await fetch(`${langgraphUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`
-        }
-      })
-      
-      if (response.ok) {
+      const response = await getNotificationServiceHealth()
+
+      if (response?.status || response?.service || response?.environment) {
         setServiceStatus('online')
       } else {
         setServiceStatus('offline')
@@ -150,34 +147,18 @@ export default function AutomationPanel() {
 
     setTesting(true)
     try {
-      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
-      
-      // Use new consistent endpoint path
-      const response = await fetch(`${langgraphUrl}/automation/notifications/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify({
-          candidate_name: testForm.candidate_name,
-          candidate_email: testForm.candidate_email,
-          candidate_phone: testForm.candidate_phone,
-          job_title: testForm.job_title,
-          message: testForm.message,
-          channels: detectedChannels,
-          application_status: 'updated'
-        })
+      const result = await sendNotification({
+        candidate_name: testForm.candidate_name,
+        candidate_email: testForm.candidate_email,
+        candidate_phone: testForm.candidate_phone,
+        job_title: testForm.job_title,
+        message: testForm.message,
+        channels: detectedChannels,
+        application_status: 'updated'
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`Notification sent via ${detectedChannels.join(' + ')}`)
-        console.log('Test result:', result)
-      } else {
-        throw new Error('Test failed')
-      }
+      toast.success(`Notification sent via ${detectedChannels.join(' + ')}`)
+      console.log('Test result:', result)
     } catch (error) {
       console.error('Test error:', error)
       toast.error('Failed to send notification. Service may be offline.')
@@ -189,9 +170,6 @@ export default function AutomationPanel() {
   const handleSequenceTest = async (sequenceType: string) => {
     setTesting(true)
     try {
-      const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-      const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
-      
       const testData = {
         candidate_name: 'John Doe',
         candidate_email: 'john.doe@example.com',
@@ -200,22 +178,9 @@ export default function AutomationPanel() {
         sequence_type: sequenceType
       }
 
-      const response = await fetch(`${langgraphUrl}/automation/test/sequence`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify(testData)
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`${sequenceType} notification sent!`)
-        console.log('Sequence result:', result)
-      } else {
-        throw new Error('Test failed')
-      }
+      const result = await testNotificationSequence(testData)
+      toast.success(`${sequenceType} notification sent!`)
+      console.log('Sequence result:', result)
     } catch (error) {
       console.error('Sequence test error:', error)
       toast.error('Failed to send test sequence. Service may be offline.')

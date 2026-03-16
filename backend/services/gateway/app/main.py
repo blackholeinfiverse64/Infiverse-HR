@@ -521,6 +521,49 @@ class PerJobNotificationRequest(BaseModel):
     notification_type: str
     recruiter_id: Optional[str] = None
 
+class NotificationSendRequest(BaseModel):
+    candidate_name: str
+    candidate_email: Optional[str] = None
+    candidate_phone: Optional[str] = None
+    job_title: str
+    message: str
+    channels: List[str] = Field(default_factory=lambda: ["email"])
+    application_status: Optional[str] = None
+
+    model_config = {"extra": "allow"}
+
+class BulkNotificationProxyRequest(BaseModel):
+    candidates: List[Dict[str, Any]]
+    sequence_type: str
+    job_title: Optional[str] = None
+    job_id: Optional[str] = None
+    matching_score: Optional[str] = None
+    job_data: Optional[Dict[str, Any]] = None
+
+    model_config = {"extra": "allow"}
+
+class PreviewNotificationRequest(BaseModel):
+    sequence_type: str
+    candidate_name: str = "John Doe"
+    job_title: str = "Software Engineer"
+    job_id: str = "job_123"
+    matching_score: str = "85"
+    interview_date: str = "2024-02-15"
+    interview_time: str = "2:00 PM"
+    interviewer: str = "HR Team"
+    application_id: str = "APP_001"
+
+class TestSequenceRequest(BaseModel):
+    candidate_name: str = "John Doe"
+    candidate_email: str = "john.doe@example.com"
+    candidate_phone: str = "+1234567890"
+    job_title: str = "Software Engineer"
+    sequence_type: str = "interview_scheduled"
+
+class AutomationTriggerRequest(BaseModel):
+    type: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
 # Legacy get_db_engine function - replaced by MongoDB
 # MongoDB connection is handled by app.database module
 # Use: db = await get_mongo_db() for async database access
@@ -576,6 +619,65 @@ else:
             pass
         
         raise HTTPException(status_code=401, detail="Invalid authentication")
+
+def _get_langgraph_service_url() -> str:
+    return os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
+
+def _get_langgraph_headers() -> Dict[str, str]:
+    api_key = os.getenv("API_KEY_SECRET", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+def _parse_langgraph_error(response: httpx.Response) -> Any:
+    try:
+        payload = response.json()
+        return payload.get("detail", payload)
+    except ValueError:
+        return response.text or f"LangGraph service returned status {response.status_code}"
+
+async def _forward_langgraph_request(
+    endpoint: str,
+    method: str = "GET",
+    json_body: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: float = 30.0,
+) -> Dict[str, Any]:
+    url = f"{_get_langgraph_service_url()}{endpoint}"
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=10.0)) as client:
+            response = await client.request(
+                method,
+                url,
+                headers=_get_langgraph_headers(),
+                json=json_body,
+                params=params,
+            )
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="LangGraph service timed out while processing the request") from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=503, detail=f"LangGraph service unavailable: {exc}") from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=_parse_langgraph_error(response))
+
+    if not response.content:
+        return {}
+
+    try:
+        return response.json()
+    except ValueError:
+        return {"detail": response.text}
+
+async def _send_langgraph_bulk_notifications(payload: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
+    return await _forward_langgraph_request(
+        "/automation/notifications/bulk",
+        method="POST",
+        json_body=payload,
+        timeout=timeout,
+    )
 
 # Core API Endpoints (5 endpoints)
 @app.get("/openapi.json", tags=["Core API Endpoints"])
@@ -4613,10 +4715,7 @@ async def candidate_register(candidate_data: CandidateRegister):
         
         # Send welcome email asynchronously (don't block registration)
         try:
-            langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
-            api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
-            
-            print(f"🔧 [Welcome Email] Using LangGraph URL: {langgraph_service_url}")
+            print(f"🔧 [Welcome Email] Using LangGraph URL: {_get_langgraph_service_url()}")
             
             # Send welcome email only for candidates (not recruiters)
             if user_role == "candidate":
@@ -4632,12 +4731,7 @@ async def candidate_register(candidate_data: CandidateRegister):
                     "job_id": None
                 }
                 
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    await client.post(
-                        f"{langgraph_service_url}/automation/notifications/bulk",
-                        json=welcome_payload,
-                        headers={"Authorization": f"Bearer {api_key}"}
-                    )
+                await _send_langgraph_bulk_notifications(welcome_payload, timeout=10.0)
                 print(f"✅ Welcome email sent successfully to {candidate_data.email}")
         except Exception as email_error:
             # Log error but don't fail registration
@@ -4650,6 +4744,59 @@ async def candidate_register(candidate_data: CandidateRegister):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@app.get("/v1/notifications/health", tags=["Notifications"])
+async def get_notification_service_health(auth=Depends(get_auth)):
+    """Proxy LangGraph health through Gateway so the browser stays same-origin."""
+    return await _forward_langgraph_request("/health", method="GET", timeout=15.0)
+
+@app.post("/v1/notifications/send", tags=["Notifications"])
+async def send_notification(request: NotificationSendRequest, auth=Depends(get_auth)):
+    """Proxy single notification send requests through Gateway."""
+    return await _forward_langgraph_request(
+        "/automation/notifications/send",
+        method="POST",
+        json_body=request.model_dump(exclude_none=True),
+        timeout=45.0,
+    )
+
+@app.post("/v1/notifications/test-sequence", tags=["Notifications"])
+async def test_notification_sequence(request: TestSequenceRequest, auth=Depends(get_auth)):
+    """Proxy notification sequence tests through Gateway."""
+    return await _forward_langgraph_request(
+        "/automation/test/sequence",
+        method="POST",
+        params=request.model_dump(exclude_none=True),
+        timeout=45.0,
+    )
+
+@app.post("/v1/notifications/preview", tags=["Notifications"])
+async def get_notification_preview(request: PreviewNotificationRequest, auth=Depends(get_auth)):
+    """Fetch notification template previews through Gateway."""
+    return await _forward_langgraph_request(
+        "/automation/notifications/preview",
+        method="POST",
+        params=request.model_dump(exclude_none=True),
+        timeout=20.0,
+    )
+
+@app.post("/v1/notifications/bulk", tags=["Notifications"])
+async def send_bulk_notifications_proxy(request: BulkNotificationProxyRequest, auth=Depends(get_auth)):
+    """Proxy standard bulk notification requests through Gateway."""
+    return await _send_langgraph_bulk_notifications(request.model_dump(exclude_none=True), timeout=90.0)
+
+@app.post("/v1/automation/trigger", tags=["Notifications"])
+async def trigger_automation(request: AutomationTriggerRequest, auth=Depends(get_auth)):
+    """Trigger LangGraph automation workflows through Gateway."""
+    return await _forward_langgraph_request(
+        "/automation/workflows/trigger",
+        method="POST",
+        json_body={
+            "event_type": request.type,
+            "payload": request.payload,
+        },
+        timeout=45.0,
+    )
 
 @app.post("/v1/notifications/send-grouped-by-candidate", tags=["Notifications"])
 async def send_grouped_notifications(request: PerJobNotificationRequest, auth=Depends(get_auth)):
@@ -4665,9 +4812,6 @@ async def send_grouped_notifications(request: PerJobNotificationRequest, auth=De
     """
     try:
         db = await get_mongo_db()
-        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
-        api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
-        
         # Get recruiter_id from auth if not provided
         recruiter_id = request.recruiter_id
         if not recruiter_id and auth:
@@ -4752,26 +4896,16 @@ async def send_grouped_notifications(request: PerJobNotificationRequest, auth=De
                 
                 # Send to LangGraph
                 try:
-                    async with httpx.AsyncClient(timeout=30.0) as client:
-                        response = await client.post(
-                            f"{langgraph_service_url}/automation/notifications/bulk",
-                            json=notification_payload,
-                            headers={"Authorization": f"Bearer {api_key}"}
-                        )
-                        
-                        if response.status_code == 200:
-                            total_emails_sent += 1
-                            success_count += 1
-                            notifications_sent.append({
-                                "candidate_id": candidate_id_str,
-                                "candidate_name": candidate.get("name"),
-                                "job_count": len(job_titles),
-                                "jobs": job_titles
-                            })
-                            print(f"✅ Sent grouped notification to {candidate.get('name')} for {len(job_titles)} job(s): {grouped_job_title}")
-                        else:
-                            failed_count += 1
-                            print(f"❌ Failed to send notification to {candidate.get('name')}: {response.status_code}")
+                    await _send_langgraph_bulk_notifications(notification_payload, timeout=45.0)
+                    total_emails_sent += 1
+                    success_count += 1
+                    notifications_sent.append({
+                        "candidate_id": candidate_id_str,
+                        "candidate_name": candidate.get("name"),
+                        "job_count": len(job_titles),
+                        "jobs": job_titles
+                    })
+                    print(f"✅ Sent grouped notification to {candidate.get('name')} for {len(job_titles)} job(s): {grouped_job_title}")
                 except Exception as send_error:
                     failed_count += 1
                     print(f"❌ Error sending notification: {send_error}")
@@ -4813,10 +4947,7 @@ async def send_per_job_notifications(request: PerJobNotificationRequest, auth=De
     """
     try:
         db = await get_mongo_db()
-        langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
-        api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
-        
-        print(f"🔧 [Per-Job Notifications] Using LangGraph URL: {langgraph_service_url}")
+        print(f"🔧 [Per-Job Notifications] Using LangGraph URL: {_get_langgraph_service_url()}")
         
         # Get recruiter_id from auth if not provided
         recruiter_id = request.recruiter_id
@@ -4887,28 +5018,19 @@ async def send_per_job_notifications(request: PerJobNotificationRequest, auth=De
                     
                     # Send to LangGraph
                     try:
-                        async with httpx.AsyncClient(timeout=30.0) as client:
-                            response = await client.post(
-                                f"{langgraph_service_url}/automation/notifications/bulk",
-                                json=notification_payload,
-                                headers={"Authorization": f"Bearer {api_key}"}
-                            )
-                            
-                            # Wait a bit between requests to prevent overwhelming the service
-                            await asyncio.sleep(0.3)
-                            
-                            if response.status_code == 200:
-                                success_count += 1
-                                notifications_sent.append({
-                                    "candidate_id": candidate_id_str,
-                                    "candidate_name": candidate.get("name"),
-                                    "job_id": job_id,
-                                    "job_title": job_title
-                                })
-                                print(f"✅ Sent notification to {candidate.get('name')} for job {job_title}")
-                            else:
-                                failed_count += 1
-                                print(f"❌ Failed to send notification to {candidate.get('name')} for job {job_title}: {response.status_code}")
+                        await _send_langgraph_bulk_notifications(notification_payload, timeout=45.0)
+
+                        # Wait a bit between requests to prevent overwhelming the service
+                        await asyncio.sleep(0.3)
+
+                        success_count += 1
+                        notifications_sent.append({
+                            "candidate_id": candidate_id_str,
+                            "candidate_name": candidate.get("name"),
+                            "job_id": job_id,
+                            "job_title": job_title
+                        })
+                        print(f"✅ Sent notification to {candidate.get('name')} for job {job_title}")
                     except Exception as send_error:
                         failed_count += 1
                         print(f"❌ Error sending notification: {send_error}")
@@ -5158,9 +5280,6 @@ async def apply_for_job(application: JobApplication, auth = Depends(get_auth)):
         
         # Send application received email asynchronously (don't block the response)
         try:
-            langgraph_service_url = os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
-            api_key = os.getenv("API_KEY", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
-            
             # Get candidate details
             candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id_str)})
             if not candidate:
@@ -5193,12 +5312,7 @@ async def apply_for_job(application: JobApplication, auth = Depends(get_auth)):
                     "application_id": application_id
                 }
                 
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    await client.post(
-                        f"{langgraph_service_url}/automation/notifications/bulk",
-                        json=application_payload,
-                        headers={"Authorization": f"Bearer {api_key}"}
-                    )
+                await _send_langgraph_bulk_notifications(application_payload, timeout=10.0)
                 print(f"✅ Application email sent successfully to {candidate_email}")
             else:
                 print(f"⚠️ Could not send email - candidate or job not found")

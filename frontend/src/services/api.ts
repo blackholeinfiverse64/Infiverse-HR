@@ -993,10 +993,63 @@ export const respondToOffer = async (offerId: string, response: 'accepted' | 're
 
 export const triggerAutomation = async (type: string, data?: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/automation/trigger', { type, ...data })
+    const response = await api.post('/v1/automation/trigger', {
+      type,
+      payload: data || {},
+    })
     return response.data
   } catch (error) {
     console.error('Error triggering automation:', error)
+    throw error
+  }
+}
+
+export const getNotificationServiceHealth = async () => {
+  try {
+    const response = await api.get('/v1/notifications/health')
+    return response.data
+  } catch (error) {
+    console.error('Error checking notification service health:', error)
+    throw error
+  }
+}
+
+export const sendNotification = async (payload: Record<string, unknown>) => {
+  try {
+    const response = await api.post('/v1/notifications/send', payload)
+    return response.data
+  } catch (error) {
+    console.error('Error sending notification:', error)
+    throw error
+  }
+}
+
+export const testNotificationSequence = async (payload: Record<string, unknown>) => {
+  try {
+    const response = await api.post('/v1/notifications/test-sequence', payload)
+    return response.data
+  } catch (error) {
+    console.error('Error testing notification sequence:', error)
+    throw error
+  }
+}
+
+export const sendGroupedNotifications = async (payload: Record<string, unknown>) => {
+  try {
+    const response = await api.post('/v1/notifications/send-grouped-by-candidate', payload)
+    return response.data
+  } catch (error) {
+    console.error('Error sending grouped notifications:', error)
+    throw error
+  }
+}
+
+export const sendBulkNotifications = async (payload: Record<string, unknown>) => {
+  try {
+    const response = await api.post('/v1/notifications/bulk', payload)
+    return response.data
+  } catch (error) {
+    console.error('Error sending bulk notifications:', error)
     throw error
   }
 }
@@ -1394,10 +1447,7 @@ export const getNotificationHistory = async (candidateId: string) => {
 
 export const previewNotification = async (notificationType: string, sampleData?: any) => {
   try {
-    const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
-    const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-    
-    const params = new URLSearchParams({
+    const payload = {
       sequence_type: notificationType,
       candidate_name: sampleData?.candidate_name || 'John Doe',
       job_title: sampleData?.job_title || 'Software Engineer',
@@ -1408,19 +1458,9 @@ export const previewNotification = async (notificationType: string, sampleData?:
       interviewer: sampleData?.interviewer || 'HR Team',
       application_id: sampleData?.application_id || 'APP_001'
     })
-    
-    const response = await fetch(`${langgraphUrl}/automation/notifications/preview?${params.toString()}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (response.ok) {
-      return await response.json()
-    }
-    throw new Error('Failed to fetch preview')
+
+    const response = await api.post('/v1/notifications/preview', payload)
+    return response.data
   } catch (error) {
     console.error('Error fetching notification preview:', error)
     throw error

@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
-import { getAllCandidates, getRecruiterJobs, previewNotification, type Job, type CandidateFilters } from '../../services/api'
+import {
+  getAllCandidates,
+  getRecruiterJobs,
+  previewNotification,
+  sendBulkNotifications,
+  sendGroupedNotifications,
+  type Job,
+  type CandidateFilters,
+} from '../../services/api'
 import BulkCandidateUploadPanel from '../../components/recruiter/BulkCandidateUploadPanel'
 import { authStorage } from '../../utils/authStorage'
 import {
@@ -328,6 +336,10 @@ export default function BatchOperations() {
       if (!confirm) return
     }
 
+    if (sendingNotifications) {
+      return
+    }
+
     setSendingNotifications(true)
     try {
       // SMART LOGIC FOR APPLICATION RECEIVED:
@@ -336,52 +348,32 @@ export default function BatchOperations() {
       
       if (notificationType === 'application_received' && !selectedJobId) {
         // GROUPED NOTIFICATIONS: 1 email per candidate with ALL their jobs listed
-        const GATEWAY_URL = import.meta.env.VITE_REACT_APP_GATEWAY_URL || 'http://localhost:8000'
-        const token = authStorage.getItem('auth_token')
-        
         console.log('📧 Sending grouped notifications (Application Received - No Job Selected):', {
           candidatesCount: candidates.length,
           notificationType,
           mode: 'grouped-by-candidate'
         })
-        
-        const response = await fetch(`${GATEWAY_URL}/v1/notifications/send-grouped-by-candidate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            candidate_ids: candidates.map(c => c.candidate_id),
-            notification_type: notificationType
-          })
+
+        const result = await sendGroupedNotifications({
+          candidate_ids: candidates.map(c => c.candidate_id),
+          notification_type: notificationType,
         })
 
-        if (response.ok) {
-          const result = await response.json()
-          console.log('✅ Grouped notification response:', result)
-          
-          const successCount = result.success_count || 0
-          const failedCount = result.failed_count || 0
-          const totalEmails = result.total_emails_sent || 0
-          
-          if (successCount > 0) {
-            toast.success(`Successfully sent ${totalEmails} email(s) to ${successCount} candidate(s). ${failedCount > 0 ? `${failedCount} failed.` : ''}`, {
-              duration: UI_CONFIG.TOAST_DURATION.LONG
-            })
-          } else {
-            toast.error(`Failed to send notifications. ${failedCount} failed.`)
-          }
+        console.log('✅ Grouped notification response:', result)
+
+        const successCount = result.success_count || 0
+        const failedCount = result.failed_count || 0
+        const totalEmails = result.total_emails_sent || 0
+
+        if (successCount > 0) {
+          toast.success(`Successfully sent ${totalEmails} email(s) to ${successCount} candidate(s). ${failedCount > 0 ? `${failedCount} failed.` : ''}`, {
+            duration: UI_CONFIG.TOAST_DURATION.LONG
+          })
         } else {
-          const errorText = await response.text()
-          console.error('❌ Grouped notification error response:', errorText)
-          throw new Error(`Failed to send grouped notifications: ${response.status} ${response.statusText}`)
+          toast.error(`Failed to send notifications. ${failedCount} failed.`)
         }
       } else {
         // STANDARD BULK NOTIFICATION: 1 email per candidate (for selected job or other notification types)
-        const API_KEY = import.meta.env.VITE_API_KEY || 'prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o'
-        const langgraphUrl = import.meta.env.VITE_LANGGRAPH_URL || 'https://bhiv-hr-langgraph-luy9.onrender.com'
-        
         // Get job title if a job is selected, otherwise use generic title
         const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null
         const jobTitle = selectedJob?.title || 'Position'
@@ -394,52 +386,37 @@ export default function BatchOperations() {
           jobId: jobIdForNotification,
           candidates: candidates.map(c => ({ name: c.name, email: c.email, phone: c.phone }))
         })
-        
-        // Use new consistent endpoint path
-        const response = await fetch(`${langgraphUrl}/automation/notifications/bulk`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEY}`
-          },
-          body: JSON.stringify({
-            candidates: candidates.map(c => ({
-              candidate_name: c.name,
-              candidate_email: c.email,
-              candidate_phone: c.phone,
-              candidate_id: c.candidate_id
-            })),
-            sequence_type: notificationType,
-            job_title: jobTitle,
-            job_id: jobIdForNotification,
-            matching_score: 'High'
-          })
+
+        const result = await sendBulkNotifications({
+          candidates: candidates.map(c => ({
+            candidate_name: c.name,
+            candidate_email: c.email,
+            candidate_phone: c.phone,
+            candidate_id: c.candidate_id
+          })),
+          sequence_type: notificationType,
+          job_title: jobTitle,
+          job_id: jobIdForNotification,
+          matching_score: 'High'
         })
 
-        if (response.ok) {
-          const result = await response.json()
-          console.log('✅ Notification response:', result)
-          
-          const successCount = result.bulk_result?.success_count || 0
-          const failedCount = result.bulk_result?.failed_count || 0
-          const totalCount = result.bulk_result?.total_candidates || candidates.length
-          
-          if (successCount > 0) {
-            toast.success(TOAST_MESSAGES.BULK_SEND_SUCCESS(successCount, totalCount, failedCount), {
-              duration: UI_CONFIG.TOAST_DURATION.MEDIUM
-            })
-          } else if (failedCount > 0) {
-            toast.error(TOAST_MESSAGES.BULK_SEND_FAILED(failedCount))
-          } else {
-            toast(TOAST_MESSAGES.BULK_SEND_PARTIAL, {
-              icon: '⚠️',
-              duration: UI_CONFIG.TOAST_DURATION.MEDIUM
-            })
-          }
+        console.log('✅ Notification response:', result)
+
+        const successCount = result.bulk_result?.success_count || 0
+        const failedCount = result.bulk_result?.failed_count || 0
+        const totalCount = result.bulk_result?.total_candidates || candidates.length
+
+        if (successCount > 0) {
+          toast.success(TOAST_MESSAGES.BULK_SEND_SUCCESS(successCount, totalCount, failedCount), {
+            duration: UI_CONFIG.TOAST_DURATION.MEDIUM
+          })
+        } else if (failedCount > 0) {
+          toast.error(TOAST_MESSAGES.BULK_SEND_FAILED(failedCount))
         } else {
-          const errorText = await response.text()
-          console.error('❌ Notification error response:', errorText)
-          throw new Error(`Failed to send notifications: ${response.status} ${response.statusText}`)
+          toast(TOAST_MESSAGES.BULK_SEND_PARTIAL, {
+            icon: '⚠️',
+            duration: UI_CONFIG.TOAST_DURATION.MEDIUM
+          })
         }
       }
     } catch (error) {
