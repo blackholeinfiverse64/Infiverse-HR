@@ -1457,7 +1457,7 @@ export const previewNotification = async (notificationType: string, sampleData?:
       interview_time: sampleData?.interview_time || '2:00 PM',
       interviewer: sampleData?.interviewer || 'HR Team',
       application_id: sampleData?.application_id || 'APP_001'
-    })
+    }
 
     const response = await api.post('/v1/notifications/preview', payload)
     return response.data
