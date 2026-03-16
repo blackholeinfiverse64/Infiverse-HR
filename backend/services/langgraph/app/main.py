@@ -101,10 +101,23 @@ app = FastAPI(
 )
 
 # Add CORS middleware to allow frontend requests
+# Use explicit origins in production to avoid browser CORS failures on custom domains.
+cors_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    cors_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://sampada.blackholeinfiverse.com",
+        "https://infiverse-hr.vercel.app",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (can be restricted to specific domains in production)
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.vercel\.app",
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
