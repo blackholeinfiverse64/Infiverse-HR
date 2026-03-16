@@ -16,6 +16,62 @@ const api = axios.create({
 })
 
 const NOTIFICATION_REQUEST_TIMEOUT_MS = 120000
+const NOTIFICATION_TRANSIENT_RETRIES = 1
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const shouldRetryNotificationRequest = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return false
+  const status = error.response?.status
+  // Retry only when service is temporarily unavailable upstream.
+  return status === 503 || status === 504
+}
+
+const formatNotificationError = (error: unknown): string => {
+  if (!axios.isAxiosError(error)) {
+    return 'Notification service failed. Please try again.'
+  }
+
+  const status = error.response?.status
+
+  if (status === 503 || status === 504) {
+    return 'Notification service is warming up or temporarily overloaded. Please wait 20-40 seconds and try again.'
+  }
+
+  if (error.code === 'ECONNABORTED') {
+    return 'Notification request timed out. WhatsApp may have been delivered already; wait 60 seconds before retrying to avoid duplicates.'
+  }
+
+  return error.message || 'Notification service failed. Please try again.'
+}
+
+const postNotificationWithRetry = async (url: string, payload: Record<string, unknown>) => {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= NOTIFICATION_TRANSIENT_RETRIES; attempt++) {
+    try {
+      const response = await api.post(url, payload, {
+        timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
+      })
+      return response.data
+    } catch (error) {
+      lastError = error
+
+      if (attempt < NOTIFICATION_TRANSIENT_RETRIES && shouldRetryNotificationRequest(error)) {
+        // Short backoff gives Render time to wake/recover.
+        await wait(6000)
+        continue
+      }
+
+      if (axios.isAxiosError(error)) {
+        error.message = formatNotificationError(error)
+      }
+      throw error
+    }
+  }
+
+  throw lastError
+}
 
 // Request interceptor - Use JWT token for authentication
 api.interceptors.request.use(
@@ -1018,10 +1074,7 @@ export const getNotificationServiceHealth = async () => {
 
 export const sendNotification = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/send', payload, {
-      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
-    })
-    return response.data
+    return await postNotificationWithRetry('/v1/notifications/send', payload)
   } catch (error) {
     console.error('Error sending notification:', error)
     throw error
@@ -1030,10 +1083,7 @@ export const sendNotification = async (payload: Record<string, unknown>) => {
 
 export const testNotificationSequence = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/test-sequence', payload, {
-      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
-    })
-    return response.data
+    return await postNotificationWithRetry('/v1/notifications/test-sequence', payload)
   } catch (error) {
     console.error('Error testing notification sequence:', error)
     throw error
@@ -1042,10 +1092,7 @@ export const testNotificationSequence = async (payload: Record<string, unknown>)
 
 export const sendGroupedNotifications = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/send-grouped-by-candidate', payload, {
-      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
-    })
-    return response.data
+    return await postNotificationWithRetry('/v1/notifications/send-grouped-by-candidate', payload)
   } catch (error) {
     console.error('Error sending grouped notifications:', error)
     throw error
@@ -1054,10 +1101,7 @@ export const sendGroupedNotifications = async (payload: Record<string, unknown>)
 
 export const sendBulkNotifications = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/bulk', payload, {
-      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
-    })
-    return response.data
+    return await postNotificationWithRetry('/v1/notifications/bulk', payload)
   } catch (error) {
     console.error('Error sending bulk notifications:', error)
     throw error
