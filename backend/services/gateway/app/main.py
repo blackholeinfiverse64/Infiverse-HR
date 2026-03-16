@@ -4783,7 +4783,7 @@ async def get_notification_preview(request: PreviewNotificationRequest, auth=Dep
 @app.post("/v1/notifications/bulk", tags=["Notifications"])
 async def send_bulk_notifications_proxy(request: BulkNotificationProxyRequest, auth=Depends(get_auth)):
     """Proxy standard bulk notification requests through Gateway."""
-    return await _send_langgraph_bulk_notifications(request.model_dump(exclude_none=True), timeout=90.0)
+    return await _send_langgraph_bulk_notifications(request.model_dump(exclude_none=True), timeout=180.0)
 
 @app.post("/v1/automation/trigger", tags=["Notifications"])
 async def trigger_automation(request: AutomationTriggerRequest, auth=Depends(get_auth)):

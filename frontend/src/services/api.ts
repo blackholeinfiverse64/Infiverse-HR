@@ -15,6 +15,8 @@ const api = axios.create({
   },
 })
 
+const NOTIFICATION_REQUEST_TIMEOUT_MS = 120000
+
 // Request interceptor - Use JWT token for authentication
 api.interceptors.request.use(
   async (config) => {
@@ -1016,7 +1018,9 @@ export const getNotificationServiceHealth = async () => {
 
 export const sendNotification = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/send', payload)
+    const response = await api.post('/v1/notifications/send', payload, {
+      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
+    })
     return response.data
   } catch (error) {
     console.error('Error sending notification:', error)
@@ -1026,7 +1030,9 @@ export const sendNotification = async (payload: Record<string, unknown>) => {
 
 export const testNotificationSequence = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/test-sequence', payload)
+    const response = await api.post('/v1/notifications/test-sequence', payload, {
+      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
+    })
     return response.data
   } catch (error) {
     console.error('Error testing notification sequence:', error)
@@ -1036,7 +1042,9 @@ export const testNotificationSequence = async (payload: Record<string, unknown>)
 
 export const sendGroupedNotifications = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/send-grouped-by-candidate', payload)
+    const response = await api.post('/v1/notifications/send-grouped-by-candidate', payload, {
+      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
+    })
     return response.data
   } catch (error) {
     console.error('Error sending grouped notifications:', error)
@@ -1046,7 +1054,9 @@ export const sendGroupedNotifications = async (payload: Record<string, unknown>)
 
 export const sendBulkNotifications = async (payload: Record<string, unknown>) => {
   try {
-    const response = await api.post('/v1/notifications/bulk', payload)
+    const response = await api.post('/v1/notifications/bulk', payload, {
+      timeout: NOTIFICATION_REQUEST_TIMEOUT_MS,
+    })
     return response.data
   } catch (error) {
     console.error('Error sending bulk notifications:', error)
