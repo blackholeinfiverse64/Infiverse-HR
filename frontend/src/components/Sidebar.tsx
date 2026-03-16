@@ -15,7 +15,7 @@ export default function Sidebar() {
       subItems: [
         { title: 'Dashboard', path: '/recruiter' },
         { title: 'Create Job', path: '/recruiter/create-job' },
-        { title: 'Automation', path: '/recruiter/automation' },
+        { title: 'Auto-Messaging System', path: '/recruiter/automation' },
       ],
     },
     {

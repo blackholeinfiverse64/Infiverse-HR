@@ -13,8 +13,7 @@ export default function AutomationPanel() {
     candidate_email: '',
     candidate_phone: '',
     job_title: 'Software Engineer',
-    message: 'Your application has been updated',
-    channels: ['email'] as string[]
+    message: 'Your application has been updated'
   })
 
   useEffect(() => {
@@ -136,11 +135,18 @@ export default function AutomationPanel() {
 
   const handleMultiChannelTest = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!testForm.candidate_email) {
-      toast.error('Please enter candidate email')
+
+    const hasEmail = Boolean(testForm.candidate_email && testForm.candidate_email.trim())
+    const hasPhone = Boolean(testForm.candidate_phone && testForm.candidate_phone.trim())
+
+    if (!hasEmail && !hasPhone) {
+      toast.error('Please provide at least one contact: email or WhatsApp number')
       return
     }
+
+    const detectedChannels: string[] = []
+    if (hasEmail) detectedChannels.push('email')
+    if (hasPhone) detectedChannels.push('whatsapp')
 
     setTesting(true)
     try {
@@ -160,21 +166,21 @@ export default function AutomationPanel() {
           candidate_phone: testForm.candidate_phone,
           job_title: testForm.job_title,
           message: testForm.message,
-          channels: testForm.channels,
+          channels: detectedChannels,
           application_status: 'updated'
         })
       })
 
       if (response.ok) {
         const result = await response.json()
-        toast.success('Multi-channel test completed!')
+        toast.success(`Notification sent via ${detectedChannels.join(' + ')}`)
         console.log('Test result:', result)
       } else {
         throw new Error('Test failed')
       }
     } catch (error) {
       console.error('Test error:', error)
-      toast.error('Failed to send test notification. Service may be offline.')
+      toast.error('Failed to send notification. Service may be offline.')
     } finally {
       setTesting(false)
     }
@@ -222,8 +228,8 @@ export default function AutomationPanel() {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">📧 Communication System Testing</h1>
-        <p className="text-gray-600 dark:text-gray-400">Test email, WhatsApp, and Telegram notifications</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Auto-Messaging System</h1>
+        <p className="text-gray-600 dark:text-gray-400">Send live email and WhatsApp notifications to candidates</p>
       </div>
 
       {/* Communication Service Status */}
@@ -259,13 +265,13 @@ export default function AutomationPanel() {
           )}
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          Note: Individual test endpoints are not available. Use the multi-channel test below.
+          Note: Service status indicates whether messaging delivery is currently available.
         </p>
       </div>
 
       {/* Multi-Channel Notification Test */}
       <div className="card">
-        <h2 className="section-title mb-4">Test Multi-Channel Notification</h2>
+        <h2 className="section-title mb-4">Send Candidate Notification</h2>
         
         <form onSubmit={handleMultiChannelTest} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,7 +290,7 @@ export default function AutomationPanel() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Candidate Email *
+                Candidate Email
               </label>
               <input
                 type="email"
@@ -292,7 +298,6 @@ export default function AutomationPanel() {
                 onChange={(e) => setTestForm({ ...testForm, candidate_email: e.target.value })}
                 placeholder="candidate@example.com"
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                required
               />
             </div>
 
@@ -334,44 +339,23 @@ export default function AutomationPanel() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Channels
-            </label>
-            <div className="flex gap-4">
-              {['email', 'whatsapp', 'telegram'].map(channel => (
-                <label key={channel} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={testForm.channels.includes(channel)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setTestForm({ ...testForm, channels: [...testForm.channels, channel] })
-                      } else {
-                        setTestForm({ ...testForm, channels: testForm.channels.filter(c => c !== channel) })
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300 capitalize">{channel}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Channel auto-detection: if email is provided, an email is sent; if phone is provided, a WhatsApp message is sent; if both are provided, both are sent.
+          </p>
 
           <button
             type="submit"
-            disabled={testing || testForm.channels.length === 0}
+            disabled={testing}
             className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
-            {testing ? 'Sending...' : 'Send Multi-Channel Test'}
+            {testing ? 'Sending...' : 'Send Notification'}
           </button>
         </form>
       </div>
 
       {/* Automated Sequences Testing */}
       <div className="card">
-        <h2 className="section-title mb-4">Test Automated Sequences</h2>
+        <h2 className="section-title mb-4">Quick Sequence Sends</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
