@@ -168,18 +168,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }
     )
 
-# CORS Configuration - Allow Vercel frontend and all origins for flexibility
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
-if ALLOWED_ORIGINS != "*":
-    # Parse comma-separated origins
-    allowed_origins_list = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
+# CORS Configuration - reads from CORS_ORIGINS env var (comma-separated)
+# Supports all Vercel preview deployments via regex.
+cors_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    allowed_origins_list = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
 else:
-    allowed_origins_list = ["*"]
+    allowed_origins_list = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://sampada.blackholeinfiverse.com",
+        "https://infiverse-hr.vercel.app",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins_list,
-    allow_credentials=True,
+    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.vercel\.app",
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
