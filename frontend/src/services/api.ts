@@ -15,7 +15,7 @@ const api = axios.create({
   },
 })
 
-const NOTIFICATION_REQUEST_TIMEOUT_MS = 120000
+const NOTIFICATION_REQUEST_TIMEOUT_MS = 150000
 const NOTIFICATION_TRANSIENT_RETRIES = 1
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
