@@ -18,6 +18,18 @@ import { authStorage } from '../../utils/authStorage'
 const CONNECTION_ID_LENGTH = 24
 const CONNECTION_ID_REGEX = /^[0-9a-fA-F]+$/
 
+function normalizeExperienceLevel(value?: string | null): 'Entry' | 'Mid' | 'Senior' | 'Lead' {
+  const raw = (value || '').trim().toLowerCase()
+  if (!raw) return 'Entry'
+
+  if (raw === 'entry' || raw.includes('fresher') || raw.includes('junior') || raw.includes('0-1')) return 'Entry'
+  if (raw === 'mid' || raw.includes('mid') || raw.includes('intermediate') || raw.includes('1-3') || raw.includes('2-4')) return 'Mid'
+  if (raw === 'senior' || raw.includes('senior') || raw.includes('5-8') || raw.includes('4-6')) return 'Senior'
+  if (raw === 'lead' || raw.includes('lead') || raw.includes('principal') || raw.includes('8+')) return 'Lead'
+
+  return 'Entry'
+}
+
 function loadLastConnection(): { connectionId: string; companyName: string } | null {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(RECRUITER_LAST_CONNECTION_KEY) : null
@@ -60,6 +72,7 @@ export default function JobCreation() {
   const [isConnectionIdLocked, setIsConnectionIdLocked] = useState(false)
   const editJobId = searchParams.get('edit')
   const isEditMode = Boolean(editJobId)
+  const shouldSyncConnectionContext = !isEditMode
   const connectionInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -155,7 +168,7 @@ export default function JobCreation() {
           title: job.title || '',
           department: job.department || 'Engineering',
           location: job.location || '',
-          experience_level: job.experience_level || job.experience_required || 'Entry',
+          experience_level: normalizeExperienceLevel(job.experience_level || job.experience_required),
           employment_type: job.employment_type || job.job_type || 'Full-time',
           salary_range: salaryRange === '-' ? '' : salaryRange,
           connection_id: job.connection_id || '',
@@ -168,7 +181,7 @@ export default function JobCreation() {
         setConnectionIdError(null)
         setShowConfirmConnection(false)
         setIsConnectionIdLocked(Boolean(job.connection_id))
-        if (job.connection_id && job.company) {
+        if (shouldSyncConnectionContext && job.connection_id && job.company) {
           setRecruiterConnection(job.connection_id, job.company)
         }
 
@@ -190,7 +203,7 @@ export default function JobCreation() {
     return () => {
       isMounted = false
     }
-  }, [editJobId, navigate, setRecruiterConnection])
+  }, [editJobId, navigate, setRecruiterConnection, shouldSyncConnectionContext])
 
   const buildJobPayload = (source = formData): Record<string, any> => {
     const jobData: Record<string, any> = {
@@ -230,6 +243,7 @@ export default function JobCreation() {
 
   // When health check or SSE detects disconnection, unlock form and clear connection
   useEffect(() => {
+    if (isEditMode) return
     // Unlock form when connection status becomes 'none' or 'invalid' while form was locked
     if ((connectionStatus === 'invalid' || connectionStatus === 'none') && isConnectionIdLocked) {
       console.log('Connection lost - unlocking job creation form')
@@ -242,7 +256,7 @@ export default function JobCreation() {
       clearLastConnection()
       clearRecruiterConnection()
     }
-  }, [connectionStatus, isConnectionIdLocked, clearRecruiterConnection])
+  }, [connectionStatus, isConnectionIdLocked, clearRecruiterConnection, isEditMode])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -317,7 +331,9 @@ export default function JobCreation() {
       await confirmRecruiterConnection(id)
       clearLastConnection()
       saveLastConnection(id, linkedCompany)
-      setRecruiterConnection(id, linkedCompany)
+      if (shouldSyncConnectionContext) {
+        setRecruiterConnection(id, linkedCompany)
+      }
       setIsConnectionIdLocked(true)
       setShowConfirmConnection(false)
       toast.success('Connection ID confirmed')
@@ -338,7 +354,9 @@ export default function JobCreation() {
     setConnectionIdError(null)
     setShowConfirmConnection(false)
     clearLastConnection()
-    clearRecruiterConnection()
+    if (shouldSyncConnectionContext) {
+      clearRecruiterConnection()
+    }
     setTimeout(() => connectionInputRef.current?.focus(), 0)
   }
 
@@ -350,7 +368,9 @@ export default function JobCreation() {
     setShowConfirmConnection(false)
     setIsConnectionIdLocked(false)
     clearLastConnection()
-    clearRecruiterConnection()
+    if (shouldSyncConnectionContext) {
+      clearRecruiterConnection()
+    }
     setTimeout(() => connectionInputRef.current?.focus(), 0)
   }
 

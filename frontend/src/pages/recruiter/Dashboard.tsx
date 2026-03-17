@@ -77,6 +77,7 @@ export default function RecruiterDashboard() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [jobStats, setJobStats] = useState<Record<string, { applicants: number; shortlisted: number }>>({})
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [jobPendingDelete, setJobPendingDelete] = useState<Job | null>(null)
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
   const [stats, setStats] = useState<RecruiterStats>({
     total_jobs: 0,
@@ -180,10 +181,7 @@ export default function RecruiterDashboard() {
     navigate(`/recruiter/create-job?edit=${encodeURIComponent(job.id)}`)
   }
 
-  const handleDeleteJob = async (job: Job) => {
-    const confirmed = window.confirm(`Delete "${job.title}"? This will remove the job and related applications, interviews, offers, feedback, and notification logs.`)
-    if (!confirmed) return
-
+  const executeDeleteJob = async (job: Job) => {
     setDeletingJobId(job.id)
     try {
       await deleteJob(job.id)
@@ -196,6 +194,21 @@ export default function RecruiterDashboard() {
     } finally {
       setDeletingJobId(null)
     }
+  }
+
+  const handleDeleteJob = (job: Job) => {
+    setJobPendingDelete(job)
+  }
+
+  const handleConfirmDeleteJob = async () => {
+    if (!jobPendingDelete) return
+    await executeDeleteJob(jobPendingDelete)
+    setJobPendingDelete(null)
+  }
+
+  const handleCancelDeleteJob = () => {
+    if (deletingJobId) return
+    setJobPendingDelete(null)
   }
 
   return (
@@ -408,6 +421,54 @@ export default function RecruiterDashboard() {
                 className="flex-1 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-medium rounded-lg transition-colors"
               >
                 {deletingJobId === selectedJob.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {jobPendingDelete && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-red-200/60 dark:border-red-900/50 bg-white/95 dark:bg-slate-900/95 shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-red-100 dark:border-red-900/40 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m0 3h.007M4.93 19h14.14c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.198 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white">Delete Job Posting</h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">This action is permanent and cannot be undone.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-700 dark:text-gray-200">
+                You are deleting <span className="font-semibold text-gray-900 dark:text-white">{jobPendingDelete.title}</span>.
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Related applications, interviews, offers, feedback, and notification logs will also be removed.
+              </p>
+            </div>
+
+            <div className="p-6 pt-0 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleCancelDeleteJob}
+                disabled={Boolean(deletingJobId)}
+                className="flex-1 py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmDeleteJob()}
+                disabled={deletingJobId === jobPendingDelete.id}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold shadow-lg shadow-red-500/20 transition-all disabled:opacity-60"
+              >
+                {deletingJobId === jobPendingDelete.id ? 'Deleting...' : 'Yes, Delete Job'}
               </button>
             </div>
           </div>
