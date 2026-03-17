@@ -331,14 +331,20 @@ export interface Job {
   department?: string
   location: string
   job_type: string
+  employment_type?: string
   experience_required: string
+  experience_level?: string
   salary_min?: number
   salary_max?: number
   skills_required: string[] | string
+  requirements?: string
   description: string
   status: string
   created_at?: string
   company?: string
+  client_id?: string | null
+  recruiter_id?: string | null
+  connection_id?: string | null
   /** Per-job counts from recruiter jobs endpoint (dashboard only). */
   applicants?: number
   shortlisted?: number
@@ -361,14 +367,20 @@ function normalizeJob(raw: Record<string, unknown>): Job {
     department: raw.department as string | undefined,
     location: (raw.location as string) ?? '',
     job_type: (raw.job_type as string) ?? (raw.employment_type as string) ?? '',
+    employment_type: (raw.employment_type as string) ?? (raw.job_type as string) ?? '',
     experience_required: (raw.experience_required as string) ?? (raw.experience_level as string) ?? '',
+    experience_level: (raw.experience_level as string) ?? (raw.experience_required as string) ?? '',
     salary_min: raw.salary_min != null ? Number(raw.salary_min) : undefined,
     salary_max: raw.salary_max != null ? Number(raw.salary_max) : undefined,
     skills_required: (raw.skills_required as string[] | string) ?? (req ? (req.includes(',') ? req.split(',').map(s => s.trim()) : req) : []),
+    requirements: req,
     description: (raw.description as string) ?? '',
     status: (raw.status as string) ?? 'active',
     created_at: raw.created_at as string | undefined,
     company: raw.company as string | undefined,
+    client_id: raw.client_id != null ? String(raw.client_id) : null,
+    recruiter_id: raw.recruiter_id != null ? String(raw.recruiter_id) : null,
+    connection_id: raw.connection_id != null ? String(raw.connection_id) : null,
     applicants: raw.applicants != null ? Number(raw.applicants) : undefined,
     shortlisted: raw.shortlisted != null ? Number(raw.shortlisted) : undefined,
   }
@@ -486,6 +498,26 @@ export const createJob = async (jobData: Partial<Job> | Record<string, any>) => 
     return response.data
   } catch (error) {
     console.error('Error creating job:', error)
+    throw error
+  }
+}
+
+export const updateJob = async (jobId: string, jobData: Partial<Job> | Record<string, any>) => {
+  try {
+    const response = await api.put(`/v1/jobs/${jobId}`, jobData)
+    return response.data
+  } catch (error) {
+    console.error('Error updating job:', error)
+    throw error
+  }
+}
+
+export const deleteJob = async (jobId: string) => {
+  try {
+    const response = await api.delete(`/v1/jobs/${jobId}`)
+    return response.data
+  } catch (error) {
+    console.error('Error deleting job:', error)
     throw error
   }
 }

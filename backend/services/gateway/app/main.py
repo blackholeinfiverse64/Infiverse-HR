@@ -774,44 +774,11 @@ async def create_job(job: JobCreate, auth: dict = Depends(get_auth)):
     
     try:
         db = await get_mongo_db()
-        document = {
-            "title": job.title,
-            "department": job.department,
-            "location": job.location,
-            "experience_level": job.experience_level,
-            "requirements": job.requirements,
-            "description": job.description,
-            "status": "active",
-            "created_at": datetime.now(timezone.utc)
-        }
-        # Add optional fields if provided
-        if job.employment_type:
-            document["employment_type"] = job.employment_type
-        # Resolve connection_id to client_id when recruiter posts on behalf of a client
-        if job.connection_id and str(job.connection_id).strip():
-            cid_raw = str(job.connection_id).strip()
-            if len(cid_raw) != 24 or not all(c in "0123456789abcdefABCDEF" for c in cid_raw):
-                raise HTTPException(status_code=400, detail="Invalid Connection ID format (must be 24 hexadecimal characters)")
-            client_doc = await db.clients.find_one({"connection_id": cid_raw})
-            if not client_doc:
-                raise HTTPException(status_code=400, detail="Invalid Connection ID. Please ask your client for the correct ID from their dashboard.")
-            document["client_id"] = str(client_doc.get("client_id"))
-        elif job.client_id is not None:
-            document["client_id"] = str(job.client_id)
-        if job.salary_min is not None:
-            document["salary_min"] = float(job.salary_min)
-        if job.salary_max is not None:
-            document["salary_max"] = float(job.salary_max)
-        # Associate job with recruiter when created by recruiter JWT (data isolation)
-        if auth.get("type") == "jwt_token" and auth.get("role") == "recruiter":
-            rid = auth.get("user_id")
-            if rid is not None:
-                document["recruiter_id"] = str(rid)
-        # Associate job with client when created by client JWT (data isolation)
-        if auth.get("type") == "jwt_token" and auth.get("role") == "client":
-            cid = auth.get("user_id")
-            if cid is not None:
-                document["client_id"] = str(cid)
+        document = await _build_job_document(db, job, auth)
+
+        duplicate = await _find_duplicate_job(db, document)
+        if duplicate:
+            raise HTTPException(status_code=409, detail="Job already exists")
         
         result = await db.jobs.insert_one(document)
         job_id = str(result.inserted_id)
@@ -821,11 +788,161 @@ async def create_job(job: JobCreate, auth: dict = Depends(get_auth)):
             "job_id": job_id,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Job creation failed: {str(e)}"
         )
+
+
+def _normalize_job_text(value: Optional[str]) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value)).strip()
+
+
+async def _resolve_client_context(db, job: JobCreate, auth: dict, fallback_client_id: Optional[str] = None) -> tuple[Optional[str], Optional[str]]:
+    client_id = fallback_client_id
+    connection_id = None
+
+    if job.connection_id and str(job.connection_id).strip():
+        cid_raw = str(job.connection_id).strip()
+        if len(cid_raw) != 24 or not all(c in "0123456789abcdefABCDEF" for c in cid_raw):
+            raise HTTPException(status_code=400, detail="Invalid Connection ID format (must be 24 hexadecimal characters)")
+        client_doc = await db.clients.find_one({"connection_id": cid_raw})
+        if not client_doc:
+            raise HTTPException(status_code=400, detail="Invalid Connection ID. Please ask your client for the correct ID from their dashboard.")
+        client_id = str(client_doc.get("client_id"))
+        connection_id = cid_raw
+    elif job.client_id is not None:
+        client_id = str(job.client_id)
+    elif auth.get("type") == "jwt_token" and auth.get("role") == "client":
+        cid = auth.get("user_id")
+        if cid is not None:
+            client_id = str(cid)
+
+    return client_id, connection_id
+
+
+async def _build_job_document(
+    db,
+    job: JobCreate,
+    auth: dict,
+    *,
+    existing_doc: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    document = {
+        "title": _normalize_job_text(job.title),
+        "department": _normalize_job_text(job.department),
+        "location": _normalize_job_text(job.location),
+        "experience_level": _normalize_job_text(job.experience_level).lower(),
+        "requirements": _normalize_job_text(job.requirements),
+        "description": _normalize_job_text(job.description),
+        "status": (existing_doc or {}).get("status", "active"),
+        "created_at": (existing_doc or {}).get("created_at") or datetime.now(timezone.utc),
+    }
+
+    employment_type = _normalize_job_text(job.employment_type)
+    if employment_type:
+        document["employment_type"] = employment_type
+
+    client_id, resolved_connection_id = await _resolve_client_context(
+        db,
+        job,
+        auth,
+        fallback_client_id=str((existing_doc or {}).get("client_id")) if (existing_doc or {}).get("client_id") is not None else None,
+    )
+    if client_id:
+        document["client_id"] = client_id
+
+    if job.salary_min is not None:
+        document["salary_min"] = float(job.salary_min)
+    elif existing_doc and existing_doc.get("salary_min") is not None:
+        document["salary_min"] = float(existing_doc.get("salary_min"))
+
+    if job.salary_max is not None:
+        document["salary_max"] = float(job.salary_max)
+    elif existing_doc and existing_doc.get("salary_max") is not None:
+        document["salary_max"] = float(existing_doc.get("salary_max"))
+
+    if auth.get("type") == "jwt_token" and auth.get("role") == "recruiter":
+        rid = auth.get("user_id")
+        if rid is not None:
+            document["recruiter_id"] = str(rid)
+    elif existing_doc and existing_doc.get("recruiter_id") is not None:
+        document["recruiter_id"] = str(existing_doc.get("recruiter_id"))
+
+    if resolved_connection_id:
+        document["connection_id"] = resolved_connection_id
+    elif existing_doc and existing_doc.get("connection_id"):
+        document["connection_id"] = existing_doc.get("connection_id")
+
+    return document
+
+
+def _normalized_job_signature(document: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "title": _normalize_job_text(document.get("title")).lower(),
+        "department": _normalize_job_text(document.get("department")).lower(),
+        "location": _normalize_job_text(document.get("location")).lower(),
+        "experience_level": _normalize_job_text(document.get("experience_level")).lower(),
+        "requirements": _normalize_job_text(document.get("requirements")).lower(),
+        "description": _normalize_job_text(document.get("description")).lower(),
+        "employment_type": _normalize_job_text(document.get("employment_type")).lower(),
+        "salary_min": float(document.get("salary_min")) if document.get("salary_min") is not None else None,
+        "salary_max": float(document.get("salary_max")) if document.get("salary_max") is not None else None,
+        "recruiter_id": str(document.get("recruiter_id")) if document.get("recruiter_id") is not None else None,
+        "client_id": str(document.get("client_id")) if document.get("client_id") is not None else None,
+        "status": _normalize_job_text(document.get("status")).lower() or "active",
+    }
+
+
+async def _find_duplicate_job(db, document: Dict[str, Any], exclude_job_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    query: Dict[str, Any] = {
+        "title": _normalize_job_text(document.get("title")),
+        "department": _normalize_job_text(document.get("department")),
+        "location": _normalize_job_text(document.get("location")),
+        "experience_level": _normalize_job_text(document.get("experience_level")).lower(),
+        "requirements": _normalize_job_text(document.get("requirements")),
+        "description": _normalize_job_text(document.get("description")),
+        "status": document.get("status", "active"),
+    }
+    if document.get("employment_type"):
+        query["employment_type"] = _normalize_job_text(document.get("employment_type"))
+    if document.get("salary_min") is not None:
+        query["salary_min"] = float(document.get("salary_min"))
+    if document.get("salary_max") is not None:
+        query["salary_max"] = float(document.get("salary_max"))
+    if document.get("recruiter_id") is not None:
+        query["recruiter_id"] = str(document.get("recruiter_id"))
+    if document.get("client_id") is not None:
+        query["client_id"] = str(document.get("client_id"))
+    if exclude_job_id and ObjectId.is_valid(exclude_job_id):
+        query["_id"] = {"$ne": ObjectId(exclude_job_id)}
+    return await db.jobs.find_one(query)
+
+
+async def _get_owned_job_or_403(db, job_id: str, auth: dict) -> Dict[str, Any]:
+    job_doc = await db.jobs.find_one({"_id": ObjectId(job_id)}) if ObjectId.is_valid(job_id) else await db.jobs.find_one({"id": job_id})
+    if not job_doc:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if auth.get("type") == "api_key" or auth.get("role") == "admin":
+        return job_doc
+
+    if auth.get("type") != "jwt_token":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    user_role = auth.get("role")
+    user_id = str(auth.get("user_id", ""))
+    if user_role == "recruiter" and str(job_doc.get("recruiter_id", "")) == user_id:
+        return job_doc
+    if user_role == "client" and str(job_doc.get("client_id", "")) == user_id:
+        return job_doc
+
+    raise HTTPException(status_code=403, detail="You can only manage your own jobs")
 
 
 def _job_salary_from_doc(doc: Dict[str, Any]) -> tuple:
@@ -1073,14 +1190,23 @@ async def get_job_by_id(job_id: str, auth: Optional[dict] = Depends(get_optional
             doc = await db.jobs.find_one({"id": job_id})
         if not doc:
             raise HTTPException(status_code=404, detail="Job not found")
+        is_owner_view = False
         # Client data isolation: own jobs + connected recruiter's jobs when connected
         if auth and auth.get("type") == "jwt_token" and auth.get("role") == "client":
             client_id = str(auth.get("user_id", ""))
             job_ids = await _client_job_ids_for_dashboard(db, client_id)
             if job_id not in job_ids:
                 raise HTTPException(status_code=403, detail="You can only view your own jobs")
+            is_owner_view = str(doc.get("client_id", "")) == client_id
+        elif auth and auth.get("type") == "jwt_token" and auth.get("role") == "recruiter":
+            recruiter_id = str(auth.get("user_id", ""))
+            if str(doc.get("recruiter_id", "")) != recruiter_id:
+                raise HTTPException(status_code=403, detail="You can only view your own jobs")
+            is_owner_view = True
+        elif auth and (auth.get("type") == "api_key" or auth.get("role") == "admin"):
+            is_owner_view = True
         salary_min, salary_max = _job_salary_from_doc(doc)
-        return {
+        response = {
             "id": str(doc["_id"]),
             "title": doc.get("title"),
             "department": doc.get("department"),
@@ -1095,10 +1221,79 @@ async def get_job_by_id(job_id: str, auth: Optional[dict] = Depends(get_optional
             "status": doc.get("status"),
             "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
         }
+        if is_owner_view:
+            response["client_id"] = str(doc.get("client_id")) if doc.get("client_id") is not None else None
+            response["recruiter_id"] = str(doc.get("recruiter_id")) if doc.get("recruiter_id") is not None else None
+            response["connection_id"] = doc.get("connection_id")
+            if doc.get("client_id") is not None:
+                client_doc = await db.clients.find_one({"client_id": str(doc.get("client_id"))})
+                if client_doc:
+                    response["company"] = client_doc.get("company_name")
+                    response["connection_id"] = response.get("connection_id") or client_doc.get("connection_id")
+        return response
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/v1/jobs/{job_id}", tags=["Job Management"])
+async def update_job(job_id: str, job: JobCreate, auth: dict = Depends(get_auth)):
+    """Update an existing job securely for the owning recruiter/client."""
+    try:
+        db = await get_mongo_db()
+        existing_doc = await _get_owned_job_or_403(db, job_id, auth)
+        updated_document = await _build_job_document(db, job, auth, existing_doc=existing_doc)
+
+        if _normalized_job_signature(existing_doc) == _normalized_job_signature(updated_document):
+            raise HTTPException(status_code=409, detail="Job already exists. No changes detected.")
+
+        duplicate = await _find_duplicate_job(db, updated_document, exclude_job_id=str(existing_doc.get("_id")))
+        if duplicate:
+            raise HTTPException(status_code=409, detail="Job already exists")
+
+        update_fields = dict(updated_document)
+        update_fields["updated_at"] = datetime.now(timezone.utc)
+
+        await db.jobs.update_one(
+            {"_id": existing_doc["_id"]},
+            {"$set": update_fields}
+        )
+
+        return {
+            "message": "Job updated successfully",
+            "job_id": str(existing_doc.get("_id")),
+            "updated_at": update_fields["updated_at"].isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Job update failed: {str(e)}")
+
+
+@app.delete("/v1/jobs/{job_id}", tags=["Job Management"])
+async def delete_job(job_id: str, auth: dict = Depends(get_auth)):
+    """Delete a job and its dependent recruiter-side records securely for the owner."""
+    try:
+        db = await get_mongo_db()
+        job_doc = await _get_owned_job_or_403(db, job_id, auth)
+        normalized_job_id = str(job_doc.get("_id"))
+
+        await db.jobs.delete_one({"_id": job_doc["_id"]})
+        await db.job_applications.delete_many({"job_id": normalized_job_id})
+        await db.interviews.delete_many({"job_id": normalized_job_id})
+        await db.offers.delete_many({"job_id": normalized_job_id})
+        await db.feedback.delete_many({"job_id": normalized_job_id})
+        await db.notification_logs.delete_many({"job_id": normalized_job_id})
+
+        return {
+            "message": "Job deleted successfully",
+            "job_id": normalized_job_id,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Job deletion failed: {str(e)}")
 
 class ShortlistRequest(BaseModel):
     candidate_id: str

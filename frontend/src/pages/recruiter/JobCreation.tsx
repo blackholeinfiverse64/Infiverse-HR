@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { createJob, getClientByConnectionId, confirmRecruiterConnection, RECRUITER_LAST_CONNECTION_KEY } from '../../services/api'
+import {
+  createJob,
+  getClientByConnectionId,
+  confirmRecruiterConnection,
+  getJobById,
+  RECRUITER_LAST_CONNECTION_KEY,
+  updateJob,
+} from '../../services/api'
 import { useRecruiterConnection } from '../../context/RecruiterConnectionContext'
 import FormInput from '../../components/FormInput'
 import SalaryRangeInput from '../../components/SalaryRangeInput'
@@ -41,14 +48,18 @@ function clearLastConnection() {
 
 export default function JobCreation() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { status: connectionStatus, setConnection: setRecruiterConnection, clearConnection: clearRecruiterConnection } = useRecruiterConnection()
   const { user, userName: authUserName } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [loadingJob, setLoadingJob] = useState(false)
   const [recruiterName, setRecruiterName] = useState<string>('')
   const [connectionIdError, setConnectionIdError] = useState<string | null>(null)
   const [linkedCompany, setLinkedCompany] = useState<string | null>(null)
   const [showConfirmConnection, setShowConfirmConnection] = useState(false)
   const [isConnectionIdLocked, setIsConnectionIdLocked] = useState(false)
+  const editJobId = searchParams.get('edit')
+  const isEditMode = Boolean(editJobId)
   const connectionInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -61,6 +72,7 @@ export default function JobCreation() {
     description: '',
     requirements: '',
   })
+  const [initialJobPayload, setInitialJobPayload] = useState<string | null>(null)
 
   // Load recruiter name on component mount
   useEffect(() => {
@@ -115,6 +127,7 @@ export default function JobCreation() {
 
   // Load persisted connection_id (locked from previous session)
   useEffect(() => {
+    if (isEditMode) return
     const last = loadLastConnection()
     if (last) {
       setFormData(prev => ({ ...prev, connection_id: last.connectionId }))
@@ -122,6 +135,98 @@ export default function JobCreation() {
       setIsConnectionIdLocked(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (!editJobId) return
+
+    let isMounted = true
+
+    const loadJobForEdit = async () => {
+      setLoadingJob(true)
+      try {
+        const job = await getJobById(editJobId)
+        if (!isMounted) return
+
+        const salaryRange = job.salary_min != null || job.salary_max != null
+          ? `${job.salary_min ?? ''}${job.salary_min != null || job.salary_max != null ? ' - ' : ''}${job.salary_max ?? ''}`.trim()
+          : ''
+
+        const nextFormData = {
+          title: job.title || '',
+          department: job.department || 'Engineering',
+          location: job.location || '',
+          experience_level: job.experience_level || job.experience_required || 'Entry',
+          employment_type: job.employment_type || job.job_type || 'Full-time',
+          salary_range: salaryRange === '-' ? '' : salaryRange,
+          connection_id: job.connection_id || '',
+          description: job.description || '',
+          requirements: job.requirements || (Array.isArray(job.skills_required) ? job.skills_required.join(', ') : job.skills_required || ''),
+        }
+
+        setFormData(nextFormData)
+        setLinkedCompany(job.company || null)
+        setConnectionIdError(null)
+        setShowConfirmConnection(false)
+        setIsConnectionIdLocked(Boolean(job.connection_id))
+        if (job.connection_id && job.company) {
+          setRecruiterConnection(job.connection_id, job.company)
+        }
+
+        const basePayload = buildJobPayload(nextFormData)
+        setInitialJobPayload(serializeJobPayload(basePayload))
+      } catch (error) {
+        console.error('Error loading job for edit:', error)
+        toast.error('Failed to load job details for editing')
+        navigate('/recruiter')
+      } finally {
+        if (isMounted) {
+          setLoadingJob(false)
+        }
+      }
+    }
+
+    loadJobForEdit()
+
+    return () => {
+      isMounted = false
+    }
+  }, [editJobId, navigate, setRecruiterConnection])
+
+  const buildJobPayload = (source = formData): Record<string, any> => {
+    const jobData: Record<string, any> = {
+      title: source.title.trim(),
+      department: source.department.trim(),
+      location: source.location.trim(),
+      experience_level: source.experience_level.trim(),
+      employment_type: source.employment_type.trim(),
+      description: source.description.trim(),
+      requirements: source.requirements.trim(),
+      connection_id: source.connection_id.trim(),
+    }
+
+    if (source.salary_range) {
+      const [minRaw, maxRaw] = source.salary_range.split('-')
+      const min = minRaw ? parseInt(minRaw.trim(), 10) : NaN
+      const max = maxRaw ? parseInt(maxRaw.trim(), 10) : NaN
+      if (!Number.isNaN(min)) jobData.salary_min = min
+      if (!Number.isNaN(max)) jobData.salary_max = max
+    }
+
+    return jobData
+  }
+
+  const serializeJobPayload = (payload: Record<string, any>) => JSON.stringify({
+    title: payload.title || '',
+    department: payload.department || '',
+    location: payload.location || '',
+    experience_level: payload.experience_level || '',
+    employment_type: payload.employment_type || '',
+    description: payload.description || '',
+    requirements: payload.requirements || '',
+    connection_id: payload.connection_id || '',
+    salary_min: payload.salary_min ?? null,
+    salary_max: payload.salary_max ?? null,
+  })
 
   // When health check or SSE detects disconnection, unlock form and clear connection
   useEffect(() => {
@@ -278,47 +383,43 @@ export default function JobCreation() {
     setConnectionIdError(null)
 
     try {
-      const jobData: Record<string, any> = {
-        title: formData.title,
-        department: formData.department,
-        location: formData.location,
-        experience_level: formData.experience_level,
-        employment_type: formData.employment_type,
-        description: formData.description,
-        requirements: formData.requirements,
-        connection_id: id,
+      const jobData = buildJobPayload({ ...formData, connection_id: id })
+
+      if (isEditMode && initialJobPayload && serializeJobPayload(jobData) === initialJobPayload) {
+        toast.error('Job already exists. No changes detected.')
+        return
       }
 
-      // Add salary range if provided
-      if (formData.salary_range) {
-        const [min, max] = formData.salary_range.split('-').map(s => parseInt(s.trim()))
-        if (min) jobData.salary_min = min
-        if (max) jobData.salary_max = max
+      if (isEditMode && editJobId) {
+        await updateJob(editJobId, jobData)
+        toast.success('Job updated successfully!')
+      } else {
+        await createJob(jobData)
+        toast.success('Job created successfully!')
+        // Keep connection_id and linked company for next job; only reset other fields
+        setFormData(prev => ({
+          title: '',
+          department: 'Engineering',
+          location: '',
+          experience_level: 'Entry',
+          employment_type: 'Full-time',
+          salary_range: '',
+          connection_id: prev.connection_id,
+          description: '',
+          requirements: '',
+        }))
       }
-
-      await createJob(jobData)
-      toast.success('Job created successfully!')
-      // Keep connection_id and linked company for next job; only reset other fields
-      setFormData(prev => ({
-        title: '',
-        department: 'Engineering',
-        location: '',
-        experience_level: 'Entry',
-        employment_type: 'Full-time',
-        salary_range: '',
-        connection_id: prev.connection_id,
-        description: '',
-        requirements: '',
-      }))
-      setTimeout(() => navigate('/recruiter'), 1500)
+      setTimeout(() => navigate('/recruiter'), 1200)
     } catch (error: any) {
       const msg = error?.response?.data?.detail || error?.message
       const isInvalidConnection = typeof msg === 'string' && (msg.includes('Connection ID') || msg.includes('connection_id'))
       if (isInvalidConnection) {
         setConnectionIdError('Invalid Connection ID. Please ask your client for the correct ID from their dashboard.')
         toast.error('Invalid Connection ID. Please ask your client for the correct ID from their dashboard.')
+      } else if (typeof msg === 'string' && msg.includes('Job already exists')) {
+        toast.error(msg)
       } else {
-        toast.error('Failed to create job')
+        toast.error(isEditMode ? 'Failed to update job' : 'Failed to create job')
       }
       console.error(error)
     } finally {
@@ -329,14 +430,20 @@ export default function JobCreation() {
   return (
     <div>
       <div className="mb-6 sm:mb-8 p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10 backdrop-blur-xl border border-green-300/20 dark:border-green-500/20">
-        <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">Create New Job Position</h1>
-        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Fill in the details to post a new job opening</p>
+        <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">{isEditMode ? 'Edit Job Position' : 'Create New Job Position'}</h1>
+        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{isEditMode ? 'Update the details of your existing job posting' : 'Fill in the details to post a new job opening'}</p>
         <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
           <p className="text-sm text-green-800 dark:text-green-300">
             Posting as: <span className="font-semibold">{recruiterName || 'Loading...'}</span>
           </p>
         </div>
       </div>
+
+      {loadingJob ? (
+        <div className="card max-w-4xl">
+          <p className="text-gray-600 dark:text-gray-400">Loading job details...</p>
+        </div>
+      ) : (
 
       <form onSubmit={handleSubmit} className="card max-w-4xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -527,10 +634,10 @@ export default function JobCreation() {
         <div className="mt-8 flex space-x-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || loadingJob}
             className="btn-primary"
           >
-            {loading ? 'Creating...' : 'Create Job'}
+            {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Job' : 'Create Job')}
           </button>
           <button
             type="button"
@@ -541,6 +648,7 @@ export default function JobCreation() {
           </button>
         </div>
       </form>
+      )}
     </div>
   )
 }

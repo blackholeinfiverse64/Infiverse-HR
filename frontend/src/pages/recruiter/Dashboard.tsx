@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getRecruiterJobs, getRecruiterStats, getAllInterviews, getAllOffers, type Job, type RecruiterStats } from '../../services/api'
+import { deleteJob, getRecruiterJobs, getRecruiterStats, getAllInterviews, getAllOffers, type Job, type RecruiterStats } from '../../services/api'
 import StatsCard from '../../components/StatsCard'
 import Table from '../../components/Table'
 import Loading from '../../components/Loading'
@@ -10,11 +10,13 @@ import Loading from '../../components/Loading'
 function JobTableWithStats({
   jobs,
   jobStats,
-  loading
+  loading,
+  onViewDetails,
 }: {
   jobs: Job[]
   jobStats: Record<string, { applicants: number; shortlisted: number }>
   loading: boolean
+  onViewDetails: (job: Job) => void
 }) {
   return (
     <Table
@@ -52,15 +54,16 @@ function JobTableWithStats({
               )}
             </td>
             <td>
-              <Link
-                to={`/recruiter/screening?jobId=${job.id}`}
+              <button
+                type="button"
+                onClick={() => onViewDetails(job)}
                 className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold transition-colors"
               >
-                View
+                View Details
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </Link>
+              </button>
             </td>
           </>
         )
@@ -70,8 +73,11 @@ function JobTableWithStats({
 }
 
 export default function RecruiterDashboard() {
+  const navigate = useNavigate()
   const [jobs, setJobs] = useState<Job[]>([])
   const [jobStats, setJobStats] = useState<Record<string, { applicants: number; shortlisted: number }>>({})
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
   const [stats, setStats] = useState<RecruiterStats>({
     total_jobs: 0,
     total_applicants: 0,
@@ -168,6 +174,29 @@ export default function RecruiterDashboard() {
   const totalInterviewed = stats.interviewed ?? 0
   const totalOffers = stats.offers_sent ?? 0
   const totalJobs = stats.total_jobs ?? jobs.length
+
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(null)
+    navigate(`/recruiter/create-job?edit=${encodeURIComponent(job.id)}`)
+  }
+
+  const handleDeleteJob = async (job: Job) => {
+    const confirmed = window.confirm(`Delete "${job.title}"? This will remove the job and related applications, interviews, offers, feedback, and notification logs.`)
+    if (!confirmed) return
+
+    setDeletingJobId(job.id)
+    try {
+      await deleteJob(job.id)
+      toast.success('Job deleted successfully')
+      setSelectedJob(null)
+      await loadDashboardData()
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Failed to delete job'
+      toast.error(msg)
+    } finally {
+      setDeletingJobId(null)
+    }
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -278,9 +307,112 @@ export default function RecruiterDashboard() {
         {loading ? (
           <Loading message="Loading jobs..." />
         ) : (
-          <JobTableWithStats jobs={jobs} jobStats={jobStats} loading={loading} />
+          <JobTableWithStats jobs={jobs} jobStats={jobStats} loading={loading} onViewDetails={setSelectedJob} />
         )}
       </div>
+
+      {selectedJob && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-slate-700">
+            <div className="p-6 border-b border-gray-100 dark:border-slate-700">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedJob.title}</h2>
+                  <p className="text-gray-600 dark:text-gray-400">{selectedJob.company || selectedJob.department || 'Job Details'}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedJob.location || '—'}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Department</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedJob.department || '—'}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Type</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedJob.employment_type || selectedJob.job_type || '—'}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Experience</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedJob.experience_level || selectedJob.experience_required || '—'}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Salary</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {selectedJob.salary_min != null || selectedJob.salary_max != null
+                      ? `${selectedJob.salary_min != null ? `₹${selectedJob.salary_min.toLocaleString('en-IN')}` : '—'}${selectedJob.salary_max != null ? ` - ₹${selectedJob.salary_max.toLocaleString('en-IN')}` : ''}`
+                      : 'Not mentioned'}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Applicants</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{jobStats[selectedJob.id]?.applicants ?? selectedJob.applicants ?? 0}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Shortlisted</p>
+                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">{jobStats[selectedJob.id]?.shortlisted ?? selectedJob.shortlisted ?? 0}</p>
+                </div>
+              </div>
+
+              {selectedJob.skills_required && (Array.isArray(selectedJob.skills_required) ? selectedJob.skills_required.length > 0 : selectedJob.skills_required.length > 0) && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Skills Required</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(Array.isArray(selectedJob.skills_required)
+                      ? selectedJob.skills_required
+                      : selectedJob.skills_required.split(','))
+                      .map((skill: string, index: number) => (
+                        <span key={index} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm">
+                          {skill.trim()}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Job Description</h3>
+                <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">{selectedJob.description || 'No description available.'}</p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setSelectedJob(null)}
+                className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => handleEditJob(selectedJob)}
+                className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDeleteJob(selectedJob)}
+                disabled={deletingJobId === selectedJob.id}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-medium rounded-lg transition-colors"
+              >
+                {deletingJobId === selectedJob.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
