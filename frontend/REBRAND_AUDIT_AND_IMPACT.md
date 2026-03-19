@@ -93,7 +93,7 @@ Below is a concise list of **every place** in the UI where the new branding (Sam
 
 | Page | What you see |
 |------|----------------|
-| **Client dashboard** (`/client` or `/client/dashboard`) | Page header: **“Sampada Client Portal”** with subtitle “Dedicated Client Interface for Job Posting & Candidate Review.” |
+| **Client dashboard** (`/client` or `/client/dashboard`) | Page header: **"Sampada Client Portal"** with subtitle "Dedicated Client Interface for Jobs & Candidate Review." |
 | **Recruiter dashboard** | “Recruiter Console” (unchanged; not product name). |
 | **Candidate dashboard** | “Welcome back, {name}” (unchanged). |
 | **Blob loading overlay** (AI Shortlist / Get AI Matches) | Title and description are page-specific (e.g. “Generating AI Shortlist”, “Getting AI Matches”); no “Sampada” in overlay. Styling uses same gradient blob look (purple/emerald/pink) as splash. |

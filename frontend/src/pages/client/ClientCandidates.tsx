@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getClientJobs, getCandidatesByJob, Job, MatchResult } from '../../services/api'
+import { getClientJobs, getCandidatesForJobReview, Job, MatchResult } from '../../services/api'
 import Loading from '../../components/Loading'
 
 export default function ClientCandidates() {
@@ -44,7 +44,7 @@ export default function ClientCandidates() {
   const loadCandidates = async (jobId: string) => {
     try {
       setLoadingCandidates(true)
-      const matches = await getCandidatesByJob(jobId)
+      const matches = await getCandidatesForJobReview(jobId)
       setCandidates(matches)
     } catch (error) {
       console.error('Failed to load candidates:', error)

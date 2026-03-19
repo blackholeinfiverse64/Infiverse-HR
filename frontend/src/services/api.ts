@@ -661,6 +661,41 @@ export const getCandidatesByJob = async (jobId: string) => {
   }
 }
 
+/** Review-candidates endpoint: returns candidates who actually applied to this job (client/recruiter auth isolation enforced by backend). */
+export const getCandidatesForJobReview = async (jobId: string, limit: number = 200): Promise<MatchResult[]> => {
+  try {
+    const response = await api.get('/v1/candidates', {
+      params: { job_id: jobId, limit },
+      timeout: MATCH_REQUEST_TIMEOUT_MS,
+    })
+    const raw = response.data?.candidates ?? []
+    if (!Array.isArray(raw)) return []
+    return raw.map((candidate: any) => {
+      const skillsText = String(candidate.technical_skills ?? '').trim()
+      const skills = skillsText
+        ? skillsText.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : []
+      const score = Number(candidate.matching_score ?? candidate.match_score ?? 0)
+      return {
+        candidate_id: String(candidate.candidate_id ?? candidate.id ?? ''),
+        candidate_name: String(candidate.name ?? candidate.candidate_name ?? ''),
+        email: String(candidate.email ?? ''),
+        match_score: Number.isFinite(score) ? score : 0,
+        skills_match: skills.length ? Math.min(100, skills.length * 20) : 0,
+        experience_match: 0,
+        location_match: 0,
+        values_score: undefined,
+        matched_skills: skills,
+        missing_skills: [],
+        recommendation: candidate.status ? `Application status: ${candidate.status}` : '',
+      } as MatchResult
+    })
+  } catch (error) {
+    console.error('Error fetching candidates for job review:', error)
+    return []
+  }
+}
+
 // ==================== INTERVIEWS API ====================
 
 export interface Interview {

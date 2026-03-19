@@ -1444,6 +1444,24 @@ async def get_all_candidates(
         # PRIORITY 1: Filter by specific job_id
         if job_id:
             use_application_status = True
+            # Enforce data isolation when filtering by explicit job_id
+            if auth and auth.get("type") == "jwt_token":
+                auth_role = auth.get("role", "")
+                auth_user_id = str(auth.get("sub") or auth.get("user_id") or "")
+                if auth_role == "client":
+                    allowed_job_ids = await _client_job_ids_for_dashboard(db, auth_user_id)
+                    if str(job_id) not in allowed_job_ids:
+                        raise HTTPException(status_code=403, detail="You can only view candidates for your own jobs")
+                elif auth_role == "recruiter":
+                    recruiter_job_cursor = db.jobs.find(
+                        {"status": "active", "recruiter_id": auth_user_id},
+                        {"_id": 1}
+                    ).limit(500)
+                    recruiter_jobs = await recruiter_job_cursor.to_list(length=500)
+                    recruiter_job_ids = {str(doc["_id"]) for doc in recruiter_jobs}
+                    if str(job_id) not in recruiter_job_ids:
+                        raise HTTPException(status_code=403, detail="You can only view candidates for your own jobs")
+
             # Build application query
             app_query: Dict[str, Any] = {"job_id": job_id}
             
@@ -2010,6 +2028,22 @@ async def _recruiter_applicant_ids(db, recruiter_id: str, job_id: Optional[str] 
         match_filter["job_id"] = job_id
     pipeline = [{"$match": match_filter}, {"$group": {"_id": "$candidate_id"}}]
     candidate_ids = []
+    async for agg_doc in db.job_applications.aggregate(pipeline):
+        cid = agg_doc.get("_id")
+        if cid:
+            candidate_ids.append(str(cid))
+    return candidate_ids
+
+
+async def _job_applicant_ids(db, job_id: str) -> List[str]:
+    """Return unique candidate_ids that have an application record for a job."""
+    if not job_id:
+        return []
+    pipeline = [
+        {"$match": {"job_id": str(job_id)}},
+        {"$group": {"_id": "$candidate_id"}}
+    ]
+    candidate_ids: List[str] = []
     async for agg_doc in db.job_applications.aggregate(pipeline):
         cid = agg_doc.get("_id")
         if cid:
@@ -2798,25 +2832,31 @@ async def get_top_matches(job_id: str, limit: int = 10, auth = Depends(get_auth)
     if limit < 1 or limit > 50:
         raise HTTPException(status_code=400, detail="Invalid limit parameter (must be 1-50)")
     
-    # Client data isolation: only allow match for own jobs
+    candidate_ids_scope: Optional[List[str]] = None
+    db = None
+
+    # Client data isolation:
+    # 1) can only request matches for visible jobs (own + connected recruiters)
+    # 2) can only match against candidates who actually applied to the selected job
     if auth.get("type") == "jwt_token" and auth.get("role") == "client":
         db = await get_mongo_db()
         client_id = str(auth.get("user_id", ""))
         job_ids = await _client_job_ids_for_dashboard(db, client_id)
         if job_id not in job_ids:
             raise HTTPException(status_code=403, detail="You can only view matches for your own jobs")
-    
-    # Recruiter scope: only candidates who applied to this recruiter's jobs (same pool as dashboard "Total Applicants")
-    candidate_ids_scope: Optional[List[str]] = None
+        candidate_ids_scope = await _job_applicant_ids(db, job_id)
+
+    # Recruiter scope: only candidates who applied to this recruiter's jobs
     if auth.get("type") == "jwt_token" and auth.get("role") == "recruiter":
         recruiter_id = str(auth.get("user_id", ""))
         if recruiter_id:
-            db = await get_mongo_db()
+            if db is None:
+                db = await get_mongo_db()
             cursor = db.jobs.find({"status": "active", "recruiter_id": recruiter_id}, {"_id": 1})
             recruiter_jobs = await cursor.to_list(length=500)
-            job_ids = [str(doc["_id"]) for doc in recruiter_jobs]
-            if job_ids:
-                pipeline = [{"$match": {"job_id": {"$in": job_ids}}}, {"$group": {"_id": "$candidate_id"}}]
+            recruiter_job_ids = [str(doc["_id"]) for doc in recruiter_jobs]
+            if recruiter_job_ids:
+                pipeline = [{"$match": {"job_id": {"$in": recruiter_job_ids}}}, {"$group": {"_id": "$candidate_id"}}]
                 candidate_ids_scope = []
                 async for agg_doc in db.job_applications.aggregate(pipeline):
                     cid = agg_doc.get("_id")
@@ -2827,8 +2867,9 @@ async def get_top_matches(job_id: str, limit: int = 10, auth = Depends(get_auth)
         else:
             candidate_ids_scope = []
 
-    # Recruiter with no applicants: return empty without calling agent
+    # Scoped roles with no applicants: return empty without calling agent
     if candidate_ids_scope is not None and len(candidate_ids_scope) == 0:
+        scoped_label = "client job applicants" if auth.get("role") == "client" else "recruiter applicants"
         return {
             "matches": [],
             "top_candidates": [],
@@ -2836,7 +2877,7 @@ async def get_top_matches(job_id: str, limit: int = 10, auth = Depends(get_auth)
             "limit": limit,
             "total_candidates": 0,
             "algorithm_version": "2.0.0-gateway-scoped",
-            "ai_analysis": "No applicants in recruiter scope (matches dashboard Total Applicants)",
+            "ai_analysis": f"No applicants in {scoped_label} scope",
             "agent_status": "scoped"
         }
 
@@ -2886,7 +2927,10 @@ async def get_top_matches(job_id: str, limit: int = 10, auth = Depends(get_auth)
                     "total_candidates": len(matches),
                     "algorithm_version": agent_result.get("algorithm_version", "2.0.0-phase2-ai"),
                     "processing_time": f"{agent_result.get('processing_time', 0)}s",
-                    "ai_analysis": "Real AI semantic matching via Agent Service" + (" (scoped to recruiter applicants)" if scope_set else ""),
+                    "ai_analysis": "Real AI semantic matching via Agent Service" + (
+                        " (scoped to client job applicants)" if (scope_set and auth.get("role") == "client") else
+                        (" (scoped to recruiter applicants)" if scope_set else "")
+                    ),
                     "agent_status": "connected"
                 }
             else:
@@ -2935,7 +2979,15 @@ async def fallback_matching(job_id: str, limit: int, candidate_ids_scope: Option
                 except Exception:
                     pass
             if not object_ids:
-                return {"matches": [], "job_id": job_id, "limit": limit, "total_candidates": 0, "algorithm_version": "2.0.0-gateway-fallback", "ai_analysis": "No applicants in recruiter scope", "agent_status": "disconnected"}
+                return {
+                    "matches": [],
+                    "job_id": job_id,
+                    "limit": limit,
+                    "total_candidates": 0,
+                    "algorithm_version": "2.0.0-gateway-fallback",
+                    "ai_analysis": "No applicants in scoped pool",
+                    "agent_status": "disconnected"
+                }
             cursor = db.candidates.find({"_id": {"$in": object_ids}})
         else:
             cursor = db.candidates.find({})

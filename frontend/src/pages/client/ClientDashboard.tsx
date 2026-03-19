@@ -243,7 +243,7 @@ export default function ClientDashboard() {
       <div className="mb-6 sm:mb-8">
         <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/10 backdrop-blur-xl border border-blue-300/20 dark:border-blue-500/20 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">Sampada Client Portal</h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Dedicated Client Interface for Job Posting & Candidate Review</p>
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Dedicated Client Interface for Jobs & Candidate Review</p>
         </div>
       </div>
 
