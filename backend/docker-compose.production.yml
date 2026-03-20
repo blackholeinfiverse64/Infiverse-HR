@@ -5,10 +5,12 @@
 # Uses MongoDB Atlas (cloud) - No local MongoDB container needed!
 # This saves disk space and RAM on your computer.
 #
-# Services (6 total):
+# Default services (3 total):
 #   - Gateway:          http://localhost:8000 (Main API)
 #   - Agent:            http://localhost:9000 (AI Matching)
 #   - LangGraph:        http://localhost:9001 (Workflow Engine)
+#
+# Legacy services (commented out by default):
 #   - Portal:           http://localhost:8501 (HR Dashboard - Streamlit)
 #   - Client Portal:    http://localhost:8502 (Client Portal - Streamlit)
 #   - Candidate Portal: http://localhost:8503 (Candidate Portal - Streamlit)
@@ -144,112 +146,112 @@ services:
       - bhiv-network
 
   # ============================================
-  # STREAMLIT PORTALS
+  # STREAMLIT PORTALS (LEGACY - UNCOMMENT TO ENABLE)
   # ============================================
 
-  portal:
-    build: ./services/portal
-    ports:
-      - "8501:8501"
-    env_file:
-      - .env
-    environment:
-      GATEWAY_SERVICE_URL: http://gateway:8000
-      AGENT_SERVICE_URL: http://agent:9000
-      LANGGRAPH_SERVICE_URL: http://langgraph:9001
-      API_KEY_SECRET: ${API_KEY_SECRET}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-    depends_on:
-      gateway:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
-      interval: 600s
-      timeout: 30s
-      retries: 3
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-    networks:
-      - bhiv-network
+  # portal:
+  #   build: ./services/portal
+  #   ports:
+  #     - "8501:8501"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     GATEWAY_SERVICE_URL: http://gateway:8000
+  #     AGENT_SERVICE_URL: http://agent:9000
+  #     LANGGRAPH_SERVICE_URL: http://langgraph:9001
+  #     API_KEY_SECRET: ${API_KEY_SECRET}
+  #     JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  #     CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
+  #     LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  #     PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+  #     ENVIRONMENT: ${ENVIRONMENT:-development}
+  #   depends_on:
+  #     gateway:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+  #     interval: 600s
+  #     timeout: 30s
+  #     retries: 3
+  #     start_period: 120s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: '0.5'
+  #   networks:
+  #     - bhiv-network
 
-  client_portal:
-    build: ./services/client_portal
-    ports:
-      - "8502:8502"
-    env_file:
-      - .env
-    environment:
-      GATEWAY_SERVICE_URL: http://gateway:8000
-      AGENT_SERVICE_URL: http://agent:9000
-      LANGGRAPH_SERVICE_URL: http://langgraph:9001
-      API_KEY_SECRET: ${API_KEY_SECRET}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
-      DATABASE_URL: ${DATABASE_URL}
-      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-bhiv_hr}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-    depends_on:
-      gateway:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8502/_stcore/health')"]
-      interval: 600s
-      timeout: 30s
-      retries: 3
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-    networks:
-      - bhiv-network
+  # client_portal:
+  #   build: ./services/client_portal
+  #   ports:
+  #     - "8502:8502"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     GATEWAY_SERVICE_URL: http://gateway:8000
+  #     AGENT_SERVICE_URL: http://agent:9000
+  #     LANGGRAPH_SERVICE_URL: http://langgraph:9001
+  #     API_KEY_SECRET: ${API_KEY_SECRET}
+  #     JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  #     CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     MONGODB_DB_NAME: ${MONGODB_DB_NAME:-bhiv_hr}
+  #     LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  #     PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+  #     ENVIRONMENT: ${ENVIRONMENT:-development}
+  #   depends_on:
+  #     gateway:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8502/_stcore/health')"]
+  #     interval: 600s
+  #     timeout: 30s
+  #     retries: 3
+  #     start_period: 120s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: '0.5'
+  #   networks:
+  #     - bhiv-network
 
-  candidate_portal:
-    build: ./services/candidate_portal
-    ports:
-      - "8503:8503"
-    env_file:
-      - .env
-    environment:
-      GATEWAY_SERVICE_URL: http://gateway:8000
-      API_KEY_SECRET: ${API_KEY_SECRET}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
-      DATABASE_URL: ${DATABASE_URL}
-      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-bhiv_hr}
-      LANGGRAPH_SERVICE_URL: http://langgraph:9001
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-    depends_on:
-      gateway:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8503/_stcore/health')"]
-      interval: 600s
-      timeout: 30s
-      retries: 3
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-    networks:
-      - bhiv-network
+  # candidate_portal:
+  #   build: ./services/candidate_portal
+  #   ports:
+  #     - "8503:8503"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     GATEWAY_SERVICE_URL: http://gateway:8000
+  #     API_KEY_SECRET: ${API_KEY_SECRET}
+  #     JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  #     CANDIDATE_JWT_SECRET_KEY: ${CANDIDATE_JWT_SECRET_KEY}
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     MONGODB_DB_NAME: ${MONGODB_DB_NAME:-bhiv_hr}
+  #     LANGGRAPH_SERVICE_URL: http://langgraph:9001
+  #     LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  #     ENVIRONMENT: ${ENVIRONMENT:-development}
+  #   depends_on:
+  #     gateway:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8503/_stcore/health')"]
+  #     interval: 600s
+  #     timeout: 30s
+  #     retries: 3
+  #     start_period: 120s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: '0.5'
+  #   networks:
+  #     - bhiv-network
 
 networks:
   bhiv-network:
