@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import RoleNavbar from '../navbars/RoleNavbar'
 import CandidateSidebar from '../sidebars/CandidateSidebar'
+import { CandidateTasksProvider } from '../../context/CandidateTasksContext'
 import { SidebarProvider, useSidebar } from '../../context/SidebarContext'
 
 function CandidateLayoutContent() {
@@ -21,7 +22,9 @@ function CandidateLayoutContent() {
         <main className={`flex-1 mt-16 lg:mt-16 p-4 sm:p-6 lg:p-8 animate-fade-in transition-all duration-300 ${
           isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}>
-          <Outlet />
+          <CandidateTasksProvider>
+            <Outlet />
+          </CandidateTasksProvider>
         </main>
       </div>
     </div>

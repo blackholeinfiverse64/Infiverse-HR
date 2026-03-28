@@ -806,6 +806,8 @@ export const submitFeedback = async (candidateId: string, feedbackData: Partial<
 }
 
 // ==================== TASKS API ====================
+// Planned alignment with workflow backend (see Complete-Infiverse client lib/api.js):
+//   GET/POST/PUT /tasks, GET /users/:id/tasks, submissions routes, etc.
 
 export interface Task {
   id: string

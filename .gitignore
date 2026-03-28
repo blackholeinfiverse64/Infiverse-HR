@@ -27,4 +27,7 @@ package-lock.json
 *.temp
 temp/
 tmp/
+
+# Local copy of Complete-Infiverse for integration reference (do not commit)
 /Complete-Infiverse/
+Complete-Infiverse/

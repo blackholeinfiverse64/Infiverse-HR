@@ -57,7 +57,7 @@ export default function CandidateSidebar() {
       ),
     },
     {
-      title: 'Tasks',
+      title: 'My Tasks',
       path: '/candidate/tasks',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,7 +76,10 @@ export default function CandidateSidebar() {
     },
   ]
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) =>
+    path === '/candidate/tasks'
+      ? location.pathname === path || location.pathname.startsWith(`${path}/`)
+      : location.pathname === path
 
   const handleLogout = async () => {
     try {

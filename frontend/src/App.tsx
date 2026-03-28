@@ -19,6 +19,7 @@ import JobSearch from './pages/candidate/JobSearch'
 import AppliedJobs from './pages/candidate/AppliedJobs'
 import CandidateInterviews from './pages/candidate/Interviews'
 import CandidateTasks from './pages/candidate/Tasks'
+import CandidateTaskDetail from './pages/candidate/TaskDetail'
 import CandidateFeedback from './pages/candidate/Feedback'
 
 // Recruiter Pages
@@ -85,6 +86,7 @@ function App() {
                 <Route path="applied-jobs" element={<AppliedJobs />} />
                 <Route path="interviews" element={<CandidateInterviews />} />
                 <Route path="tasks" element={<CandidateTasks />} />
+                <Route path="tasks/:taskId" element={<CandidateTaskDetail />} />
                 <Route path="feedback" element={<CandidateFeedback />} />
               </Route>
 
