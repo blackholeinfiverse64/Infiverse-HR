@@ -1,8 +1,55 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useCandidateTasks } from '../../context/CandidateTasksContext'
-import type { CandidateWorkflowTask, TaskFilterTab } from './candidateTasksTypes'
+import { useAuth } from '../../context/AuthContext'
+import {
+  deleteWorkflowLink,
+  fetchCandidateWorkflowTasks,
+  getWorkflowLinkStatus,
+  postWorkflowLink,
+  submitCandidateWorkflowTask,
+  type WorkflowBridgeTask,
+} from '../../services/api'
+import { authStorage } from '../../utils/authStorage'
+import type {
+  CandidateTaskSubmission,
+  CandidateWorkflowTask,
+  TaskFilterTab,
+} from './candidateTasksTypes'
+
+function toCandidateTask(row: WorkflowBridgeTask): CandidateWorkflowTask {
+  const ws = row.workflowStatus as CandidateWorkflowTask['workflowStatus']
+  const pr = row.priority as CandidateWorkflowTask['priority']
+  const stOk = (s: string): s is CandidateWorkflowTask['workflowStatus'] =>
+    s === 'Pending' || s === 'In Progress' || s === 'Completed'
+  const prOk = (s: string): s is CandidateWorkflowTask['priority'] =>
+    s === 'High' || s === 'Medium' || s === 'Low'
+  const subSt = (s?: string): CandidateTaskSubmission['status'] | undefined => {
+    if (s === 'Pending Review' || s === 'Approved' || s === 'Rejected') return s
+    return undefined
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    workflowStatus: stOk(row.workflowStatus) ? ws : 'Pending',
+    priority: prOk(row.priority) ? pr : 'Medium',
+    progress: row.progress,
+    dueDate: row.dueDate || new Date().toISOString(),
+    department: row.department,
+    jobTitle: row.jobTitle,
+    submission: row.submission
+      ? {
+          id: row.submission.id,
+          status: subSt(row.submission.status),
+          githubLink: row.submission.githubLink,
+          documentLink: row.submission.documentLink,
+          feedback: row.submission.feedback,
+        }
+      : null,
+  }
+}
 
 type SubmitModal = { task: CandidateWorkflowTask; url: string } | null
 
@@ -115,14 +162,194 @@ function getDaysRemaining(dueIso: string) {
   return Math.ceil((due - today) / (1000 * 60 * 60 * 24))
 }
 
+const WORKFLOW_TOAST_ID = 'candidate-workflow-tasks-load'
+
+function shortWorkflowLoadError(e: unknown): string {
+  const ax = e as { response?: { status?: number; data?: { detail?: string } } }
+  const status = ax?.response?.status
+  const detail = ax?.response?.data?.detail
+  if (status === 502 || (typeof detail === 'string' && detail.includes('Cannot reach workflow API'))) {
+    return 'Workflow API is not reachable. Start Complete-Infiverse/server (npm start) and set WORKFLOW_API_BASE_URL to the same port shown in that terminal (often 5000 or 5001). Docker: use host.docker.internal.'
+  }
+  if (status === 503 && typeof detail === 'string' && detail.includes('Workflow account not linked')) {
+    return 'Link your Complete-Infiverse account using the form on this page (same email and password as workflow).'
+  }
+  if (typeof detail === 'string') {
+    return detail.length > 240 ? `${detail.slice(0, 237)}…` : detail
+  }
+  return 'Could not load tasks. Check the gateway and workflow configuration.'
+}
+
 export default function CandidateTasks() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { tasks } = useCandidateTasks()
+  const { user } = useAuth()
+  const { tasks, setTasks } = useCandidateTasks()
   const [activeTab, setActiveTab] = useState<TaskFilterTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [submitModal, setSubmitModal] = useState<SubmitModal>(null)
   const [refreshSpin, setRefreshSpin] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [workflowGate, setWorkflowGate] = useState<{
+    linked: boolean
+    shared: boolean
+    workflowEmail: string | null
+  } | null>(null)
+  const [linkEmail, setLinkEmail] = useState('')
+  const [linkPassword, setLinkPassword] = useState('')
+  const [linking, setLinking] = useState(false)
+  const [updatePasswordModalOpen, setUpdatePasswordModalOpen] = useState(false)
+  const [disconnectModalOpen, setDisconnectModalOpen] = useState(false)  
+  const [unlinking, setUnlinking] = useState(false)
+
+  const isAuthenticated = authStorage.getItem('isAuthenticated') === 'true' || !!user
+  const portalEmail = user?.email || authStorage.getItem('user_email') || ''
+
+  const canLoadWorkflowTasks =
+    isAuthenticated &&
+    workflowGate !== null &&
+    (workflowGate.shared || workflowGate.linked)
+
+  const showWorkflowLinkForm =
+    isAuthenticated && workflowGate !== null && !workflowGate.shared && !workflowGate.linked
+
+  const loadTasks = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!isAuthenticated) {
+        setTasks([])
+        setLoading(false)
+        return
+      }
+      if (!canLoadWorkflowTasks) {
+        setTasks([])
+        setLoading(false)
+        return
+      }
+      if (!opts?.silent) setLoading(true)
+      try {
+        const raw = await fetchCandidateWorkflowTasks()
+        setTasks(raw.map(toCandidateTask))
+      } catch (e: unknown) {
+        if (!opts?.silent) {
+          toast.error(shortWorkflowLoadError(e), {
+            id: WORKFLOW_TOAST_ID,
+            duration: 8000,
+          })
+          setTasks([])
+        }
+      } finally {
+        if (!opts?.silent) setLoading(false)
+      }
+    },
+    [isAuthenticated, canLoadWorkflowTasks, setTasks]
+  )
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setWorkflowGate(null)
+      return
+    }
+    let cancelled = false
+    getWorkflowLinkStatus()
+      .then((s) => {
+        if (cancelled) return
+        setWorkflowGate({
+          linked: s.linked,
+          shared: s.shared_password_configured,
+          workflowEmail: s.workflow_employee_email ?? null,
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setWorkflowGate({ linked: false, shared: false, workflowEmail: null })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (showWorkflowLinkForm && portalEmail) {
+      setLinkEmail(portalEmail)
+    }
+  }, [showWorkflowLinkForm, portalEmail])
+
+  useEffect(() => {
+    loadTasks()
+  }, [loadTasks])
+
+  useEffect(() => {
+    if (!canLoadWorkflowTasks) return
+    const intervalMs = 1 * 60 * 1000
+    const id = window.setInterval(() => loadTasks({ silent: true }), intervalMs)
+    const onVis = () => {
+      if (document.visibilityState === 'visible') loadTasks({ silent: true })
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [canLoadWorkflowTasks, loadTasks])
+
+  const handleWorkflowLinkSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    const wasUpdate = updatePasswordModalOpen
+    const pwd = linkPassword.trim()
+    if (!pwd) {
+      toast.error('Enter your Complete-Infiverse password')
+      return
+    }
+    setLinking(true)
+    try {
+      const emailTrim = (linkEmail.trim() || portalEmail).trim()
+      const saved = await postWorkflowLink({
+        password: pwd,
+        workflow_employee_email:
+          emailTrim.toLowerCase() !== portalEmail.toLowerCase() ? emailTrim : undefined,
+      })
+      setLinkPassword('')
+      setWorkflowGate({
+        linked: true,
+        shared: false,
+        workflowEmail: saved.workflow_employee_email ?? null,
+      })
+      setUpdatePasswordModalOpen(false)
+      toast.success(wasUpdate ? 'Workflow password updated' : 'Workflow account connected')
+      const raw = await fetchCandidateWorkflowTasks()
+      setTasks(raw.map(toCandidateTask))
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { detail?: string } } }
+      const msg =
+        typeof ax?.response?.data?.detail === 'string'
+          ? ax.response.data.detail
+          : 'Could not verify workflow login'
+      toast.error(msg)
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  const openUpdatePasswordModal = () => {
+    setLinkEmail(workflowGate?.workflowEmail || portalEmail)
+    setLinkPassword('')
+    setUpdatePasswordModalOpen(true)
+  }
+
+  const executeDisconnectWorkflow = async () => {
+    setUnlinking(true)
+    try {
+      await deleteWorkflowLink()
+      setWorkflowGate({ linked: false, shared: false, workflowEmail: null })
+      setTasks([])
+      setDisconnectModalOpen(false)
+      toast.success('Workflow connection removed')
+    } catch {
+      toast.error('Could not remove connection')
+    } finally {
+      setUnlinking(false)
+    }
+  }
 
   useEffect(() => {
     const id = (location.state as { openSubmitTaskId?: string } | null)?.openSubmitTaskId
@@ -166,16 +393,32 @@ export default function CandidateTasks() {
     })
   }, [tasks, activeTab, searchQuery])
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshSpin(true)
-    toast('Task list refresh will load from the API after integration.', { icon: 'ℹ️' })
-    window.setTimeout(() => setRefreshSpin(false), 600)
+    await loadTasks()
+    toast.success('Tasks refreshed')
+    window.setTimeout(() => setRefreshSpin(false), 400)
   }
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
     if (!submitModal?.url.trim()) return
-    toast.error('Task submission is not connected yet. Enable the tasks API to submit.')
-    setSubmitModal(null)
+    try {
+      setSubmitting(true)
+      const updated = await submitCandidateWorkflowTask(submitModal.task.id, submitModal.url.trim())
+      const mapped = toCandidateTask(updated)
+      setTasks((prev) => prev.map((t) => (t.id === mapped.id ? mapped : t)))
+      toast.success('Submission sent to workflow')
+      setSubmitModal(null)
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { detail?: string } }; message?: string }
+      const msg =
+        typeof ax?.response?.data?.detail === 'string'
+          ? ax.response.data.detail
+          : ax?.message || 'Submit failed'
+      toast.error(msg)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const tabBtn = (tab: TaskFilterTab, label: string, activeClass: string) => (
@@ -225,19 +468,99 @@ export default function CandidateTasks() {
             My Tasks
           </h1>
           <p className="page-subtitle mt-1">Manage and track all your assigned tasks</p>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Assigned tasks will show here once the tasks service is integrated with Sampada.
-          </p>
         </div>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="inline-flex items-center justify-center gap-2 self-start rounded-xl border-2 border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700 sm:self-center"
-        >
-          <IconRefresh className={`h-4 w-4 ${refreshSpin ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+          {isAuthenticated && workflowGate?.linked && !workflowGate.shared && (
+            <button
+              type="button"
+              onClick={openUpdatePasswordModal}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-blue-300/80 bg-white px-4 py-2 text-sm font-semibold text-blue-800 shadow-sm transition-all hover:border-blue-500 hover:bg-blue-50 dark:border-blue-700 dark:bg-slate-800 dark:text-blue-200 dark:hover:bg-slate-700"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+              Update password
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
+          >
+            <IconRefresh className={`h-4 w-4 ${refreshSpin ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {showWorkflowLinkForm && (
+        <div className="overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50 via-white to-orange-50/40 shadow-md dark:border-amber-800/50 dark:from-amber-950/50 dark:via-slate-900 dark:to-slate-900/80">
+          <div className="border-b border-amber-200/60 bg-gradient-to-r from-amber-100/80 to-orange-100/50 px-6 py-4 dark:border-amber-900/40 dark:from-amber-950/60 dark:to-orange-950/30">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Connect your workflow account</h2>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Sign in with the same credentials as Complete-Infiverse. Your password is encrypted on our servers.
+                </p>
+              </div>
+            </div>
+          </div>
+          <form onSubmit={handleWorkflowLinkSubmit} className="flex flex-col gap-5 p-6 sm:max-w-xl">
+            <div>
+              <label htmlFor="wf-email" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                Workflow email
+              </label>
+              <input
+                id="wf-email"
+                type="email"
+                autoComplete="username"
+                value={linkEmail}
+                onChange={(e) => setLinkEmail(e.target.value)}
+                placeholder={portalEmail || 'you@example.com'}
+                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              />
+              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                Defaults to your Sampada email. Change only if your workflow login uses a different address.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="wf-password" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                Workflow password
+              </label>
+              <input
+                id="wf-password"
+                type="password"
+                autoComplete="current-password"
+                value={linkPassword}
+                onChange={(e) => setLinkPassword(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={linking}
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-700 hover:to-cyan-700 disabled:opacity-60"
+            >
+              {linking ? 'Verifying…' : 'Connect and load tasks'}
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {statCard(
@@ -303,7 +626,21 @@ export default function CandidateTasks() {
         </div>
       </div>
 
-      {filteredTasks.length === 0 ? (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
+              <div className="h-5 w-1/3 rounded bg-gray-200 dark:bg-slate-700" />
+              <div className="mt-3 h-4 w-2/3 rounded bg-gray-200 dark:bg-slate-700" />
+            </div>
+          ))}
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950/30">
+          <p className="font-medium text-gray-900 dark:text-white">Sign in to view your tasks</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Use your candidate account to load workflow tasks.</p>
+        </div>
+      ) : filteredTasks.length === 0 && !showWorkflowLinkForm ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-16 dark:border-slate-700">
           <div className="mb-4 rounded-full bg-gray-100 p-4 dark:bg-slate-800">
             <IconListTodo className="h-10 w-10 text-gray-400" />
@@ -485,24 +822,178 @@ export default function CandidateTasks() {
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Saving will be enabled when the tasks API is integrated.
+                Sent to Complete-Infiverse as the repository link (GitHub-style URL recommended).
               </p>
             </div>
             <div className="flex gap-3 border-t border-gray-100 p-6 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setSubmitModal(null)}
-                className="flex-1 rounded-xl bg-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600"
+                disabled={submitting}
+                className="flex-1 rounded-xl bg-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={confirmSubmit}
-                disabled={!submitModal.url.trim()}
+                onClick={() => void confirmSubmit()}
+                disabled={!submitModal.url.trim() || submitting}
                 className="flex-1 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 py-3 text-sm font-medium text-white hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50"
               >
-                Save
+                {submitting ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {updatePasswordModalOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wf-update-title"
+          onClick={() => !linking && setUpdatePasswordModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-blue-200/60 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-blue-100 bg-gradient-to-r from-blue-50 via-cyan-50/80 to-sky-50/60 px-6 py-5 dark:border-slate-700 dark:from-blue-950/50 dark:via-slate-900 dark:to-slate-900">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/25">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="wf-update-title" className="text-xl font-bold text-gray-900 dark:text-white">
+                    Update workflow password
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    When you change your password on Complete-Infiverse, save it here so tasks keep loading. Tasks also
+                    refresh about every minute and when you return to this tab.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleWorkflowLinkSubmit} className="space-y-5 p-6">
+              <div>
+                <label htmlFor="wf-update-email" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Workflow email
+                </label>
+                <input
+                  id="wf-update-email"
+                  type="email"
+                  autoComplete="username"
+                  value={linkEmail}
+                  onChange={(e) => setLinkEmail(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label htmlFor="wf-update-password" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Current workflow password
+                </label>
+                <input
+                  id="wf-update-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-slate-700 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={linking}
+                  onClick={() => setUpdatePasswordModalOpen(false)}
+                  className="order-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700 sm:order-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={linking}
+                  className="order-1 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-700 hover:to-cyan-700 disabled:opacity-60 sm:order-2"
+                >
+                  {linking ? 'Saving…' : 'Save and refresh tasks'}
+                </button>
+              </div>
+            </form>
+
+            <div className="border-t border-gray-100 bg-gray-50/80 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/50">
+              <button
+                type="button"
+                disabled={linking}
+                onClick={() => {
+                  setUpdatePasswordModalOpen(false)
+                  setDisconnectModalOpen(true)
+                }}
+                className="text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              >
+                Remove workflow connection…
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {disconnectModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-red-200/60 bg-white/95 shadow-2xl dark:border-red-900/50 dark:bg-slate-900/95">
+            <div className="border-b border-red-100 bg-gradient-to-r from-red-50 to-rose-50 px-6 py-5 dark:border-red-900/40 dark:from-red-950/40 dark:to-rose-950/30">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-300">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v3.75m0 3h.007M4.93 19h14.14c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.198 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Remove workflow connection?</h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                    Your saved workflow password will be deleted. You will need to connect again to load tasks.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                This does not change your Complete-Infiverse account — only removes the copy stored in Sampada for task
+                sync.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-gray-100 p-6 pt-0 dark:border-slate-700 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => !unlinking && setDisconnectModalOpen(false)}
+                disabled={unlinking}
+                className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void executeDisconnectWorkflow()}
+                disabled={unlinking}
+                className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-600 hover:to-rose-700 disabled:opacity-60"
+              >
+                {unlinking ? 'Removing…' : 'Yes, remove connection'}
               </button>
             </div>
           </div>

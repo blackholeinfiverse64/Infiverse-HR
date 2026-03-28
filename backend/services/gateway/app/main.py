@@ -222,6 +222,20 @@ except ImportError as e:
     print(f"WARNING: RL routes not available: {e}")
     pass  # RL routes optional
 
+# Complete-Infiverse workflow task bridge (Sampada candidate portal)
+try:
+    import sys
+
+    _gw_dir_wf = os.path.dirname(os.path.dirname(__file__))
+    if _gw_dir_wf not in sys.path:
+        sys.path.insert(0, _gw_dir_wf)
+    from workflow_proxy import router as workflow_proxy_router
+
+    app.include_router(workflow_proxy_router)
+    print("Workflow task proxy (Complete-Infiverse bridge) loaded")
+except ImportError as e:
+    print(f"WARNING: workflow_proxy not available: {e}")
+
 # Add monitoring endpoints
 @app.get("/metrics", tags=["Monitoring"])
 async def get_prometheus_metrics():

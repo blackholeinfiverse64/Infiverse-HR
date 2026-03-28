@@ -13,6 +13,7 @@ COPY monitoring.py ./
 COPY config.py ./
 COPY dependencies.py ./
 COPY jwt_auth.py ./
+COPY workflow_proxy.py ./
 COPY routes/ ./routes/
 
 # Expose port

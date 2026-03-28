@@ -22,6 +22,7 @@ qrcode[pil]>=7.4.2,<8.0.0
 python-multipart>=0.0.6
 bcrypt>=4.0.1,<5.0.0
 PyJWT>=2.8.0,<3.0.0
+cryptography>=42.0.0,<45.0.0
 
 # Monitoring & Metrics - Stable versions
 prometheus-client>=0.19.0,<1.0.0

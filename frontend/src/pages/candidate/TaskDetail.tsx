@@ -1,6 +1,40 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useCandidateTasks } from '../../context/CandidateTasksContext'
+import { fetchCandidateWorkflowTaskDetail, type WorkflowBridgeTask } from '../../services/api'
+import type { CandidateTaskSubmission, CandidateWorkflowTask } from './candidateTasksTypes'
+
+function toCandidateTask(row: WorkflowBridgeTask): CandidateWorkflowTask {
+  const stOk = (s: string): s is CandidateWorkflowTask['workflowStatus'] =>
+    s === 'Pending' || s === 'In Progress' || s === 'Completed'
+  const prOk = (s: string): s is CandidateWorkflowTask['priority'] =>
+    s === 'High' || s === 'Medium' || s === 'Low'
+  const subSt = (s?: string): CandidateTaskSubmission['status'] | undefined => {
+    if (s === 'Pending Review' || s === 'Approved' || s === 'Rejected') return s
+    return undefined
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    workflowStatus: stOk(row.workflowStatus) ? row.workflowStatus : 'Pending',
+    priority: prOk(row.priority) ? row.priority : 'Medium',
+    progress: row.progress,
+    dueDate: row.dueDate || new Date().toISOString(),
+    department: row.department,
+    jobTitle: row.jobTitle,
+    submission: row.submission
+      ? {
+          id: row.submission.id,
+          status: subSt(row.submission.status),
+          githubLink: row.submission.githubLink,
+          documentLink: row.submission.documentLink,
+          feedback: row.submission.feedback,
+        }
+      : null,
+  }
+}
 
 function IconArrowLeft({ className }: { className?: string }) {
   return (
@@ -54,9 +88,52 @@ function IconCheckSquare({ className }: { className?: string }) {
 export default function CandidateTaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
-  const { getTaskById } = useCandidateTasks()
+  const { getTaskById, tasks } = useCandidateTasks()
+  const [remoteTask, setRemoteTask] = useState<CandidateWorkflowTask | null>(null)
+  const [loadingRemote, setLoadingRemote] = useState(false)
 
-  const task = useMemo(() => (taskId ? getTaskById(taskId) : undefined), [taskId, getTaskById])
+  const fromList = useMemo(
+    () => (taskId ? getTaskById(taskId) : undefined),
+    [taskId, getTaskById, tasks]
+  )
+  const task = fromList ?? remoteTask
+
+  useEffect(() => {
+    if (!taskId || fromList) {
+      if (fromList) setRemoteTask(null)
+      return
+    }
+    let cancelled = false
+    setLoadingRemote(true)
+    ;(async () => {
+      try {
+        const row = await fetchCandidateWorkflowTaskDetail(taskId)
+        if (!cancelled) setRemoteTask(toCandidateTask(row))
+      } catch {
+        if (!cancelled) {
+          setRemoteTask(null)
+          toast.error('Could not load this task from the workflow API.', {
+            id: 'candidate-workflow-task-detail',
+            duration: 6000,
+          })
+        }
+      } finally {
+        if (!cancelled) setLoadingRemote(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [taskId, fromList])
+
+  if (loadingRemote && !task) {
+    return (
+      <div className="space-y-4 p-4">
+        <div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-slate-700" />
+        <div className="h-40 animate-pulse rounded-2xl bg-gray-100 dark:bg-slate-800" />
+      </div>
+    )
+  }
 
   if (!task) {
     return (

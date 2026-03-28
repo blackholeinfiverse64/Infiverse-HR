@@ -126,7 +126,13 @@ api.interceptors.response.use(
         // Don't clear token immediately - let the app handle it
         // The token might be valid but the endpoint might require different auth
       } else {
-        console.error(`API Error: ${status} - ${url}`);
+        // Expected when Complete-Infiverse is down; Tasks page shows a toast — avoid duplicate console noise.
+        const u = String(url || '')
+        const quiet502 =
+          status === 502 && /\/v1\/candidate\/workflow/.test(u)
+        if (!quiet502) {
+          console.error(`API Error: ${status} - ${url}`)
+        }
       }
     } else if (error.request) {
       // Network error - no response received
@@ -855,6 +861,75 @@ export const submitTask = async (taskId: string, submissionUrl: string) => {
     console.error('Error submitting task:', error)
     throw error
   }
+}
+
+/** Response shape from gateway workflow bridge (Complete-Infiverse). */
+export interface WorkflowBridgeTask {
+  id: string
+  title: string
+  description: string
+  workflowStatus: string
+  priority: string
+  progress: number
+  dueDate: string | null
+  department?: string
+  jobTitle?: string
+  candidate_id: string
+  submission?: {
+    id: string
+    status?: string
+    githubLink?: string
+    documentLink?: string
+    feedback?: string
+  } | null
+}
+
+export const fetchCandidateWorkflowTasks = async (): Promise<WorkflowBridgeTask[]> => {
+  const response = await api.get<{ tasks?: WorkflowBridgeTask[] }>('/v1/candidate/workflow-tasks')
+  return response.data.tasks ?? []
+}
+
+export const fetchCandidateWorkflowTaskDetail = async (taskId: string): Promise<WorkflowBridgeTask> => {
+  const response = await api.get<WorkflowBridgeTask>(`/v1/candidate/workflow-tasks/${encodeURIComponent(taskId)}`)
+  return response.data
+}
+
+export const submitCandidateWorkflowTask = async (
+  taskId: string,
+  submissionUrl: string
+): Promise<WorkflowBridgeTask> => {
+  const response = await api.post<{ task: WorkflowBridgeTask }>(
+    `/v1/candidate/workflow-tasks/${encodeURIComponent(taskId)}/submit`,
+    { submission_url: submissionUrl }
+  )
+  return response.data.task
+}
+
+export interface WorkflowLinkStatus {
+  linked: boolean
+  shared_password_configured: boolean
+  workflow_employee_email: string | null
+}
+
+export const getWorkflowLinkStatus = async (): Promise<WorkflowLinkStatus> => {
+  const response = await api.get<WorkflowLinkStatus>('/v1/candidate/workflow-link-status')
+  return response.data
+}
+
+export const postWorkflowLink = async (body: {
+  password: string
+  workflow_employee_email?: string | null
+}): Promise<{ ok: boolean; workflow_employee_email: string }> => {
+  const response = await api.post<{ ok: boolean; workflow_employee_email: string }>(
+    '/v1/candidate/workflow-link',
+    body
+  )
+  return response.data
+}
+
+export const deleteWorkflowLink = async (): Promise<{ ok: boolean }> => {
+  const response = await api.delete<{ ok: boolean }>('/v1/candidate/workflow-link')
+  return response.data
 }
 
 // ==================== OFFERS API ====================
