@@ -17,7 +17,8 @@ import CandidateDashboard from './pages/candidate/Dashboard'
 import CandidateProfile from './pages/candidate/Profile'
 import JobSearch from './pages/candidate/JobSearch'
 import AppliedJobs from './pages/candidate/AppliedJobs'
-import InterviewTaskPanel from './pages/candidate/InterviewTaskPanel'
+import CandidateInterviews from './pages/candidate/Interviews'
+import CandidateTasks from './pages/candidate/Tasks'
 import CandidateFeedback from './pages/candidate/Feedback'
 
 // Recruiter Pages
@@ -82,7 +83,8 @@ function App() {
                 <Route path="profile" element={<CandidateProfile />} />
                 <Route path="jobs" element={<JobSearch />} />
                 <Route path="applied-jobs" element={<AppliedJobs />} />
-                <Route path="interviews" element={<InterviewTaskPanel />} />
+                <Route path="interviews" element={<CandidateInterviews />} />
+                <Route path="tasks" element={<CandidateTasks />} />
                 <Route path="feedback" element={<CandidateFeedback />} />
               </Route>
 

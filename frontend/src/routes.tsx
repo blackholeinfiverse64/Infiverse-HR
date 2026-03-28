@@ -10,7 +10,8 @@ import AutomationPanel from './pages/recruiter/AutomationPanel'
 // Candidate Pages
 import CandidateProfile from './pages/candidate/Profile'
 import AppliedJobs from './pages/candidate/AppliedJobs'
-import InterviewTaskPanel from './pages/candidate/InterviewTaskPanel'
+import CandidateInterviews from './pages/candidate/Interviews'
+import CandidateTasks from './pages/candidate/Tasks'
 import CandidateFeedback from './pages/candidate/Feedback'
 
 // Client Pages
@@ -35,7 +36,8 @@ export default function AppRoutes() {
       <Route path="/candidate" element={<Navigate to="/candidate/profile" replace />} />
       <Route path="/candidate/profile" element={<CandidateProfile />} />
       <Route path="/candidate/applied-jobs" element={<AppliedJobs />} />
-      <Route path="/candidate/interviews" element={<InterviewTaskPanel />} />
+      <Route path="/candidate/interviews" element={<CandidateInterviews />} />
+      <Route path="/candidate/tasks" element={<CandidateTasks />} />
       <Route path="/candidate/feedback" element={<CandidateFeedback />} />
 
       {/* Client Routes */}
