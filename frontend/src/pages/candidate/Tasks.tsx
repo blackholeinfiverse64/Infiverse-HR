@@ -118,6 +118,14 @@ function IconEye({ className }: { className?: string }) {
   )
 }
 
+function IconEyeOff({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.585 10.587a2 2 0 102.828 2.828M9.88 5.09A9.77 9.77 0 0112 4.5c4.358 0 8.058 2.36 9.542 5.7a10.49 10.49 0 01-4.042 4.57M6.226 6.227A10.07 10.07 0 002.458 12c1.274 4.057 5.065 7 9.542 7 1.53 0 2.978-.344 4.274-.96" />
+    </svg>
+  )
+}
+
 function IconCalendar({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,10 +206,12 @@ export default function CandidateTasks() {
   } | null>(null)
   const [linkEmail, setLinkEmail] = useState('')
   const [linkPassword, setLinkPassword] = useState('')
+  const [showLinkPassword, setShowLinkPassword] = useState(false)
   const [linking, setLinking] = useState(false)
   const [updatePasswordModalOpen, setUpdatePasswordModalOpen] = useState(false)
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false)  
   const [unlinking, setUnlinking] = useState(false)
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false)
 
   const isAuthenticated = authStorage.getItem('isAuthenticated') === 'true' || !!user
   const portalEmail = user?.email || authStorage.getItem('user_email') || ''
@@ -309,6 +319,8 @@ export default function CandidateTasks() {
           emailTrim.toLowerCase() !== portalEmail.toLowerCase() ? emailTrim : undefined,
       })
       setLinkPassword('')
+      setShowLinkPassword(false)
+      setShowUpdatePassword(false)
       setWorkflowGate({
         linked: true,
         shared: false,
@@ -333,6 +345,7 @@ export default function CandidateTasks() {
   const openUpdatePasswordModal = () => {
     setLinkEmail(workflowGate?.workflowEmail || portalEmail)
     setLinkPassword('')
+    setShowUpdatePassword(false)
     setUpdatePasswordModalOpen(true)
   }
 
@@ -542,14 +555,24 @@ export default function CandidateTasks() {
               <label htmlFor="wf-password" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                 Workflow password
               </label>
-              <input
-                id="wf-password"
-                type="password"
-                autoComplete="current-password"
-                value={linkPassword}
-                onChange={(e) => setLinkPassword(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-              />
+              <div className="relative mt-2">
+                <input
+                  id="wf-password"
+                  type={showLinkPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-gray-900 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLinkPassword((s) => !s)}
+                  aria-label={showLinkPassword ? 'Hide password' : 'Show password'}
+                  className="absolute inset-y-0 right-0 inline-flex items-center px-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  {showLinkPassword ? <IconEyeOff className="h-5 w-5" /> : <IconEye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"
@@ -901,14 +924,24 @@ export default function CandidateTasks() {
                 <label htmlFor="wf-update-password" className="block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                   Current workflow password
                 </label>
-                <input
-                  id="wf-update-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={linkPassword}
-                  onChange={(e) => setLinkPassword(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="wf-update-password"
+                    type={showUpdatePassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={linkPassword}
+                    onChange={(e) => setLinkPassword(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowUpdatePassword((s) => !s)}
+                    aria-label={showUpdatePassword ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 inline-flex items-center px-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {showUpdatePassword ? <IconEyeOff className="h-5 w-5" /> : <IconEye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-slate-700 sm:flex-row sm:justify-end">

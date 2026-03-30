@@ -60,7 +60,21 @@ def _load_dotenv_for_workflow() -> None:
 
 _load_dotenv_for_workflow()
 
-WORKFLOW_API_BASE_URL = os.getenv("WORKFLOW_API_BASE_URL", "http://127.0.0.1:5001/api").rstrip("/")
+
+def _resolve_workflow_api_base_url() -> Tuple[str, str]:
+    """Resolve workflow API URL across local, Docker, and deployed envs."""
+    candidates = [
+        ("WORKFLOW_API_BASE_URL", os.getenv("WORKFLOW_API_BASE_URL", "").strip()),
+        ("WORKFLOW_API_BASE_URL_DOCKER", os.getenv("WORKFLOW_API_BASE_URL_DOCKER", "").strip()),
+        ("WORKFLOW_API_URL", os.getenv("WORKFLOW_API_URL", "").strip()),
+    ]
+    for source, value in candidates:
+        if value:
+            return value.rstrip("/"), source
+    return "http://127.0.0.1:5001/api", "default_localhost"
+
+
+WORKFLOW_API_BASE_URL, WORKFLOW_API_BASE_URL_SOURCE = _resolve_workflow_api_base_url()
 WORKFLOW_BRIDGE_EMAIL = os.getenv("WORKFLOW_BRIDGE_EMAIL", "").strip()
 WORKFLOW_BRIDGE_PASSWORD = os.getenv("WORKFLOW_BRIDGE_PASSWORD", "").strip()
 WORKFLOW_USER_PASSWORD = os.getenv("WORKFLOW_USER_PASSWORD", "").strip()
@@ -68,12 +82,20 @@ WORKFLOW_USER_PASSWORD = os.getenv("WORKFLOW_USER_PASSWORD", "").strip()
 
 def _workflow_unreachable_hint() -> str:
     b = WORKFLOW_API_BASE_URL
+    extra = ""
+    if "127.0.0.1" in b or "localhost" in b:
+        extra = (
+            " In deployed environments, do NOT use localhost unless workflow runs in the same container/VM. "
+            "Use the actual workflow service URL/domain, or host.docker.internal only for Docker-to-host local setups."
+        )
     return (
         " Ensure Complete-Infiverse/server is running (npm start). "
         f"The URL must match its port — check the log line 'Server running on port …' (often 5000 or 5001). "
         f"Test: GET {b}/ping. "
         "If the BHIV gateway runs in Docker, use host.docker.internal instead of 127.0.0.1. "
-        "Restart the gateway after changing WORKFLOW_API_BASE_URL in .env."
+        f"Current source: {WORKFLOW_API_BASE_URL_SOURCE}. "
+        "Restart the gateway after changing WORKFLOW_API_BASE_URL (or WORKFLOW_API_BASE_URL_DOCKER / WORKFLOW_API_URL)."
+        + extra
     )
 
 _TOKEN_REFRESH_SECONDS = float(os.getenv("WORKFLOW_TOKEN_REFRESH_SECONDS", str(12 * 3600)))
@@ -384,6 +406,7 @@ async def workflow_bridge_health():
     ping_url = f"{WORKFLOW_API_BASE_URL.rstrip('/')}/ping"
     out: Dict[str, Any] = {
         "workflow_api_base_url": WORKFLOW_API_BASE_URL,
+        "workflow_api_base_url_source": WORKFLOW_API_BASE_URL_SOURCE,
         "ping_url": ping_url,
         "bridge_credentials_configured": _bridge_configured(),
         "per_candidate_password_configured": bool(WORKFLOW_USER_PASSWORD),
