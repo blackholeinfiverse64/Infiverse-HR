@@ -540,6 +540,33 @@ export interface Application {
   match_score?: number
   applied_date: string
   updated_at?: string
+  required_documents?: ApplicationDocumentType[]
+  documents_uploaded?: Partial<Record<ApplicationDocumentType, UploadedApplicationDocument>>
+}
+
+export type ApplicationDocumentType = 'resume' | 'nda'
+
+export interface UploadedApplicationDocument {
+  document_id: string
+  filename: string
+  content_type: string
+  size_bytes: number
+  uploaded_at: string
+}
+
+export interface ClientApplicantRecord {
+  application_id: string
+  job_id: string
+  job_title?: string
+  status: string
+  applied_date?: string
+  candidate_id: string
+  candidate_name?: string
+  candidate_email?: string
+  candidate_phone?: string
+  candidate_location?: string
+  required_documents: ApplicationDocumentType[]
+  documents_uploaded: Partial<Record<ApplicationDocumentType, UploadedApplicationDocument>>
 }
 
 export const applyForJob = async (jobId: string, candidateId: string, resumeUrl?: string) => {
@@ -597,6 +624,41 @@ export const getCandidateApplications = async (candidateId: string): Promise<App
     }
     return []
   }
+}
+
+export const getClientApplicants = async (): Promise<ClientApplicantRecord[]> => {
+  try {
+    const response = await api.get('/v1/client/applicants')
+    return response.data?.applicants || []
+  } catch (error) {
+    console.error('Error fetching client applicants:', error)
+    return []
+  }
+}
+
+export const setClientRequiredDocuments = async (
+  applicationId: string,
+  documentTypes: ApplicationDocumentType[]
+): Promise<{ ok: boolean; application_id: string; required_documents: ApplicationDocumentType[] }> => {
+  const response = await api.post(`/v1/client/applications/${encodeURIComponent(applicationId)}/required-documents`, {
+    document_types: documentTypes,
+  })
+  return response.data
+}
+
+export const uploadCandidateApplicationDocument = async (
+  applicationId: string,
+  documentType: ApplicationDocumentType,
+  file: File
+): Promise<{ ok: boolean; document_type: ApplicationDocumentType; document: UploadedApplicationDocument }> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(
+    `/v1/candidate/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentType)}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  )
+  return response.data
 }
 
 // ==================== CANDIDATE PROFILE API ====================
@@ -1641,6 +1703,32 @@ export const getNotificationHistory = async (candidateId: string) => {
     console.error('Error fetching notification history:', error)
     return []
   }
+}
+
+export interface PortalNotification {
+  id: string
+  title: string
+  message: string
+  kind: string
+  is_read: boolean
+  created_at: string
+  payload?: Record<string, unknown>
+}
+
+export const getPortalNotifications = async (limit = 30): Promise<{ notifications: PortalNotification[]; unread_count: number }> => {
+  const response = await api.get('/v1/portal/notifications', { params: { limit } })
+  return {
+    notifications: response.data?.notifications || [],
+    unread_count: Number(response.data?.unread_count || 0),
+  }
+}
+
+export const markPortalNotificationRead = async (notificationId: string): Promise<void> => {
+  await api.post(`/v1/portal/notifications/${encodeURIComponent(notificationId)}/read`)
+}
+
+export const markAllPortalNotificationsRead = async (): Promise<void> => {
+  await api.post('/v1/portal/notifications/read-all')
 }
 
 export const previewNotification = async (notificationType: string, sampleData?: any) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
-import { getCandidateApplications, type Application } from '../../services/api'
+import { getCandidateApplications, uploadCandidateApplicationDocument, type Application, type ApplicationDocumentType } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { authStorage } from '../../utils/authStorage'
 
@@ -12,6 +12,8 @@ export default function AppliedJobs() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
+  const [openUploadDropdownFor, setOpenUploadDropdownFor] = useState<string | null>(null)
+  const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null)
 
   const loadApplications = useCallback(async () => {
     // Check authentication first
@@ -50,6 +52,14 @@ export default function AppliedJobs() {
   useEffect(() => {
     loadApplications()
   }, [loadApplications])
+
+  useEffect(() => {
+    if (!selectedApp) return
+    const refreshed = applications.find((app) => app.id === selectedApp.id)
+    if (refreshed) {
+      setSelectedApp(refreshed)
+    }
+  }, [applications, selectedApp])
 
   // Reload applications when component becomes visible or tab is focused
   useEffect(() => {
@@ -130,6 +140,31 @@ export default function AppliedJobs() {
     { value: 'offer', label: 'Offers', count: stats.offer },
     { value: 'hired', label: 'Hired', count: stats.hired },
   ]
+
+  const documentLabel = (docType: ApplicationDocumentType) => (
+    docType === 'resume' ? 'CV / Resume' : 'NDA'
+  )
+
+  const handlePickDocument = (appId: string, docType: ApplicationDocumentType) => {
+    const input = document.getElementById(`upload-${appId}-${docType}`) as HTMLInputElement | null
+    input?.click()
+  }
+
+  const handleUploadDocument = async (app: Application, docType: ApplicationDocumentType, file: File | null) => {
+    if (!file) return
+    try {
+      setUploadingDocKey(`${app.id}:${docType}`)
+      await uploadCandidateApplicationDocument(app.id, docType, file)
+      toast.success(`${documentLabel(docType)} uploaded successfully`)
+      setOpenUploadDropdownFor(null)
+      await loadApplications()
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Failed to upload document'
+      toast.error(msg)
+    } finally {
+      setUploadingDocKey(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -376,6 +411,75 @@ export default function AppliedJobs() {
                   </span>
                 </div>
               )}
+
+              {/* Upload Documents Section */}
+              <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Upload Documents</span>
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenUploadDropdownFor(openUploadDropdownFor === selectedApp.id ? null : selectedApp.id)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Upload Documents
+                    </button>
+                    {openUploadDropdownFor === selectedApp.id && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20">
+                        {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => {
+                          const isRequested = (selectedApp.required_documents || []).includes(docType)
+                          return (
+                            <button
+                              key={docType}
+                              onClick={() => handlePickDocument(selectedApp.id, docType)}
+                              disabled={!isRequested || uploadingDocKey === `${selectedApp.id}:${docType}`}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {uploadingDocKey === `${selectedApp.id}:${docType}` ? 'Uploading...' : documentLabel(docType)}
+                              {!isRequested ? ' (not requested)' : ''}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Required by client:{' '}
+                  {(selectedApp.required_documents && selectedApp.required_documents.length > 0)
+                    ? selectedApp.required_documents.map(documentLabel).join(', ')
+                    : 'None'}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => {
+                    const uploaded = selectedApp.documents_uploaded?.[docType]
+                    return (
+                      <div key={docType} className="rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{documentLabel(docType)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {uploaded ? `Uploaded: ${new Date(uploaded.uploaded_at).toLocaleString()}` : 'Not uploaded'}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => (
+                  <input
+                    key={`${selectedApp.id}-${docType}`}
+                    id={`upload-${selectedApp.id}-${docType}`}
+                    type="file"
+                    className="hidden"
+                    accept={docType === 'resume' ? '.pdf,.doc,.docx' : '.pdf'}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null
+                      void handleUploadDocument(selectedApp, docType, f)
+                      e.currentTarget.value = ''
+                    }}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="p-6 border-t border-gray-100 dark:border-slate-700">

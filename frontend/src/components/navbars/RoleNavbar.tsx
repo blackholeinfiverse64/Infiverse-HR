@@ -1,8 +1,15 @@
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../context/ThemeContext'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
 import { authStorage, clearAuthStorage } from '../../utils/authStorage'
+import {
+  getPortalNotifications,
+  markAllPortalNotificationsRead,
+  markPortalNotificationRead,
+  type PortalNotification,
+} from '../../services/api'
 
 interface RoleNavbarProps {
   role: 'candidate' | 'recruiter' | 'client'
@@ -50,6 +57,11 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
   const { signOut, userName } = useAuth()
   const navigate = useNavigate()
   const config = roleConfig[role]
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<PortalNotification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement | null>(null)
 
   const handleLogout = async () => {
     try {
@@ -62,6 +74,72 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
       clearAuthStorage()
       navigate('/', { replace: true })
       window.location.href = '/'
+    }
+  }
+
+  const loadNotifications = async (silent = true) => {
+    try {
+      if (!silent) setLoadingNotifications(true)
+      const data = await getPortalNotifications(20)
+      setNotifications(Array.isArray(data.notifications) ? data.notifications : [])
+      setUnreadCount(Number(data.unread_count || 0))
+    } catch {
+      // Silent fail: bell is auxiliary UI
+    } finally {
+      if (!silent) setLoadingNotifications(false)
+    }
+  }
+
+  useEffect(() => {
+    loadNotifications(true)
+    const interval = setInterval(() => {
+      loadNotifications(true)
+    }, 60000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadNotifications(true)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (!notificationsRef.current) return
+      if (!notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const handleOpenNotifications = async () => {
+    setNotificationsOpen(prev => !prev)
+    await loadNotifications(false)
+  }
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await markAllPortalNotificationsRead()
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      setUnreadCount(0)
+    } catch {
+      // no-op
+    }
+  }
+
+  const handleMarkNotificationRead = async (notificationId: string) => {
+    setNotifications(prev => prev.map(n => (n.id === notificationId ? { ...n, is_read: true } : n)))
+    setUnreadCount(prev => Math.max(0, prev - 1))
+    try {
+      await markPortalNotificationRead(notificationId)
+    } catch {
+      // no-op
     }
   }
 
@@ -128,13 +206,59 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
             )}
           </button>
           
-          {/* Notifications - Hidden on small mobile */}
-          <button className="hidden sm:block p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-300 text-gray-700 dark:text-gray-300 hover:scale-110 relative">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
+          {/* Notifications */}
+          <div className="relative hidden sm:block" ref={notificationsRef}>
+            <button
+              onClick={() => void handleOpenNotifications()}
+              className="p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-300 text-gray-700 dark:text-gray-300 hover:scale-110 relative"
+              title="Notifications"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-2 w-96 max-w-[85vw] rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl z-50">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</p>
+                  <button
+                    onClick={() => void handleMarkAllNotificationsRead()}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                    disabled={unreadCount === 0}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {loadingNotifications ? (
+                    <div className="p-4 text-sm text-gray-500 dark:text-gray-400">Loading…</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No notifications yet.</div>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => void handleMarkNotificationRead(item.id)}
+                        className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors ${
+                          item.is_read ? '' : 'bg-blue-50/60 dark:bg-blue-900/10'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.title}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{item.message}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{new Date(item.created_at).toLocaleString()}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User Profile */}
           <div className="flex items-center gap-1 sm:gap-2 pl-1 sm:pl-2 lg:pl-3 border-l border-gray-200 dark:border-slate-700">

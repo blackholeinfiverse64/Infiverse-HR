@@ -530,6 +530,10 @@ class JobApplication(BaseModel):
     job_id: str  # Changed from int to str for MongoDB ObjectId
     cover_letter: Optional[str] = None
 
+
+class RequiredDocumentsRequest(BaseModel):
+    document_types: List[str] = Field(default_factory=list)
+
 class PerJobNotificationRequest(BaseModel):
     candidate_ids: List[str]
     notification_type: str
@@ -2137,6 +2141,96 @@ async def _client_all_job_ids_for_dashboard(db, client_id: str) -> List[str]:
             seen.add(jid)
             own_ids.append(jid)
     return own_ids
+
+
+DOCUMENT_LABELS: Dict[str, str] = {
+    "resume": "CV/Resume",
+    "nda": "NDA",
+}
+
+ALLOWED_DOCUMENT_CONTENT_TYPES: Dict[str, set] = {
+    "resume": {
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    },
+    "nda": {
+        "application/pdf",
+    },
+}
+
+MAX_DOCUMENT_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _normalize_required_documents(raw_docs: Any) -> List[str]:
+    """Normalize and validate requested document type list."""
+    if not isinstance(raw_docs, list):
+        return []
+    out: List[str] = []
+    seen = set()
+    for item in raw_docs:
+        key = str(item or "").strip().lower()
+        if key in DOCUMENT_LABELS and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
+def _sanitize_uploaded_documents(raw_map: Any) -> Dict[str, Dict[str, Any]]:
+    """Return a safe map for API responses."""
+    if not isinstance(raw_map, dict):
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for doc_type, value in raw_map.items():
+        key = str(doc_type or "").strip().lower()
+        if key not in DOCUMENT_LABELS or not isinstance(value, dict):
+            continue
+        out[key] = {
+            "document_id": value.get("document_id"),
+            "filename": value.get("filename"),
+            "content_type": value.get("content_type"),
+            "size_bytes": value.get("size_bytes"),
+            "uploaded_at": value.get("uploaded_at"),
+        }
+    return out
+
+
+def _get_auth_jwt_context(auth: dict) -> Dict[str, str]:
+    """Extract role/user_id from JWT auth or raise 403."""
+    if auth.get("type") != "jwt_token":
+        raise HTTPException(status_code=403, detail="This endpoint requires JWT authentication.")
+    role = str(auth.get("role") or "").strip()
+    user_id = str(auth.get("user_id") or auth.get("sub") or "").strip()
+    if not role or not user_id:
+        raise HTTPException(status_code=403, detail="Invalid authentication context.")
+    return {"role": role, "user_id": user_id}
+
+
+async def _create_portal_notification(
+    db,
+    *,
+    recipient_role: str,
+    recipient_user_id: str,
+    title: str,
+    message: str,
+    kind: str = "info",
+    payload: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Create an in-app notification item for portal bell dropdowns."""
+    now = datetime.now(timezone.utc)
+    doc = {
+        "recipient_role": recipient_role,
+        "recipient_user_id": recipient_user_id,
+        "title": title,
+        "message": message,
+        "kind": kind,
+        "payload": payload or {},
+        "is_read": False,
+        "created_at": now,
+        "read_at": None,
+    }
+    result = await db.portal_notifications.insert_one(doc)
+    return str(result.inserted_id)
 
 
 @app.get("/v1/candidates/autocomplete", tags=["Candidate Management"])
@@ -5701,6 +5795,276 @@ async def get_recruiter_jobs(auth=Depends(get_auth)):
         return {"jobs": [], "count": 0, "error": str(e)}
 
 
+@app.get("/v1/client/applicants", tags=["Client Portal API"])
+async def get_client_applicants(auth=Depends(get_auth)):
+    """List all applicants across the authenticated client's jobs with document workflow metadata."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "client":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for clients")
+
+    db = await get_mongo_db()
+    job_ids = await _client_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if not job_ids:
+        return {"applicants": [], "count": 0}
+
+    cursor = db.job_applications.find({"job_id": {"$in": job_ids}}).sort("applied_date", -1).limit(2000)
+    applications = await cursor.to_list(length=2000)
+    if not applications:
+        return {"applicants": [], "count": 0}
+
+    candidate_ids = list({str(a.get("candidate_id")) for a in applications if a.get("candidate_id")})
+    candidate_object_ids: List[ObjectId] = []
+    for cid in candidate_ids:
+        if ObjectId.is_valid(cid):
+            candidate_object_ids.append(ObjectId(cid))
+
+    candidate_docs = []
+    if candidate_object_ids:
+        candidate_docs = await db.candidates.find({"_id": {"$in": candidate_object_ids}}).to_list(length=len(candidate_object_ids))
+    candidate_by_id = {str(c["_id"]): c for c in candidate_docs}
+
+    job_object_ids = [ObjectId(j) for j in job_ids if ObjectId.is_valid(j)]
+    jobs_docs = await db.jobs.find({"_id": {"$in": job_object_ids}}).to_list(length=len(job_object_ids))
+    jobs_by_id = {str(j["_id"]): j for j in jobs_docs}
+
+    out = []
+    for app_doc in applications:
+        application_id = str(app_doc["_id"])
+        candidate_id = str(app_doc.get("candidate_id") or "")
+        job_id = str(app_doc.get("job_id") or "")
+        candidate = candidate_by_id.get(candidate_id, {})
+        job = jobs_by_id.get(job_id, {})
+        out.append({
+            "application_id": application_id,
+            "job_id": job_id,
+            "job_title": job.get("title"),
+            "status": app_doc.get("status") or "applied",
+            "applied_date": app_doc.get("applied_date").isoformat() if app_doc.get("applied_date") else None,
+            "candidate_id": candidate_id,
+            "candidate_name": candidate.get("name"),
+            "candidate_email": candidate.get("email"),
+            "candidate_phone": candidate.get("phone"),
+            "candidate_location": candidate.get("location"),
+            "required_documents": _normalize_required_documents(app_doc.get("required_documents")),
+            "documents_uploaded": _sanitize_uploaded_documents(app_doc.get("documents_uploaded")),
+        })
+    return {"applicants": out, "count": len(out)}
+
+
+@app.post("/v1/client/applications/{application_id}/required-documents", tags=["Client Portal API"])
+async def set_application_required_documents(
+    application_id: str,
+    body: RequiredDocumentsRequest,
+    auth=Depends(get_auth),
+):
+    """Set required document list for an application and notify the candidate."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "client":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for clients")
+    required_docs = _normalize_required_documents(body.document_types)
+    if not required_docs:
+        raise HTTPException(status_code=400, detail="Select at least one valid document (resume, nda).")
+    if not ObjectId.is_valid(application_id):
+        raise HTTPException(status_code=400, detail="Invalid application id.")
+
+    db = await get_mongo_db()
+    app_doc = await db.job_applications.find_one({"_id": ObjectId(application_id)})
+    if not app_doc:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    job_id = str(app_doc.get("job_id") or "")
+    allowed_job_ids = await _client_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if job_id not in allowed_job_ids:
+        raise HTTPException(status_code=403, detail="You can only manage applicants for your own jobs.")
+
+    now = datetime.now(timezone.utc)
+    await db.job_applications.update_one(
+        {"_id": app_doc["_id"]},
+        {
+            "$set": {
+                "required_documents": required_docs,
+                "required_documents_updated_at": now,
+                "required_documents_updated_by": ctx["user_id"],
+                "updated_at": now,
+            }
+        },
+    )
+
+    candidate_id = str(app_doc.get("candidate_id") or "")
+    job_doc = await db.jobs.find_one({"_id": ObjectId(job_id)}) if ObjectId.is_valid(job_id) else await db.jobs.find_one({"id": job_id})
+    job_title = (job_doc or {}).get("title") or "your application"
+    label_text = ", ".join(DOCUMENT_LABELS[d] for d in required_docs)
+    await _create_portal_notification(
+        db,
+        recipient_role="candidate",
+        recipient_user_id=candidate_id,
+        title="Documents requested by client",
+        message=f"Please upload {label_text} for {job_title}.",
+        kind="document_request",
+        payload={
+            "application_id": application_id,
+            "job_id": job_id,
+            "job_title": job_title,
+            "required_documents": required_docs,
+        },
+    )
+
+    return {
+        "ok": True,
+        "application_id": application_id,
+        "required_documents": required_docs,
+    }
+
+
+@app.get("/v1/portal/notifications", tags=["Notifications"])
+async def get_portal_notifications(limit: int = 30, auth=Depends(get_auth)):
+    """Get in-app notifications for the authenticated JWT user."""
+    ctx = _get_auth_jwt_context(auth)
+    db = await get_mongo_db()
+    lim = max(1, min(limit, 100))
+    query = {"recipient_role": ctx["role"], "recipient_user_id": ctx["user_id"]}
+    cursor = db.portal_notifications.find(query).sort("created_at", -1).limit(lim)
+    rows = await cursor.to_list(length=lim)
+    unread_count = await db.portal_notifications.count_documents({**query, "is_read": False})
+    notifications = []
+    for row in rows:
+        notifications.append({
+            "id": str(row["_id"]),
+            "title": row.get("title"),
+            "message": row.get("message"),
+            "kind": row.get("kind") or "info",
+            "is_read": bool(row.get("is_read")),
+            "created_at": row.get("created_at").isoformat() if row.get("created_at") else None,
+            "payload": row.get("payload") or {},
+        })
+    return {"notifications": notifications, "unread_count": unread_count}
+
+
+@app.post("/v1/portal/notifications/{notification_id}/read", tags=["Notifications"])
+async def mark_portal_notification_read(notification_id: str, auth=Depends(get_auth)):
+    """Mark a single in-app notification as read."""
+    ctx = _get_auth_jwt_context(auth)
+    if not ObjectId.is_valid(notification_id):
+        raise HTTPException(status_code=400, detail="Invalid notification id.")
+    db = await get_mongo_db()
+    res = await db.portal_notifications.update_one(
+        {
+            "_id": ObjectId(notification_id),
+            "recipient_role": ctx["role"],
+            "recipient_user_id": ctx["user_id"],
+        },
+        {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc)}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found.")
+    return {"ok": True}
+
+
+@app.post("/v1/portal/notifications/read-all", tags=["Notifications"])
+async def mark_all_portal_notifications_read(auth=Depends(get_auth)):
+    """Mark all in-app notifications as read for the authenticated JWT user."""
+    ctx = _get_auth_jwt_context(auth)
+    db = await get_mongo_db()
+    await db.portal_notifications.update_many(
+        {"recipient_role": ctx["role"], "recipient_user_id": ctx["user_id"], "is_read": False},
+        {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc)}},
+    )
+    return {"ok": True}
+
+
+@app.post("/v1/candidate/applications/{application_id}/documents/{document_type}", tags=["Candidate Portal"])
+async def upload_candidate_application_document(
+    application_id: str,
+    document_type: str,
+    file: UploadFile = File(...),
+    auth=Depends(get_auth),
+):
+    """Upload requested application document (resume / nda), persist in DB, and notify client."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "candidate":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for candidates")
+    if not ObjectId.is_valid(application_id):
+        raise HTTPException(status_code=400, detail="Invalid application id.")
+    doc_key = str(document_type or "").strip().lower()
+    if doc_key not in DOCUMENT_LABELS:
+        raise HTTPException(status_code=400, detail="Invalid document type. Use 'resume' or 'nda'.")
+
+    db = await get_mongo_db()
+    app_doc = await db.job_applications.find_one({"_id": ObjectId(application_id)})
+    if not app_doc:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    candidate_id = str(app_doc.get("candidate_id") or "")
+    if candidate_id != ctx["user_id"]:
+        raise HTTPException(status_code=403, detail="You can only upload documents for your own applications.")
+
+    required_docs = _normalize_required_documents(app_doc.get("required_documents"))
+    if doc_key not in required_docs:
+        raise HTTPException(status_code=400, detail=f"This application has not requested {DOCUMENT_LABELS[doc_key]}.")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(content) > MAX_DOCUMENT_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File is too large. Max allowed size is 10 MB.")
+
+    content_type = (file.content_type or "").strip().lower()
+    allowed_content_types = ALLOWED_DOCUMENT_CONTENT_TYPES.get(doc_key, set())
+    if content_type not in allowed_content_types:
+        raise HTTPException(status_code=400, detail="Unsupported file type for selected document.")
+
+    now = datetime.now(timezone.utc)
+    encoded = base64.b64encode(content).decode("ascii")
+    doc_insert = {
+        "application_id": application_id,
+        "job_id": str(app_doc.get("job_id") or ""),
+        "candidate_id": candidate_id,
+        "document_type": doc_key,
+        "label": DOCUMENT_LABELS[doc_key],
+        "filename": file.filename or f"{doc_key}.bin",
+        "content_type": content_type,
+        "size_bytes": len(content),
+        "file_base64": encoded,
+        "uploaded_at": now,
+    }
+    doc_result = await db.application_documents.insert_one(doc_insert)
+    doc_id = str(doc_result.inserted_id)
+
+    doc_meta = {
+        "document_id": doc_id,
+        "filename": doc_insert["filename"],
+        "content_type": content_type,
+        "size_bytes": len(content),
+        "uploaded_at": now.isoformat(),
+    }
+    await db.job_applications.update_one(
+        {"_id": app_doc["_id"]},
+        {"$set": {f"documents_uploaded.{doc_key}": doc_meta, "updated_at": now}},
+    )
+
+    job_id = str(app_doc.get("job_id") or "")
+    job_doc = await db.jobs.find_one({"_id": ObjectId(job_id)}) if ObjectId.is_valid(job_id) else await db.jobs.find_one({"id": job_id})
+    if job_doc:
+        client_id = str(job_doc.get("client_id") or "").strip()
+        if client_id:
+            candidate_doc = await db.candidates.find_one({"_id": ObjectId(candidate_id)}) if ObjectId.is_valid(candidate_id) else None
+            candidate_name = (candidate_doc or {}).get("name") or "A candidate"
+            await _create_portal_notification(
+                db,
+                recipient_role="client",
+                recipient_user_id=client_id,
+                title="Candidate uploaded requested document",
+                message=f"{candidate_name} uploaded {DOCUMENT_LABELS[doc_key]} for {job_doc.get('title') or 'a job'}.",
+                kind="document_uploaded",
+                payload={
+                    "application_id": application_id,
+                    "job_id": job_id,
+                    "candidate_id": candidate_id,
+                    "document_type": doc_key,
+                },
+            )
+
+    return {"ok": True, "document_type": doc_key, "document": doc_meta}
+
+
 @app.get("/v1/recruiter/stats", tags=["Recruiter Portal"])
 async def get_recruiter_stats(auth=Depends(get_auth)):
     """Get Recruiter Dashboard Statistics. All metrics are data-isolated: only jobs posted by the logged-in recruiter (recruiter_id from JWT) and related applicants, interviews, offers, and feedback are counted."""
@@ -5775,6 +6139,10 @@ async def get_candidate_applications(candidate_id: str, auth = Depends(get_auth)
     """Get Candidate Applications"""
     try:
         db = await get_mongo_db()
+        if auth.get("type") == "jwt_token" and auth.get("role") == "candidate":
+            token_candidate_id = str(auth.get("user_id") or auth.get("sub") or "")
+            if token_candidate_id and token_candidate_id != str(candidate_id):
+                raise HTTPException(status_code=403, detail="You can only view your own applications")
         
         # Try multiple query strategies to find applications
         applications_list = []
@@ -5829,7 +6197,9 @@ async def get_candidate_applications(candidate_id: str, auth = Depends(get_auth)
                 "location": job_doc.get("location") if job_doc else None,
                 "experience_level": job_doc.get("experience_level") if job_doc else None,
                 "company": "BHIV Partner",
-                "updated_at": doc.get("applied_date").isoformat() if doc.get("applied_date") else None
+                "updated_at": doc.get("applied_date").isoformat() if doc.get("applied_date") else None,
+                "required_documents": _normalize_required_documents(doc.get("required_documents")),
+                "documents_uploaded": _sanitize_uploaded_documents(doc.get("documents_uploaded")),
             })
         
         return {"applications": applications, "count": len(applications)}

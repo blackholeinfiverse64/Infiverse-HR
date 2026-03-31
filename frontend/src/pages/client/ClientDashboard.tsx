@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getClientJobs, getClientStats, getClientProfile, getJobById, deleteJob, Job, ClientStats } from '../../services/api'
+import {
+  getClientJobs,
+  getClientStats,
+  getClientProfile,
+  getJobById,
+  deleteJob,
+  getClientApplicants,
+  setClientRequiredDocuments,
+  type ApplicationDocumentType,
+  type ClientApplicantRecord,
+  Job,
+  ClientStats,
+} from '../../services/api'
 import StatsCard from '../../components/StatsCard'
 import Loading from '../../components/Loading'
 import Table from '../../components/Table'
@@ -71,9 +83,9 @@ export default function ClientDashboard() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [stats, setStats] = useState<ClientStats | null>(null)
   const [connectionId, setConnectionId] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'jobs'>(() => {
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'jobs' | 'applicants'>(() => {
     const saved = localStorage.getItem('clientDashboardActiveTab')
-    return (saved === 'jobs' || saved === 'pipeline') ? saved : 'pipeline'
+    return (saved === 'jobs' || saved === 'pipeline' || saved === 'applicants') ? saved : 'pipeline'
   })
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [canManageSelectedJob, setCanManageSelectedJob] = useState(false)
@@ -82,6 +94,10 @@ export default function ClientDashboard() {
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
   const [jobsError, setJobsError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [applicants, setApplicants] = useState<ClientApplicantRecord[]>([])
+  const [loadingApplicants, setLoadingApplicants] = useState(false)
+  const [selectedDocumentsByApp, setSelectedDocumentsByApp] = useState<Record<string, ApplicationDocumentType[]>>({})
+  const [submittingDocumentsForApp, setSubmittingDocumentsForApp] = useState<string | null>(null)
 
   useEffect(() => {
     loadDashboardData()
@@ -120,6 +136,35 @@ export default function ClientDashboard() {
       setLoading(false)
     }
   }
+
+  const loadApplicants = async () => {
+    try {
+      setLoadingApplicants(true)
+      const rows = await getClientApplicants()
+      setApplicants(Array.isArray(rows) ? rows : [])
+      setSelectedDocumentsByApp((prev) => {
+        const next: Record<string, ApplicationDocumentType[]> = {}
+        for (const app of rows || []) {
+          const existing = prev[app.application_id]
+          next[app.application_id] = existing && existing.length > 0
+            ? existing
+            : (app.required_documents || [])
+        }
+        return next
+      })
+    } catch (error) {
+      console.error('Failed to load applicants:', error)
+      setApplicants([])
+    } finally {
+      setLoadingApplicants(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'applicants') {
+      loadApplicants()
+    }
+  }, [activeTab])
 
   const copyConnectionId = async () => {
     if (!connectionId) return
@@ -206,6 +251,36 @@ export default function ClientDashboard() {
       toast.error(msg)
     } finally {
       setDeletingJobId(null)
+    }
+  }
+
+  const toggleDocumentSelection = (applicationId: string, docType: ApplicationDocumentType) => {
+    setSelectedDocumentsByApp((prev) => {
+      const current = prev[applicationId] || []
+      const exists = current.includes(docType)
+      const next = exists
+        ? current.filter((d) => d !== docType)
+        : [...current, docType]
+      return { ...prev, [applicationId]: next }
+    })
+  }
+
+  const handleSubmitRequiredDocuments = async (applicationId: string) => {
+    const selected = selectedDocumentsByApp[applicationId] || []
+    if (selected.length === 0) {
+      toast.error('Select at least one document: CV/Resume or NDA')
+      return
+    }
+    try {
+      setSubmittingDocumentsForApp(applicationId)
+      await setClientRequiredDocuments(applicationId, selected)
+      toast.success('Document request sent to candidate')
+      await loadApplicants()
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Failed to send document request'
+      toast.error(msg)
+    } finally {
+      setSubmittingDocumentsForApp(null)
     }
   }
 
@@ -352,6 +427,16 @@ export default function ClientDashboard() {
             >
               Active Job Openings
             </button>
+            <button
+              onClick={() => setActiveTab('applicants')}
+              className={`px-4 sm:px-6 py-3 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'applicants'
+                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              View Applicants
+            </button>
           </div>
         </div>
 
@@ -464,6 +549,97 @@ export default function ClientDashboard() {
               <Loading message="Loading jobs..." />
             ) : (
               <ClientJobsTable jobs={jobs} loading={loading} onViewDetails={handleOpenJobDetails} />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'applicants' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h2 className="text-lg sm:text-xl font-heading font-bold text-gray-900 dark:text-white">Applicants</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  Review candidates who applied to your jobs and request required documents.
+                </p>
+              </div>
+              <button
+                onClick={() => void loadApplicants()}
+                disabled={loadingApplicants}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 text-sm"
+              >
+                <svg className={`w-4 h-4 ${loadingApplicants ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+
+            {loadingApplicants ? (
+              <Loading message="Loading applicants..." />
+            ) : applicants.length === 0 ? (
+              <div className="p-8 rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-center">
+                <p className="text-gray-500 dark:text-gray-400">No applicants found for your jobs yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {applicants.map((applicant) => {
+                  const selectedDocs = selectedDocumentsByApp[applicant.application_id] || []
+                  const uploadedKeys = Object.keys(applicant.documents_uploaded || {})
+                  return (
+                    <div key={applicant.application_id} className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{applicant.candidate_name || 'Candidate'}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{applicant.candidate_email || 'No email'}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Applied for <span className="font-medium text-gray-700 dark:text-gray-300">{applicant.job_title || 'Job'}</span>
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Status: {applicant.status} • Applied: {applicant.applied_date ? new Date(applicant.applied_date).toLocaleDateString() : '—'}
+                          </p>
+                        </div>
+
+                        <div className="w-full lg:w-[340px]">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Upload Documents</p>
+                          <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 space-y-2 bg-gray-50 dark:bg-slate-900/40">
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={selectedDocs.includes('resume')}
+                                onChange={() => toggleDocumentSelection(applicant.application_id, 'resume')}
+                                className="rounded border-gray-300 dark:border-slate-600"
+                              />
+                              CV / Resume
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={selectedDocs.includes('nda')}
+                                onChange={() => toggleDocumentSelection(applicant.application_id, 'nda')}
+                                className="rounded border-gray-300 dark:border-slate-600"
+                              />
+                              NDA
+                            </label>
+                          </div>
+                          <button
+                            onClick={() => void handleSubmitRequiredDocuments(applicant.application_id)}
+                            disabled={submittingDocumentsForApp === applicant.application_id}
+                            className="mt-3 w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold transition-colors"
+                          >
+                            {submittingDocumentsForApp === applicant.application_id ? 'Submitting...' : 'Submit Request'}
+                          </button>
+
+                          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                            Requested: {applicant.required_documents?.length ? applicant.required_documents.join(', ') : 'None'}
+                            <br />
+                            Uploaded: {uploadedKeys.length ? uploadedKeys.join(', ') : 'None'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         )}
