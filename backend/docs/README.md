@@ -1,162 +1,93 @@
-# 📚 BHIV HR Platform - Documentation Index
+# Backend Documentation Index
 
-**Complete Documentation Suite**  
-**Updated**: January 30, 2026  
-**Version**: v4.3.0  
-**Status**: ✅ All Documentation Current
+This index points to the current backend documentation for INFIVERSE-HR.
 
----
+## 0 knowledge reading path (recommended)
 
-## 🚀 Quick Start
+Read in this exact order:
 
-### **For New Developers**
-1. Start here: [Quick Start Guide](guides/QUICK_START_GUIDE.md)
-2. Review: [Project Structure](architecture/PROJECT_STRUCTURE.md)
-3. Setup: [Backend README](../README.md)
+1. `guides/QUICK_START_GUIDE.md` (run services first)
+2. `api/API_DOCUMENTATION.md` (know endpoints and auth)
+3. `guides/TROUBLESHOOTING_GUIDE.md` (fix common failures fast)
+4. `../services/gateway/README.md` (main API owner)
+5. `../services/agent/README.md` (matching service)
+6. `../services/langgraph/README.md` (workflow automation service)
+7. `../../README.md` (full project context)
 
-### **For API Integration**
-1. [Complete API Documentation](api/API_DOCUMENTATION.md) - All 113 endpoints
-2. [API Testing Guide](testing/API_TESTING_GUIDE.md)
-3. [Postman Collection](../handover/postman/postman_collection.json)
+## Start here
 
-### **For System Understanding**
-1. [Services Architecture Guide](guides/SERVICES_GUIDE.md) - How services work
-2. [Database Documentation](database/DATABASE_DOCUMENTATION.md) - MongoDB collections
-3. [Architecture Overview](architecture/PROJECT_STRUCTURE.md)
+1. `guides/QUICK_START_GUIDE.md`
+2. `architecture/PROJECT_STRUCTURE.md`
+3. `api/API_DOCUMENTATION.md`
+4. `guides/TROUBLESHOOTING_GUIDE.md`
 
----
+## Service docs
 
-## 📁 Documentation Structure
+- Gateway: `../services/gateway/README.md`
+- Agent: `../services/agent/README.md`
+- LangGraph: `../services/langgraph/README.md`
 
-### **📖 Guides** (`guides/`)
-User and developer guides for setup, usage, and troubleshooting.
+## Cross-stack docs
 
-| Document | Description |
-|----------|-------------|
-| [QUICK_START_GUIDE.md](guides/QUICK_START_GUIDE.md) | 5-minute setup guide |
-| [CURRENT_FEATURES.md](guides/CURRENT_FEATURES.md) | Complete feature list |
-| [USER_GUIDE.md](guides/USER_GUIDE.md) | User manual |
-| [SERVICES_GUIDE.md](guides/SERVICES_GUIDE.md) | Services architecture |
-| [TROUBLESHOOTING_GUIDE.md](guides/TROUBLESHOOTING_GUIDE.md) | Common issues and solutions |
-| [DEPLOYMENT_GUIDE.md](guides/DEPLOYMENT_GUIDE.md) | Deployment instructions |
-| [COMMUNICATION_SETUP_GUIDE.md](guides/COMMUNICATION_SETUP_GUIDE.md) | Email/WhatsApp/Telegram setup |
-| [LANGGRAPH_INTEGRATION_GUIDE.md](guides/LANGGRAPH_INTEGRATION_GUIDE.md) | LangGraph workflow setup |
-| [WHATSAPP_COMPREHENSIVE_SETUP_GUIDE.md](guides/WHATSAPP_COMPREHENSIVE_SETUP_GUIDE.md) | WhatsApp integration |
+- Project overview: `../../README.md`
+- Root quick start: `../../QUICK_START.md`
+- Frontend docs: `../../frontend/README.md`
+- Frontend auth deep dive: `../../frontend/AUTHENTICATION_STRUCTURE.md`
 
-### **🏗️ Architecture** (`architecture/`)
-System architecture and structure documentation.
+## Full file locations
 
-| Document | Description |
-|----------|-------------|
-| [PROJECT_STRUCTURE.md](architecture/PROJECT_STRUCTURE.md) | Complete project organization |
-| [DEPLOYMENT_STATUS.md](architecture/DEPLOYMENT_STATUS.md) | Deployment information |
-| [PROJECT_TREE_STRUCTURE.md](architecture/PROJECT_TREE_STRUCTURE.md) | File tree structure |
+- `INFIVERSE-HR/backend/docs/README.md`
+- `INFIVERSE-HR/backend/services/gateway/README.md`
+- `INFIVERSE-HR/backend/services/agent/README.md`
+- `INFIVERSE-HR/backend/services/langgraph/README.md`
+- `INFIVERSE-HR/README.md`
 
-### **📡 API** (`api/`)
-API documentation and reference.
+## Documentation sections
 
-| Document | Description |
-|----------|-------------|
-| [API_DOCUMENTATION.md](api/API_DOCUMENTATION.md) | Complete API reference (113 endpoints) |
+### Guides (`guides/`)
 
-### **🗄️ Database** (`database/`)
-Database documentation and setup guides.
+- `QUICK_START_GUIDE.md` - backend bootstrapping and verification
+- `TROUBLESHOOTING_GUIDE.md` - common failures and fixes
+- `SERVICES_GUIDE.md` - service responsibilities and interactions
+- `DEPLOYMENT_GUIDE.md` - deployment and env strategy
 
-| Document | Description |
-|----------|-------------|
-| [DATABASE_DOCUMENTATION.md](database/DATABASE_DOCUMENTATION.md) | MongoDB collections and schemas |
-| [CONNECTION_DIAGRAM.md](database/CONNECTION_DIAGRAM.md) | Database connection guide |
-| [DBEAVER_SETUP_GUIDE.md](database/DBEAVER_SETUP_GUIDE.md) | Database client setup |
-| [MONGODB_QUICK_QUERIES.md](database/MONGODB_QUICK_QUERIES.md) | Useful MongoDB queries |
+### API (`api/`)
 
-### **🔒 Security** (`security/`)
-Security documentation and audits.
+- `API_DOCUMENTATION.md` - backend API reference (gateway + agent + langgraph)
 
-| Document | Description |
-|----------|-------------|
-| [SECURITY_AUDIT.md](security/SECURITY_AUDIT.md) | Security analysis |
-| [API_KEYS_SUMMARY.md](security/API_KEYS_SUMMARY.md) | API key management |
-| [BIAS_ANALYSIS.md](security/BIAS_ANALYSIS.md) | AI bias analysis |
+### Architecture (`architecture/`)
 
-### **🧪 Testing** (`testing/`)
-Testing guides and strategies.
+- `PROJECT_STRUCTURE.md` - codebase structure and data flows
 
-| Document | Description |
-|----------|-------------|
-| [API_TESTING_GUIDE.md](testing/API_TESTING_GUIDE.md) | API testing guide |
-| [COMPREHENSIVE_TESTING_GUIDE.md](testing/COMPREHENSIVE_TESTING_GUIDE.md) | Complete testing strategy |
-| [TRIPLE_AUTHENTICATION_TESTING_GUIDE.md](testing/TRIPLE_AUTHENTICATION_TESTING_GUIDE.md) | Auth testing |
+### Database (`database/`)
 
-### **📊 Reports** (`reports/`)
-Analysis and audit reports.
+- `DATABASE_DOCUMENTATION.md`
+- `MONGODB_COLLECTIONS.md`
+- `MONGODB_ATLAS_SETUP.md`
+- `MONGODB_QUICK_QUERIES.md`
 
-| Document | Description |
-|----------|-------------|
-| [CHANGES_LOG.md](reports/CHANGES_LOG.md) | Change history |
-| [CLEANUP_SUMMARY.md](reports/CLEANUP_SUMMARY.md) | Cleanup activities |
+### Security (`security/`)
 
-### **📈 Analysis** (`analysis/`)
-System analysis and documentation updates.
+- `SECURITY_AUDIT.md`
+- `API_KEYS_SUMMARY.md`
+- `AUDIT_AND_TRACEABILITY.md`
 
-| Document | Description |
-|----------|-------------|
-| [DOCUMENTATION_UPDATE_SUMMARY.md](analysis/DOCUMENTATION_UPDATE_SUMMARY.md) | Documentation update summary |
-| [REFLECTION.md](analysis/REFLECTION.md) | Analysis reflections |
+### Testing (`testing/`)
 
----
+- `API_TESTING_GUIDE.md`
+- `COMPREHENSIVE_TESTING_GUIDE.md`
+- `TRIPLE_AUTHENTICATION_TESTING_GUIDE.md`
 
-## 🔗 Key Resources
+## Local docs URLs when services run
 
-### **Local Development URLs**
-- **API Gateway**: http://localhost:8000/docs
-- **AI Agent**: http://localhost:9000/docs
-- **LangGraph**: http://localhost:9001/docs
-- **HR Portal**: Docker only (Reference)
-- **Client Portal**: Docker only (Reference)
-- **Candidate Portal**: Docker only (Reference)
+- Gateway docs: `http://localhost:8000/docs`
+- Agent docs: `http://localhost:9000/docs`
+- LangGraph docs: `http://localhost:9001/docs`
 
-### **Database**
-- **Type**: MongoDB Atlas (Cloud)
-- **Collections**: 17+ collections
-- **Connection**: Set `DATABASE_URL` in `.env`
+## Notes
 
-### **Testing**
-- **Test Suite**: `tests/comprehensive_endpoint_tests.py`
-- **Postman**: `handover/postman/postman_collection.json`
-- **Test Results**: `tests/test_results.json`
-
----
-
-## 📝 Important Notes
-
-### **Current System Status**
-- ✅ **6 Services**: Gateway (80), Agent (6), LangGraph (25), Portals (Reference)
-- ✅ **111 Endpoints**: Total across all services
-- ✅ **Database**: MongoDB Atlas (PostgreSQL is legacy reference only)
-- ✅ **Portals**: Streamlit portals available via Docker only, for reference
-
-### **Legacy References**
-- **PostgreSQL**: Schemas in `services/db/` are for reference only
-- **Ishan's Folder**: `Ishan's_AI_HR_System-main/` is for reference (integration complete)
-- **Runtime Core**: `runtime-core/` is for reference
-
-### **Documentation Standards**
-- All URLs use `localhost` (no production URLs)
-- Database references are MongoDB Atlas
-- Endpoint count: 113 total
-- Services: 3 core (Gateway, Agent, LangGraph) + 3 portals (Reference)
-
----
-
-## 🆘 Getting Help
-
-1. **Setup Issues**: [Troubleshooting Guide](guides/TROUBLESHOOTING_GUIDE.md)
-2. **API Questions**: [API Documentation](api/API_DOCUMENTATION.md)
-3. **Database Issues**: [Database Documentation](database/DATABASE_DOCUMENTATION.md)
-4. **Service Problems**: [Services Guide](guides/SERVICES_GUIDE.md)
-
----
-
-**Status**: ✅ All Documentation Current | **Updated**: January 30, 2026 | **Version**: v4.3.0
-
-*Built with Integrity, Honesty, Discipline, Hard Work & Gratitude*
+- The canonical route inventory comes from each service OpenAPI (`/docs` and `/openapi.json`).
+- Keep docs aligned to implemented routes in:
+  - `backend/services/gateway/app/main.py`
+  - `backend/services/agent/app.py`
+  - `backend/services/langgraph/app/main.py`
