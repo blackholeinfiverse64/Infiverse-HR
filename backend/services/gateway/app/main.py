@@ -2143,6 +2143,15 @@ async def _client_all_job_ids_for_dashboard(db, client_id: str) -> List[str]:
     return own_ids
 
 
+async def _recruiter_all_job_ids_for_dashboard(db, recruiter_id: str) -> List[str]:
+    """All job IDs (any status) for recruiter dashboard."""
+    if not recruiter_id or not str(recruiter_id).strip():
+        return []
+    cursor = db.jobs.find({"recruiter_id": str(recruiter_id).strip()}, {"_id": 1}).limit(1000)
+    jobs_list = await cursor.to_list(length=1000)
+    return [str(doc["_id"]) for doc in jobs_list]
+
+
 DOCUMENT_LABELS: Dict[str, str] = {
     "resume": "CV/Resume",
     "nda": "NDA",
@@ -5970,6 +5979,181 @@ async def get_client_application_document(
     return Response(content=binary, media_type=content_type, headers=headers)
 
 
+@app.get("/v1/recruiter/applicants", tags=["Recruiter Portal"])
+async def get_recruiter_applicants(auth=Depends(get_auth)):
+    """List all applicants across the authenticated recruiter's jobs with document workflow metadata."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "recruiter":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for recruiters")
+
+    db = await get_mongo_db()
+    job_ids = await _recruiter_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if not job_ids:
+        return {"applicants": [], "count": 0}
+
+    cursor = db.job_applications.find({"job_id": {"$in": job_ids}}).sort("applied_date", -1).limit(2000)
+    applications = await cursor.to_list(length=2000)
+    if not applications:
+        return {"applicants": [], "count": 0}
+
+    candidate_ids = list({str(a.get("candidate_id")) for a in applications if a.get("candidate_id")})
+    candidate_object_ids: List[ObjectId] = []
+    for cid in candidate_ids:
+        if ObjectId.is_valid(cid):
+            candidate_object_ids.append(ObjectId(cid))
+
+    candidate_docs = []
+    if candidate_object_ids:
+        candidate_docs = await db.candidates.find({"_id": {"$in": candidate_object_ids}}).to_list(length=len(candidate_object_ids))
+    candidate_by_id = {str(c["_id"]): c for c in candidate_docs}
+
+    job_object_ids = [ObjectId(j) for j in job_ids if ObjectId.is_valid(j)]
+    jobs_docs = await db.jobs.find({"_id": {"$in": job_object_ids}}).to_list(length=len(job_object_ids))
+    jobs_by_id = {str(j["_id"]): j for j in jobs_docs}
+
+    out = []
+    for app_doc in applications:
+        application_id = str(app_doc["_id"])
+        candidate_id = str(app_doc.get("candidate_id") or "")
+        job_id = str(app_doc.get("job_id") or "")
+        candidate = candidate_by_id.get(candidate_id, {})
+        job = jobs_by_id.get(job_id, {})
+        out.append({
+            "application_id": application_id,
+            "job_id": job_id,
+            "job_title": job.get("title"),
+            "status": app_doc.get("status") or "applied",
+            "applied_date": app_doc.get("applied_date").isoformat() if app_doc.get("applied_date") else None,
+            "candidate_id": candidate_id,
+            "candidate_name": candidate.get("name"),
+            "candidate_email": candidate.get("email"),
+            "candidate_phone": candidate.get("phone"),
+            "candidate_location": candidate.get("location"),
+            "required_documents": _normalize_required_documents(app_doc.get("required_documents")),
+            "required_documents_updated_at": app_doc.get("required_documents_updated_at").isoformat() if app_doc.get("required_documents_updated_at") else None,
+            "documents_uploaded": _sanitize_uploaded_documents(app_doc.get("documents_uploaded")),
+        })
+    return {"applicants": out, "count": len(out)}
+
+
+@app.post("/v1/recruiter/applications/{application_id}/required-documents", tags=["Recruiter Portal"])
+async def set_recruiter_application_required_documents(
+    application_id: str,
+    body: RequiredDocumentsRequest,
+    auth=Depends(get_auth),
+):
+    """Set required document list for an application under recruiter-owned jobs and notify candidate."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "recruiter":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for recruiters")
+    required_docs = _normalize_required_documents(body.document_types)
+    if not required_docs:
+        raise HTTPException(status_code=400, detail="Select at least one valid document (resume, nda).")
+    if not ObjectId.is_valid(application_id):
+        raise HTTPException(status_code=400, detail="Invalid application id.")
+
+    db = await get_mongo_db()
+    app_doc = await db.job_applications.find_one({"_id": ObjectId(application_id)})
+    if not app_doc:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    job_id = str(app_doc.get("job_id") or "")
+    allowed_job_ids = await _recruiter_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if job_id not in allowed_job_ids:
+        raise HTTPException(status_code=403, detail="You can only manage applicants for your own jobs.")
+
+    now = datetime.now(timezone.utc)
+    await db.job_applications.update_one(
+        {"_id": app_doc["_id"]},
+        {
+            "$set": {
+                "required_documents": required_docs,
+                "required_documents_updated_at": now,
+                "required_documents_updated_by": ctx["user_id"],
+                "updated_at": now,
+            }
+        },
+    )
+
+    candidate_id = str(app_doc.get("candidate_id") or "")
+    job_doc = await db.jobs.find_one({"_id": ObjectId(job_id)}) if ObjectId.is_valid(job_id) else await db.jobs.find_one({"id": job_id})
+    job_title = (job_doc or {}).get("title") or "your application"
+    label_text = ", ".join(DOCUMENT_LABELS[d] for d in required_docs)
+    await _create_portal_notification(
+        db,
+        recipient_role="candidate",
+        recipient_user_id=candidate_id,
+        title="Documents requested by recruiter",
+        message=f"Please upload {label_text} for {job_title}.",
+        kind="document_request",
+        payload={
+            "application_id": application_id,
+            "job_id": job_id,
+            "job_title": job_title,
+            "required_documents": required_docs,
+        },
+    )
+
+    return {
+        "ok": True,
+        "application_id": application_id,
+        "required_documents": required_docs,
+    }
+
+
+@app.get("/v1/recruiter/applications/{application_id}/documents/{document_type}", tags=["Recruiter Portal"])
+async def get_recruiter_application_document(
+    application_id: str,
+    document_type: str,
+    download: bool = False,
+    auth=Depends(get_auth),
+):
+    """View/download candidate uploaded document for an applicant in the recruiter's job."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "recruiter":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for recruiters")
+    if not ObjectId.is_valid(application_id):
+        raise HTTPException(status_code=400, detail="Invalid application id.")
+
+    doc_key = str(document_type or "").strip().lower()
+    if doc_key not in DOCUMENT_LABELS:
+        raise HTTPException(status_code=400, detail="Invalid document type. Use 'resume' or 'nda'.")
+
+    db = await get_mongo_db()
+    app_doc = await db.job_applications.find_one({"_id": ObjectId(application_id)})
+    if not app_doc:
+        raise HTTPException(status_code=404, detail="Application not found.")
+
+    job_id = str(app_doc.get("job_id") or "")
+    allowed_job_ids = await _recruiter_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if job_id not in allowed_job_ids:
+        raise HTTPException(status_code=403, detail="You can only access documents for your own applicants.")
+
+    uploaded_map = app_doc.get("documents_uploaded") or {}
+    uploaded_meta = uploaded_map.get(doc_key) if isinstance(uploaded_map, dict) else None
+    document_id = str((uploaded_meta or {}).get("document_id") or "")
+    if not document_id or not ObjectId.is_valid(document_id):
+        raise HTTPException(status_code=404, detail="Document not uploaded yet.")
+
+    blob_doc = await db.application_documents.find_one({"_id": ObjectId(document_id)})
+    if not blob_doc:
+        raise HTTPException(status_code=404, detail="Document data not found.")
+
+    encoded = str(blob_doc.get("file_base64") or "")
+    if not encoded:
+        raise HTTPException(status_code=404, detail="Document content is missing.")
+
+    try:
+        binary = base64.b64decode(encoded.encode("ascii"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Stored document content is corrupted.") from exc
+
+    filename = str(blob_doc.get("filename") or f"{doc_key}.bin").replace("\n", "_").replace("\r", "_")
+    content_type = str(blob_doc.get("content_type") or "application/octet-stream")
+    disposition = "attachment" if download else "inline"
+    headers = {"Content-Disposition": f'{disposition}; filename="{filename}"'}
+    return Response(content=binary, media_type=content_type, headers=headers)
+
+
 @app.get("/v1/portal/notifications", tags=["Notifications"])
 async def get_portal_notifications(limit: int = 30, auth=Depends(get_auth)):
     """Get in-app notifications for the authenticated JWT user."""
@@ -6121,6 +6305,24 @@ async def upload_candidate_application_document(
                 db,
                 recipient_role="client",
                 recipient_user_id=client_id,
+                title="Candidate uploaded requested document",
+                message=f"{candidate_name} uploaded {DOCUMENT_LABELS[doc_key]} for {job_doc.get('title') or 'a job'}.",
+                kind="document_uploaded",
+                payload={
+                    "application_id": application_id,
+                    "job_id": job_id,
+                    "candidate_id": candidate_id,
+                    "document_type": doc_key,
+                },
+            )
+        recruiter_id = str(job_doc.get("recruiter_id") or "").strip()
+        if recruiter_id:
+            candidate_doc = await db.candidates.find_one({"_id": ObjectId(candidate_id)}) if ObjectId.is_valid(candidate_id) else None
+            candidate_name = (candidate_doc or {}).get("name") or "A candidate"
+            await _create_portal_notification(
+                db,
+                recipient_role="recruiter",
+                recipient_user_id=recruiter_id,
                 title="Candidate uploaded requested document",
                 message=f"{candidate_name} uploaded {DOCUMENT_LABELS[doc_key]} for {job_doc.get('title') or 'a job'}.",
                 kind="document_uploaded",

@@ -94,6 +94,13 @@ export default function AppliedJobs() {
     return () => window.removeEventListener('portal-notifications-updated', onNotificationsUpdated)
   }, [loadApplications])
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void loadApplications()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [loadApplications])
+
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { color: string; label: string }> = {
       applied: { 
@@ -494,7 +501,7 @@ export default function AppliedJobs() {
                   <button
                     onClick={openUploadModal}
                     disabled={
-                      !(selectedApp.required_documents || []).some((doc) => !isDocSubmissionLocked(selectedApp, doc))
+                      requiredDocTypes.length === 0 || !(selectedApp.required_documents || []).some((doc) => !isDocSubmissionLocked(selectedApp, doc))
                     }
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
                   >
@@ -526,11 +533,12 @@ export default function AppliedJobs() {
                     const uploaded = selectedApp.documents_uploaded?.[docType]
                     const requested = requiredDocTypes.includes(docType)
                     const locked = requested ? isDocSubmissionLocked(selectedApp, docType) : true
+                    const statusSubmitted = requested ? locked : Boolean(uploaded)
                     return (
                       <div key={docType} className="rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
                         <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                           <span>{documentLabel(docType)}</span>
-                          {documentBadge(Boolean(uploaded) || locked)}
+                          {documentBadge(statusSubmitted)}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {uploaded ? `Uploaded: ${new Date(uploaded.uploaded_at).toLocaleString()}` : 'Not uploaded'}

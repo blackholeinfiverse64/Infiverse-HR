@@ -687,7 +687,7 @@ export default function ClientDashboard() {
                               />
                               <span className="inline-flex items-center gap-2">
                                 <span>CV / Resume</span>
-                                {documentBadge(resumeLocked)}
+                                {applicant.required_documents?.includes('resume') && documentBadge(resumeLocked)}
                               </span>
                             </label>
                             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -700,7 +700,7 @@ export default function ClientDashboard() {
                               />
                               <span className="inline-flex items-center gap-2">
                                 <span>NDA</span>
-                                {documentBadge(ndaLocked)}
+                                {applicant.required_documents?.includes('nda') && documentBadge(ndaLocked)}
                               </span>
                             </label>
                           </div>

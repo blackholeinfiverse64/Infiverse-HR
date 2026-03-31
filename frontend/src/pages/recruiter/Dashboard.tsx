@@ -1,7 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { deleteJob, getRecruiterJobs, getRecruiterStats, getAllInterviews, getAllOffers, type Job, type RecruiterStats } from '../../services/api'
+import {
+  deleteJob,
+  getRecruiterJobs,
+  getRecruiterStats,
+  getAllInterviews,
+  getAllOffers,
+  getRecruiterApplicants,
+  setRecruiterRequiredDocuments,
+  getRecruiterApplicantDocumentBlob,
+  type Job,
+  type RecruiterStats,
+  type ApplicationDocumentType,
+  type ClientApplicantRecord,
+} from '../../services/api'
 import StatsCard from '../../components/StatsCard'
 import Table from '../../components/Table'
 import Loading from '../../components/Loading'
@@ -89,16 +102,34 @@ export default function RecruiterDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const loadingRef = useRef(false)
+  const [activeTab, setActiveTab] = useState<'jobs' | 'applicants'>(() => {
+    const saved = localStorage.getItem('recruiterDashboardActiveTab')
+    return saved === 'applicants' ? 'applicants' : 'jobs'
+  })
+  const [applicants, setApplicants] = useState<ClientApplicantRecord[]>([])
+  const [loadingApplicants, setLoadingApplicants] = useState(false)
+  const [selectedDocumentsByApp, setSelectedDocumentsByApp] = useState<Record<string, ApplicationDocumentType[]>>({})
+  const [submittingDocumentsForApp, setSubmittingDocumentsForApp] = useState<string | null>(null)
+  const [openingDocumentKey, setOpeningDocumentKey] = useState<string | null>(null)
 
   useEffect(() => {
     loadDashboardData()
     // Auto-refresh every 60s; skip if previous load still in progress to avoid overlapping
     // match requests and agent overload during extended run.
     const interval = setInterval(() => {
-      if (!loadingRef.current) loadDashboardData()
+      if (!loadingRef.current) {
+        void loadDashboardData()
+      }
+      if (activeTab === 'applicants') {
+        void loadApplicants(true)
+      }
     }, 60000)
     return () => clearInterval(interval)
-  }, [])
+  }, [activeTab])
+
+  useEffect(() => {
+    localStorage.setItem('recruiterDashboardActiveTab', activeTab)
+  }, [activeTab])
 
   const loadDashboardData = async () => {
     if (loadingRef.current) return
@@ -166,6 +197,132 @@ export default function RecruiterDashboard() {
     } finally {
       loadingRef.current = false
       setLoading(false)
+    }
+  }
+
+  const loadApplicants = async (silent = false) => {
+    try {
+      if (!silent) setLoadingApplicants(true)
+      const rows = await getRecruiterApplicants()
+      setApplicants(Array.isArray(rows) ? rows : [])
+      setSelectedDocumentsByApp((prev) => {
+        const next: Record<string, ApplicationDocumentType[]> = {}
+        for (const app of rows || []) {
+          const existing = prev[app.application_id]
+          next[app.application_id] = existing && existing.length > 0
+            ? existing
+            : (app.required_documents || [])
+        }
+        return next
+      })
+    } catch (error) {
+      console.error('Failed to load recruiter applicants:', error)
+      setApplicants([])
+    } finally {
+      if (!silent) setLoadingApplicants(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'applicants') {
+      void loadApplicants()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    const onNotificationsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role?: string }>
+      if (customEvent.detail?.role !== 'recruiter') return
+      if (activeTab === 'applicants') {
+        void loadApplicants(true)
+      }
+      void loadDashboardData()
+    }
+    window.addEventListener('portal-notifications-updated', onNotificationsUpdated)
+    return () => window.removeEventListener('portal-notifications-updated', onNotificationsUpdated)
+  }, [activeTab])
+
+  const toggleDocumentSelection = (applicationId: string, docType: ApplicationDocumentType) => {
+    setSelectedDocumentsByApp((prev) => {
+      const current = prev[applicationId] || []
+      const exists = current.includes(docType)
+      const next = exists
+        ? current.filter((d) => d !== docType)
+        : [...current, docType]
+      return { ...prev, [applicationId]: next }
+    })
+  }
+
+  const handleSubmitRequiredDocuments = async (applicationId: string) => {
+    const selected = selectedDocumentsByApp[applicationId] || []
+    if (selected.length === 0) {
+      toast.error('Select at least one document: CV/Resume or NDA')
+      return
+    }
+    try {
+      setSubmittingDocumentsForApp(applicationId)
+      await setRecruiterRequiredDocuments(applicationId, selected)
+      toast.success('Document request sent to candidate')
+      await loadApplicants()
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Failed to send document request'
+      toast.error(msg)
+    } finally {
+      setSubmittingDocumentsForApp(null)
+    }
+  }
+
+  const parseIsoMillis = (value?: string | null): number => {
+    if (!value) return 0
+    const t = new Date(value).getTime()
+    return Number.isFinite(t) ? t : 0
+  }
+
+  const isDocRequestLocked = (applicant: ClientApplicantRecord, docType: ApplicationDocumentType): boolean => {
+    const required = Array.isArray(applicant.required_documents) && applicant.required_documents.includes(docType)
+    if (!required) return false
+    const requestedAt = parseIsoMillis(applicant.required_documents_updated_at || null)
+    const uploadedAt = parseIsoMillis(applicant.documents_uploaded?.[docType]?.uploaded_at || null)
+    if (requestedAt <= 0) {
+      return uploadedAt === 0
+    }
+    return uploadedAt < requestedAt || uploadedAt === 0
+  }
+
+  const documentBadge = (pending: boolean) => (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+        pending
+          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+      }`}
+    >
+      {pending ? 'Pending' : 'Submitted'}
+    </span>
+  )
+
+  const openDocument = async (applicant: ClientApplicantRecord, docType: ApplicationDocumentType, download: boolean) => {
+    try {
+      const key = `${applicant.application_id}:${docType}:${download ? 'download' : 'view'}`
+      setOpeningDocumentKey(key)
+      const { blob, filename } = await getRecruiterApplicantDocumentBlob(applicant.application_id, docType, download)
+      const url = URL.createObjectURL(blob)
+      if (download) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename || `${docType}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Unable to fetch document'
+      toast.error(msg)
+    } finally {
+      setOpeningDocumentKey(null)
     }
   }
 
@@ -299,28 +456,206 @@ export default function RecruiterDashboard() {
         />
       </div>
 
-      {/* Jobs Table Section */}
+      {/* Jobs / Applicants Tabs */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
-          <div>
-            <h2 className="text-lg sm:text-xl font-heading font-bold text-gray-900 dark:text-white mb-1">Active Job Openings</h2>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{jobs.length} jobs currently active</p>
-          </div>
-          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-            <Link to="/recruiter/automation" className="btn-outline text-xs sm:text-sm h-9 sm:h-10 flex-1 sm:flex-none flex items-center justify-center">
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="hidden sm:inline">Auto-Messaging</span>
-            </Link>
+        <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+          <div className="flex space-x-1 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('jobs')}
+              className={`px-4 sm:px-6 py-3 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'jobs'
+                  ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              Active Job Openings
+            </button>
+            <button
+              onClick={() => setActiveTab('applicants')}
+              className={`px-4 sm:px-6 py-3 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'applicants'
+                  ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              View Applicants
+            </button>
           </div>
         </div>
 
-        {loading ? (
-          <Loading message="Loading jobs..." />
-        ) : (
-          <JobTableWithStats jobs={jobs} jobStats={jobStats} loading={loading} onViewDetails={setSelectedJob} />
+        {activeTab === 'jobs' && (
+          <>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
+              <div>
+                <h2 className="text-lg sm:text-xl font-heading font-bold text-gray-900 dark:text-white mb-1">Active Job Openings</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{jobs.length} jobs currently active</p>
+              </div>
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                <Link to="/recruiter/automation" className="btn-outline text-xs sm:text-sm h-9 sm:h-10 flex-1 sm:flex-none flex items-center justify-center">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="hidden sm:inline">Auto-Messaging</span>
+                </Link>
+              </div>
+            </div>
+
+            {loading ? (
+              <Loading message="Loading jobs..." />
+            ) : (
+              <JobTableWithStats jobs={jobs} jobStats={jobStats} loading={loading} onViewDetails={setSelectedJob} />
+            )}
+          </>
+        )}
+
+        {activeTab === 'applicants' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h2 className="text-lg sm:text-xl font-heading font-bold text-gray-900 dark:text-white">Applicants</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  Review candidates who applied to your jobs and request required documents.
+                </p>
+              </div>
+              <button
+                onClick={() => void loadApplicants()}
+                disabled={loadingApplicants}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 text-sm"
+              >
+                <svg className={`w-4 h-4 ${loadingApplicants ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+
+            {loadingApplicants ? (
+              <Loading message="Loading applicants..." />
+            ) : applicants.length === 0 ? (
+              <div className="p-8 rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-center">
+                <p className="text-gray-500 dark:text-gray-400">No applicants found for your jobs yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {applicants.map((applicant) => {
+                  const selectedDocs = selectedDocumentsByApp[applicant.application_id] || []
+                  const uploadedKeys = Object.keys(applicant.documents_uploaded || {}) as ApplicationDocumentType[]
+                  const resumeLocked = isDocRequestLocked(applicant, 'resume')
+                  const ndaLocked = isDocRequestLocked(applicant, 'nda')
+                  const allLocked = resumeLocked && ndaLocked
+                  return (
+                    <div key={applicant.application_id} className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{applicant.candidate_name || 'Candidate'}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{applicant.candidate_email || 'No email'}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Applied for <span className="font-medium text-gray-700 dark:text-gray-300">{applicant.job_title || 'Job'}</span>
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Status: {applicant.status} • Applied: {applicant.applied_date ? new Date(applicant.applied_date).toLocaleDateString() : '—'}
+                          </p>
+                        </div>
+
+                        <div className="w-full lg:w-[340px]">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Upload Documents</p>
+                          <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-3 space-y-2 bg-gray-50 dark:bg-slate-900/40">
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={selectedDocs.includes('resume')}
+                                onChange={() => toggleDocumentSelection(applicant.application_id, 'resume')}
+                                disabled={resumeLocked}
+                                className="rounded border-gray-300 dark:border-slate-600"
+                              />
+                              <span className="inline-flex items-center gap-2">
+                                <span>CV / Resume</span>
+                                {applicant.required_documents?.includes('resume') && documentBadge(resumeLocked)}
+                              </span>
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                              <input
+                                type="checkbox"
+                                checked={selectedDocs.includes('nda')}
+                                onChange={() => toggleDocumentSelection(applicant.application_id, 'nda')}
+                                disabled={ndaLocked}
+                                className="rounded border-gray-300 dark:border-slate-600"
+                              />
+                              <span className="inline-flex items-center gap-2">
+                                <span>NDA</span>
+                                {applicant.required_documents?.includes('nda') && documentBadge(ndaLocked)}
+                              </span>
+                            </label>
+                          </div>
+                          <button
+                            onClick={() => void handleSubmitRequiredDocuments(applicant.application_id)}
+                            disabled={submittingDocumentsForApp === applicant.application_id || allLocked}
+                            className="mt-3 w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-semibold transition-colors"
+                          >
+                            {submittingDocumentsForApp === applicant.application_id ? 'Submitting...' : 'Submit Request'}
+                          </button>
+
+                          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                            <p>Requested:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {(applicant.required_documents || []).length === 0 ? (
+                                <span className="text-gray-500 dark:text-gray-400">None</span>
+                              ) : (
+                                (applicant.required_documents || []).map((docType) => (
+                                  <span
+                                    key={`req-${applicant.application_id}-${docType}`}
+                                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-2 py-1 bg-white dark:bg-slate-800"
+                                  >
+                                    <span>{docType === 'resume' ? 'CV / Resume' : 'NDA'}</span>
+                                    {documentBadge(isDocRequestLocked(applicant, docType))}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                            <p>Uploaded: {uploadedKeys.length ? uploadedKeys.join(', ') : 'None'}</p>
+                          </div>
+
+                          {uploadedKeys.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {uploadedKeys.map((docType) => (
+                                <div key={docType} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                      {docType === 'resume' ? 'CV / Resume' : 'NDA'}
+                                    </p>
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                      {applicant.documents_uploaded?.[docType]?.filename || 'Uploaded file'}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => void openDocument(applicant, docType, false)}
+                                      disabled={openingDocumentKey === `${applicant.application_id}:${docType}:view`}
+                                      className="px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-xs text-gray-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-60"
+                                    >
+                                      {openingDocumentKey === `${applicant.application_id}:${docType}:view` ? 'Opening...' : 'View'}
+                                    </button>
+                                    <button
+                                      onClick={() => void openDocument(applicant, docType, true)}
+                                      disabled={openingDocumentKey === `${applicant.application_id}:${docType}:download`}
+                                      className="px-2.5 py-1.5 rounded-md bg-emerald-600 text-xs text-white hover:bg-emerald-700 disabled:opacity-60"
+                                    >
+                                      {openingDocumentKey === `${applicant.application_id}:${docType}:download` ? 'Downloading...' : 'Download'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

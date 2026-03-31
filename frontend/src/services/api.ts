@@ -680,6 +680,43 @@ export const getClientApplicantDocumentBlob = async (
   return { blob: response.data, filename: match?.[1] || null }
 }
 
+export const getRecruiterApplicants = async (): Promise<ClientApplicantRecord[]> => {
+  try {
+    const response = await api.get('/v1/recruiter/applicants')
+    return response.data?.applicants || []
+  } catch (error) {
+    console.error('Error fetching recruiter applicants:', error)
+    return []
+  }
+}
+
+export const setRecruiterRequiredDocuments = async (
+  applicationId: string,
+  documentTypes: ApplicationDocumentType[]
+): Promise<{ ok: boolean; application_id: string; required_documents: ApplicationDocumentType[] }> => {
+  const response = await api.post(`/v1/recruiter/applications/${encodeURIComponent(applicationId)}/required-documents`, {
+    document_types: documentTypes,
+  })
+  return response.data
+}
+
+export const getRecruiterApplicantDocumentBlob = async (
+  applicationId: string,
+  documentType: ApplicationDocumentType,
+  download: boolean
+): Promise<{ blob: Blob; filename: string | null }> => {
+  const response = await api.get(
+    `/v1/recruiter/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentType)}`,
+    {
+      params: { download },
+      responseType: 'blob',
+    }
+  )
+  const contentDisposition = String(response.headers['content-disposition'] || '')
+  const match = contentDisposition.match(/filename="?([^"]+)"?/)
+  return { blob: response.data, filename: match?.[1] || null }
+}
+
 // ==================== CANDIDATE PROFILE API ====================
 
 export const getCandidateProfile = async (candidateId: string): Promise<CandidateProfile | null> => {
