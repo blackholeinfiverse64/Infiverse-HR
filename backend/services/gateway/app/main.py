@@ -5846,6 +5846,7 @@ async def get_client_applicants(auth=Depends(get_auth)):
             "candidate_phone": candidate.get("phone"),
             "candidate_location": candidate.get("location"),
             "required_documents": _normalize_required_documents(app_doc.get("required_documents")),
+            "required_documents_updated_at": app_doc.get("required_documents_updated_at").isoformat() if app_doc.get("required_documents_updated_at") else None,
             "documents_uploaded": _sanitize_uploaded_documents(app_doc.get("documents_uploaded")),
         })
     return {"applicants": out, "count": len(out)}
@@ -5913,6 +5914,60 @@ async def set_application_required_documents(
         "application_id": application_id,
         "required_documents": required_docs,
     }
+
+
+@app.get("/v1/client/applications/{application_id}/documents/{document_type}", tags=["Client Portal API"])
+async def get_client_application_document(
+    application_id: str,
+    document_type: str,
+    download: bool = False,
+    auth=Depends(get_auth),
+):
+    """View/download candidate uploaded document for an applicant in the client's job."""
+    ctx = _get_auth_jwt_context(auth)
+    if ctx["role"] != "client":
+        raise HTTPException(status_code=403, detail="This endpoint is only available for clients")
+    if not ObjectId.is_valid(application_id):
+        raise HTTPException(status_code=400, detail="Invalid application id.")
+
+    doc_key = str(document_type or "").strip().lower()
+    if doc_key not in DOCUMENT_LABELS:
+        raise HTTPException(status_code=400, detail="Invalid document type. Use 'resume' or 'nda'.")
+
+    db = await get_mongo_db()
+    app_doc = await db.job_applications.find_one({"_id": ObjectId(application_id)})
+    if not app_doc:
+        raise HTTPException(status_code=404, detail="Application not found.")
+
+    job_id = str(app_doc.get("job_id") or "")
+    allowed_job_ids = await _client_all_job_ids_for_dashboard(db, ctx["user_id"])
+    if job_id not in allowed_job_ids:
+        raise HTTPException(status_code=403, detail="You can only access documents for your own applicants.")
+
+    uploaded_map = app_doc.get("documents_uploaded") or {}
+    uploaded_meta = uploaded_map.get(doc_key) if isinstance(uploaded_map, dict) else None
+    document_id = str((uploaded_meta or {}).get("document_id") or "")
+    if not document_id or not ObjectId.is_valid(document_id):
+        raise HTTPException(status_code=404, detail="Document not uploaded yet.")
+
+    blob_doc = await db.application_documents.find_one({"_id": ObjectId(document_id)})
+    if not blob_doc:
+        raise HTTPException(status_code=404, detail="Document data not found.")
+
+    encoded = str(blob_doc.get("file_base64") or "")
+    if not encoded:
+        raise HTTPException(status_code=404, detail="Document content is missing.")
+
+    try:
+        binary = base64.b64decode(encoded.encode("ascii"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Stored document content is corrupted.") from exc
+
+    filename = str(blob_doc.get("filename") or f"{doc_key}.bin").replace("\n", "_").replace("\r", "_")
+    content_type = str(blob_doc.get("content_type") or "application/octet-stream")
+    disposition = "attachment" if download else "inline"
+    headers = {"Content-Disposition": f'{disposition}; filename="{filename}"'}
+    return Response(content=binary, media_type=content_type, headers=headers)
 
 
 @app.get("/v1/portal/notifications", tags=["Notifications"])
@@ -5999,6 +6054,21 @@ async def upload_candidate_application_document(
     required_docs = _normalize_required_documents(app_doc.get("required_documents"))
     if doc_key not in required_docs:
         raise HTTPException(status_code=400, detail=f"This application has not requested {DOCUMENT_LABELS[doc_key]}.")
+    request_updated_at = app_doc.get("required_documents_updated_at")
+    existing_uploaded = (app_doc.get("documents_uploaded") or {}).get(doc_key) if isinstance(app_doc.get("documents_uploaded"), dict) else None
+    if existing_uploaded and request_updated_at:
+        uploaded_at_raw = existing_uploaded.get("uploaded_at")
+        uploaded_dt: Optional[datetime] = None
+        if isinstance(uploaded_at_raw, str):
+            try:
+                uploaded_dt = datetime.fromisoformat(uploaded_at_raw.replace("Z", "+00:00"))
+            except Exception:
+                uploaded_dt = None
+        if uploaded_dt and uploaded_dt >= request_updated_at:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{DOCUMENT_LABELS[doc_key]} is already submitted for the current request.",
+            )
 
     content = await file.read()
     if not content:
@@ -6199,6 +6269,7 @@ async def get_candidate_applications(candidate_id: str, auth = Depends(get_auth)
                 "company": "BHIV Partner",
                 "updated_at": doc.get("applied_date").isoformat() if doc.get("applied_date") else None,
                 "required_documents": _normalize_required_documents(doc.get("required_documents")),
+                "required_documents_updated_at": doc.get("required_documents_updated_at").isoformat() if doc.get("required_documents_updated_at") else None,
                 "documents_uploaded": _sanitize_uploaded_documents(doc.get("documents_uploaded")),
             })
         

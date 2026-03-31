@@ -12,7 +12,9 @@ export default function AppliedJobs() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
-  const [openUploadDropdownFor, setOpenUploadDropdownFor] = useState<string | null>(null)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadDocType, setUploadDocType] = useState<ApplicationDocumentType | null>(null)
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
   const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null)
 
   const loadApplications = useCallback(async () => {
@@ -82,6 +84,16 @@ export default function AppliedJobs() {
     }
   }, [loadApplications])
 
+  useEffect(() => {
+    const onNotificationsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role?: string }>
+      if (customEvent.detail?.role !== 'candidate') return
+      void loadApplications()
+    }
+    window.addEventListener('portal-notifications-updated', onNotificationsUpdated)
+    return () => window.removeEventListener('portal-notifications-updated', onNotificationsUpdated)
+  }, [loadApplications])
+
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { color: string; label: string }> = {
       applied: { 
@@ -145,19 +157,68 @@ export default function AppliedJobs() {
     docType === 'resume' ? 'CV / Resume' : 'NDA'
   )
 
-  const handlePickDocument = (appId: string, docType: ApplicationDocumentType) => {
-    const input = document.getElementById(`upload-${appId}-${docType}`) as HTMLInputElement | null
+  const handlePickDocument = (docType: ApplicationDocumentType) => {
+    if (!selectedApp) return
+    const input = document.getElementById(`upload-modal-${selectedApp.id}-${docType}`) as HTMLInputElement | null
     input?.click()
   }
 
-  const handleUploadDocument = async (app: Application, docType: ApplicationDocumentType, file: File | null) => {
-    if (!file) return
+  const parseIsoMillis = (value?: string | null): number => {
+    if (!value) return 0
+    const t = new Date(value).getTime()
+    return Number.isFinite(t) ? t : 0
+  }
+
+  const isDocSubmissionLocked = (app: Application, docType: ApplicationDocumentType): boolean => {
+    const requested = Array.isArray(app.required_documents) && app.required_documents.includes(docType)
+    if (!requested) return true
+    const requestedAt = parseIsoMillis(app.required_documents_updated_at || null)
+    const uploadedAt = parseIsoMillis(app.documents_uploaded?.[docType]?.uploaded_at || null)
+    // Locked once submitted for latest request.
+    if (requestedAt <= 0) {
+      return uploadedAt > 0
+    }
+    return uploadedAt >= requestedAt && uploadedAt !== 0
+  }
+
+  const documentBadge = (submitted: boolean) => (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+        submitted
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+      }`}
+    >
+      {submitted ? 'Submitted' : 'Pending'}
+    </span>
+  )
+
+  const openUploadModal = () => {
+    if (!selectedApp) return
+    setUploadDocType(null)
+    setPendingUploadFile(null)
+    setUploadModalOpen(true)
+  }
+
+  const closeUploadModal = () => {
+    if (uploadingDocKey) return
+    setUploadModalOpen(false)
+    setUploadDocType(null)
+    setPendingUploadFile(null)
+  }
+
+  const handleUploadDocument = async () => {
+    if (!selectedApp || !uploadDocType || !pendingUploadFile) {
+      toast.error('Select a document type and choose a file first.')
+      return
+    }
     try {
-      setUploadingDocKey(`${app.id}:${docType}`)
-      await uploadCandidateApplicationDocument(app.id, docType, file)
-      toast.success(`${documentLabel(docType)} uploaded successfully`)
-      setOpenUploadDropdownFor(null)
+      setUploadingDocKey(`${selectedApp.id}:${uploadDocType}`)
+      await uploadCandidateApplicationDocument(selectedApp.id, uploadDocType, pendingUploadFile)
+      toast.success(`${documentLabel(uploadDocType)} uploaded successfully`)
       await loadApplications()
+      setPendingUploadFile(null)
+      setUploadDocType(null)
     } catch (error: any) {
       const msg = error?.response?.data?.detail || error?.message || 'Failed to upload document'
       toast.error(msg)
@@ -414,71 +475,80 @@ export default function AppliedJobs() {
 
               {/* Upload Documents Section */}
               <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg space-y-3">
+                {(() => {
+                  const requiredDocTypes = (selectedApp.required_documents || []) as ApplicationDocumentType[]
+                  const submittedDocTypes = (Object.keys(selectedApp.documents_uploaded || {}) as ApplicationDocumentType[])
+                  const displayDocTypes = Array.from(new Set([...requiredDocTypes, ...submittedDocTypes]))
+                  const hasAnyDocContext = displayDocTypes.length > 0
+                  if (!hasAnyDocContext) {
+                    return (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No document requests have been made by the client yet.
+                      </p>
+                    )
+                  }
+                  return (
+                    <>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700 dark:text-gray-300 font-medium">Upload Documents</span>
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenUploadDropdownFor(openUploadDropdownFor === selectedApp.id ? null : selectedApp.id)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Upload Documents
-                    </button>
-                    {openUploadDropdownFor === selectedApp.id && (
-                      <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20">
-                        {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => {
-                          const isRequested = (selectedApp.required_documents || []).includes(docType)
-                          return (
-                            <button
-                              key={docType}
-                              onClick={() => handlePickDocument(selectedApp.id, docType)}
-                              disabled={!isRequested || uploadingDocKey === `${selectedApp.id}:${docType}`}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {uploadingDocKey === `${selectedApp.id}:${docType}` ? 'Uploading...' : documentLabel(docType)}
-                              {!isRequested ? ' (not requested)' : ''}
-                            </button>
-                          )
-                        })}
-                      </div>
+                  <button
+                    onClick={openUploadModal}
+                    disabled={
+                      !(selectedApp.required_documents || []).some((doc) => !isDocSubmissionLocked(selectedApp, doc))
+                    }
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Upload Documents
+                  </button>
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mb-1">Required by client:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedApp.required_documents && selectedApp.required_documents.length > 0) ? (
+                      selectedApp.required_documents.map((docType) => (
+                        <span
+                          key={`req-badge-${selectedApp.id}-${docType}`}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-2 py-1 bg-white dark:bg-slate-800"
+                        >
+                          <span>{documentLabel(docType)}</span>
+                          {documentBadge(isDocSubmissionLocked(selectedApp, docType))}
+                        </span>
+                      ))
+                    ) : (
+                      <span>None</span>
                     )}
                   </div>
                 </div>
 
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Required by client:{' '}
-                  {(selectedApp.required_documents && selectedApp.required_documents.length > 0)
-                    ? selectedApp.required_documents.map(documentLabel).join(', ')
-                    : 'None'}
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => {
+                  {displayDocTypes.map((docType) => {
                     const uploaded = selectedApp.documents_uploaded?.[docType]
+                    const requested = requiredDocTypes.includes(docType)
+                    const locked = requested ? isDocSubmissionLocked(selectedApp, docType) : true
                     return (
                       <div key={docType} className="rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
-                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{documentLabel(docType)}</p>
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                          <span>{documentLabel(docType)}</span>
+                          {documentBadge(Boolean(uploaded) || locked)}
+                        </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {uploaded ? `Uploaded: ${new Date(uploaded.uploaded_at).toLocaleString()}` : 'Not uploaded'}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          {!requested
+                            ? 'Previously submitted'
+                            : locked
+                              ? 'Upload locked until client requests again'
+                              : 'Pending upload'}
                         </p>
                       </div>
                     )
                   })}
                 </div>
-
-                {(['resume', 'nda'] as ApplicationDocumentType[]).map((docType) => (
-                  <input
-                    key={`${selectedApp.id}-${docType}`}
-                    id={`upload-${selectedApp.id}-${docType}`}
-                    type="file"
-                    className="hidden"
-                    accept={docType === 'resume' ? '.pdf,.doc,.docx' : '.pdf'}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0] || null
-                      void handleUploadDocument(selectedApp, docType, f)
-                      e.currentTarget.value = ''
-                    }}
-                  />
-                ))}
+                    </>
+                  )
+                })()}
               </div>
             </div>
 
@@ -488,6 +558,108 @@ export default function AppliedJobs() {
                 className="w-full py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Documents Modal */}
+      {selectedApp && uploadModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full shadow-xl border border-gray-200 dark:border-slate-700">
+            <div className="p-5 border-b border-gray-100 dark:border-slate-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Upload Requested Document</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedApp.job_title}</p>
+                </div>
+                <button
+                  onClick={closeUploadModal}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select document type</p>
+                <div className="space-y-2">
+                  {(selectedApp.required_documents || []).map((docType) => {
+                    const locked = isDocSubmissionLocked(selectedApp, docType)
+                    return (
+                      <label key={docType} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
+                        <span className="text-sm text-gray-700 dark:text-gray-300 inline-flex items-center gap-2">
+                          <span>{documentLabel(docType)}</span>
+                          {documentBadge(locked)}
+                        </span>
+                        <input
+                          type="radio"
+                          name="docType"
+                          checked={uploadDocType === docType}
+                          onChange={() => {
+                            setUploadDocType(docType)
+                            setPendingUploadFile(null)
+                          }}
+                          disabled={locked}
+                        />
+                      </label>
+                    )
+                  })}
+                  {(selectedApp.required_documents || []).length === 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No documents requested by client.</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Choose file</p>
+                <button
+                  onClick={() => uploadDocType && handlePickDocument(uploadDocType)}
+                  disabled={!uploadDocType}
+                  className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 text-sm font-medium text-gray-700 dark:text-gray-200"
+                >
+                  {uploadDocType ? `Select ${documentLabel(uploadDocType)} file` : 'Select document type first'}
+                </button>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {pendingUploadFile ? `Selected: ${pendingUploadFile.name}` : 'No file selected'}
+                </p>
+              </div>
+
+              {(selectedApp.required_documents || []).map((docType) => (
+                <input
+                  key={`upload-modal-${selectedApp.id}-${docType}`}
+                  id={`upload-modal-${selectedApp.id}-${docType}`}
+                  type="file"
+                  className="hidden"
+                  accept={docType === 'resume' ? '.pdf,.doc,.docx' : '.pdf'}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null
+                    setUploadDocType(docType)
+                    setPendingUploadFile(f)
+                    e.currentTarget.value = ''
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="p-5 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3">
+              <button
+                onClick={closeUploadModal}
+                className="flex-1 py-2.5 rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleUploadDocument()}
+                disabled={!uploadDocType || !pendingUploadFile || !!uploadingDocKey}
+                className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium"
+              >
+                {uploadingDocKey ? 'Submitting...' : 'Submit'}
               </button>
             </div>
           </div>

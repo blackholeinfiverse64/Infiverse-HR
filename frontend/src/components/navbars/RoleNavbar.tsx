@@ -62,6 +62,7 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [loadingNotifications, setLoadingNotifications] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
+  const notificationsSignatureRef = useRef<string>('')
 
   const handleLogout = async () => {
     try {
@@ -81,8 +82,25 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
     try {
       if (!silent) setLoadingNotifications(true)
       const data = await getPortalNotifications(20)
-      setNotifications(Array.isArray(data.notifications) ? data.notifications : [])
-      setUnreadCount(Number(data.unread_count || 0))
+      const nextNotifications = Array.isArray(data.notifications) ? data.notifications : []
+      const nextUnread = Number(data.unread_count || 0)
+      setNotifications(nextNotifications)
+      setUnreadCount(nextUnread)
+
+      const latestId = nextNotifications[0]?.id || ''
+      const signature = `${role}:${latestId}:${nextUnread}:${nextNotifications.length}`
+      if (notificationsSignatureRef.current !== signature) {
+        notificationsSignatureRef.current = signature
+        window.dispatchEvent(
+          new CustomEvent('portal-notifications-updated', {
+            detail: {
+              role,
+              unreadCount: nextUnread,
+              latestNotificationId: latestId,
+            },
+          })
+        )
+      }
     } catch {
       // Silent fail: bell is auxiliary UI
     } finally {
@@ -94,7 +112,7 @@ export default function RoleNavbar({ role }: RoleNavbarProps) {
     loadNotifications(true)
     const interval = setInterval(() => {
       loadNotifications(true)
-    }, 60000)
+    }, 20000)
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         loadNotifications(true)

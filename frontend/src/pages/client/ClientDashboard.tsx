@@ -8,6 +8,7 @@ import {
   deleteJob,
   getClientApplicants,
   setClientRequiredDocuments,
+  getClientApplicantDocumentBlob,
   type ApplicationDocumentType,
   type ClientApplicantRecord,
   Job,
@@ -98,13 +99,19 @@ export default function ClientDashboard() {
   const [loadingApplicants, setLoadingApplicants] = useState(false)
   const [selectedDocumentsByApp, setSelectedDocumentsByApp] = useState<Record<string, ApplicationDocumentType[]>>({})
   const [submittingDocumentsForApp, setSubmittingDocumentsForApp] = useState<string | null>(null)
+  const [openingDocumentKey, setOpeningDocumentKey] = useState<string | null>(null)
 
   useEffect(() => {
     loadDashboardData()
     // Auto-refresh every 30 seconds for real-time data
-    const interval = setInterval(loadDashboardData, 30000)
+    const interval = setInterval(() => {
+      void loadDashboardData(true)
+      if (activeTab === 'applicants') {
+        void loadApplicants(true)
+      }
+    }, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [activeTab])
 
   useEffect(() => {
     localStorage.setItem('clientDashboardActiveTab', activeTab)
@@ -112,9 +119,9 @@ export default function ClientDashboard() {
 
   // All data is client-scoped: APIs use logged-in client's JWT; backend returns only this client's jobs
   // (including jobs recruiters posted via this client's connection_id). No client_id param is sent.
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       setJobsError(null)
       const [jobsResult, statsData, profile] = await Promise.all([
         getClientJobs()
@@ -133,13 +140,13 @@ export default function ClientDashboard() {
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
-  const loadApplicants = async () => {
+  const loadApplicants = async (silent = false) => {
     try {
-      setLoadingApplicants(true)
+      if (!silent) setLoadingApplicants(true)
       const rows = await getClientApplicants()
       setApplicants(Array.isArray(rows) ? rows : [])
       setSelectedDocumentsByApp((prev) => {
@@ -156,7 +163,7 @@ export default function ClientDashboard() {
       console.error('Failed to load applicants:', error)
       setApplicants([])
     } finally {
-      setLoadingApplicants(false)
+      if (!silent) setLoadingApplicants(false)
     }
   }
 
@@ -164,6 +171,19 @@ export default function ClientDashboard() {
     if (activeTab === 'applicants') {
       loadApplicants()
     }
+  }, [activeTab])
+
+  useEffect(() => {
+    const onNotificationsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role?: string }>
+      if (customEvent.detail?.role !== 'client') return
+      void loadDashboardData(true)
+      if (activeTab === 'applicants') {
+        void loadApplicants(true)
+      }
+    }
+    window.addEventListener('portal-notifications-updated', onNotificationsUpdated)
+    return () => window.removeEventListener('portal-notifications-updated', onNotificationsUpdated)
   }, [activeTab])
 
   const copyConnectionId = async () => {
@@ -281,6 +301,58 @@ export default function ClientDashboard() {
       toast.error(msg)
     } finally {
       setSubmittingDocumentsForApp(null)
+    }
+  }
+
+  const parseIsoMillis = (value?: string | null): number => {
+    if (!value) return 0
+    const t = new Date(value).getTime()
+    return Number.isFinite(t) ? t : 0
+  }
+
+  const isDocRequestLocked = (applicant: ClientApplicantRecord, docType: ApplicationDocumentType): boolean => {
+    const required = Array.isArray(applicant.required_documents) && applicant.required_documents.includes(docType)
+    if (!required) return false
+    const requestedAt = parseIsoMillis(applicant.required_documents_updated_at || null)
+    const uploadedAt = parseIsoMillis(applicant.documents_uploaded?.[docType]?.uploaded_at || null)
+    // Lock until candidate uploads for latest request.
+    return uploadedAt < requestedAt || uploadedAt === 0
+  }
+
+  const documentBadge = (pending: boolean) => (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+        pending
+          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+      }`}
+    >
+      {pending ? 'Pending' : 'Submitted'}
+    </span>
+  )
+
+  const openDocument = async (applicant: ClientApplicantRecord, docType: ApplicationDocumentType, download: boolean) => {
+    try {
+      const key = `${applicant.application_id}:${docType}:${download ? 'download' : 'view'}`
+      setOpeningDocumentKey(key)
+      const { blob, filename } = await getClientApplicantDocumentBlob(applicant.application_id, docType, download)
+      const url = URL.createObjectURL(blob)
+      if (download) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename || `${docType}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || error?.message || 'Unable to fetch document'
+      toast.error(msg)
+    } finally {
+      setOpeningDocumentKey(null)
     }
   }
 
@@ -527,7 +599,7 @@ export default function ClientDashboard() {
                 </p>
               </div>
               <button
-                onClick={loadDashboardData}
+                onClick={() => void loadDashboardData()}
                 disabled={loading}
                 className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 text-sm"
                 title="Refresh jobs"
@@ -584,7 +656,10 @@ export default function ClientDashboard() {
               <div className="space-y-4">
                 {applicants.map((applicant) => {
                   const selectedDocs = selectedDocumentsByApp[applicant.application_id] || []
-                  const uploadedKeys = Object.keys(applicant.documents_uploaded || {})
+                  const uploadedKeys = Object.keys(applicant.documents_uploaded || {}) as ApplicationDocumentType[]
+                  const resumeLocked = isDocRequestLocked(applicant, 'resume')
+                  const ndaLocked = isDocRequestLocked(applicant, 'nda')
+                  const allLocked = resumeLocked && ndaLocked
                   return (
                     <div key={applicant.application_id} className="rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
                       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -607,33 +682,87 @@ export default function ClientDashboard() {
                                 type="checkbox"
                                 checked={selectedDocs.includes('resume')}
                                 onChange={() => toggleDocumentSelection(applicant.application_id, 'resume')}
+                                disabled={resumeLocked}
                                 className="rounded border-gray-300 dark:border-slate-600"
                               />
-                              CV / Resume
+                              <span className="inline-flex items-center gap-2">
+                                <span>CV / Resume</span>
+                                {documentBadge(resumeLocked)}
+                              </span>
                             </label>
                             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                               <input
                                 type="checkbox"
                                 checked={selectedDocs.includes('nda')}
                                 onChange={() => toggleDocumentSelection(applicant.application_id, 'nda')}
+                                disabled={ndaLocked}
                                 className="rounded border-gray-300 dark:border-slate-600"
                               />
-                              NDA
+                              <span className="inline-flex items-center gap-2">
+                                <span>NDA</span>
+                                {documentBadge(ndaLocked)}
+                              </span>
                             </label>
                           </div>
                           <button
                             onClick={() => void handleSubmitRequiredDocuments(applicant.application_id)}
-                            disabled={submittingDocumentsForApp === applicant.application_id}
+                            disabled={submittingDocumentsForApp === applicant.application_id || allLocked}
                             className="mt-3 w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold transition-colors"
                           >
                             {submittingDocumentsForApp === applicant.application_id ? 'Submitting...' : 'Submit Request'}
                           </button>
 
-                          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                            Requested: {applicant.required_documents?.length ? applicant.required_documents.join(', ') : 'None'}
-                            <br />
-                            Uploaded: {uploadedKeys.length ? uploadedKeys.join(', ') : 'None'}
+                          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                            <p>Requested:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {(applicant.required_documents || []).length === 0 ? (
+                                <span className="text-gray-500 dark:text-gray-400">None</span>
+                              ) : (
+                                (applicant.required_documents || []).map((docType) => (
+                                  <span
+                                    key={`req-${applicant.application_id}-${docType}`}
+                                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-2 py-1 bg-white dark:bg-slate-800"
+                                  >
+                                    <span>{docType === 'resume' ? 'CV / Resume' : 'NDA'}</span>
+                                    {documentBadge(isDocRequestLocked(applicant, docType))}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                            <p>Uploaded: {uploadedKeys.length ? uploadedKeys.join(', ') : 'None'}</p>
                           </div>
+                          {uploadedKeys.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {uploadedKeys.map((docType) => (
+                                <div key={docType} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                      {docType === 'resume' ? 'CV / Resume' : 'NDA'}
+                                    </p>
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                      {applicant.documents_uploaded?.[docType]?.filename || 'Uploaded file'}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => void openDocument(applicant, docType, false)}
+                                      disabled={openingDocumentKey === `${applicant.application_id}:${docType}:view`}
+                                      className="px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-xs text-gray-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-60"
+                                    >
+                                      {openingDocumentKey === `${applicant.application_id}:${docType}:view` ? 'Opening...' : 'View'}
+                                    </button>
+                                    <button
+                                      onClick={() => void openDocument(applicant, docType, true)}
+                                      disabled={openingDocumentKey === `${applicant.application_id}:${docType}:download`}
+                                      className="px-2.5 py-1.5 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700 disabled:opacity-60"
+                                    >
+                                      {openingDocumentKey === `${applicant.application_id}:${docType}:download` ? 'Downloading...' : 'Download'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

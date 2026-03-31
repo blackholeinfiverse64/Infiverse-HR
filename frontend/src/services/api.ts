@@ -541,6 +541,7 @@ export interface Application {
   applied_date: string
   updated_at?: string
   required_documents?: ApplicationDocumentType[]
+  required_documents_updated_at?: string
   documents_uploaded?: Partial<Record<ApplicationDocumentType, UploadedApplicationDocument>>
 }
 
@@ -566,6 +567,7 @@ export interface ClientApplicantRecord {
   candidate_phone?: string
   candidate_location?: string
   required_documents: ApplicationDocumentType[]
+  required_documents_updated_at?: string | null
   documents_uploaded: Partial<Record<ApplicationDocumentType, UploadedApplicationDocument>>
 }
 
@@ -659,6 +661,23 @@ export const uploadCandidateApplicationDocument = async (
     { headers: { 'Content-Type': 'multipart/form-data' } }
   )
   return response.data
+}
+
+export const getClientApplicantDocumentBlob = async (
+  applicationId: string,
+  documentType: ApplicationDocumentType,
+  download: boolean
+): Promise<{ blob: Blob; filename: string | null }> => {
+  const response = await api.get(
+    `/v1/client/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentType)}`,
+    {
+      params: { download },
+      responseType: 'blob',
+    }
+  )
+  const contentDisposition = String(response.headers['content-disposition'] || '')
+  const match = contentDisposition.match(/filename="?([^"]+)"?/)
+  return { blob: response.data, filename: match?.[1] || null }
 }
 
 // ==================== CANDIDATE PROFILE API ====================
