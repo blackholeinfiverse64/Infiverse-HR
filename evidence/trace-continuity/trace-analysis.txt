@@ -1,0 +1,30 @@
+=== TRACE CONTINUITY ANALYSIS ===
+Assigned Trace ID: trace_conv_17_234352
+
+1. Gateway POST /v1/jobs
+   Timestamp: 2026-05-26T12:05:16.816Z
+   Operation: Job Creation
+   Job ID: 6a158c7cdbb7035fa17385a3
+   Latency: 95ms
+
+2. Gateway GET /v1/match/{job_id}/top -> AI Agent Service
+   Timestamp: 2026-05-26T12:06:46.872Z
+   Matched Count: 10
+   Latency: 90056ms
+
+3. Gateway POST /v1/candidate/apply
+   Timestamp: 2026-05-26T12:06:46.892Z
+   Status: 200
+   Latency: 20ms
+
+4. Gateway POST /api/v1/webhooks/candidate-applied -> LangGraph Service
+   Timestamp: 2026-05-26T12:06:47.037Z
+   Workflow ID: 2a0841c6-de55-42fb-80e2-22bc45526fce
+   Status: started
+   Latency: 145ms
+
+5. Gateway GET /api/v1/workflow/status/{id} -> LangGraph Service
+   Timestamp: 2026-05-26T12:06:47.065Z
+   Workflow State: running
+   Latency: 28ms
+
