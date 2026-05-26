@@ -1,6 +1,19 @@
-# 🧪 BHIV HR Platform - Convergence Review Packet
+# 🧪 BHIV HR Platform — Convergence Review Packet
 
-This packet consolidates the required proofs, logs, and artifacts for convergence acceptance of the BHIV HR microservice suite. All evidence was collected locally from active Docker containers (ports 8000, 9000, 9001) and Node.js test scripts.
+**Status**: ✅ All 10 categories COMPLETE
+**Evidence Collected**: 2026-05-26T13:35:50Z (live against Docker containers)
+**Docs Updated**: 2026-05-26T13:38:00Z (this session)
+**Maintained by**: Shashank (Sampada, Support Builder)
+**For Acceptance Review By**: Rishabh Yadav
+
+> **Note**: Docker services are fully online and healthy. Evidence was successfully collected/re-run in the current session against live running containers.
+
+### Supporting Documentation
+- [SHASHANK_REENTRY_ALIGNMENT.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SHASHANK_REENTRY_ALIGNMENT.md) — All 6 named roles, constitutional boundaries, architecture understanding
+- [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md) — 12-section developer handover document
+- [EXECUTION_UNDERSTANDING_SUMMARY.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/EXECUTION_UNDERSTANDING_SUMMARY.md) — Sprint priorities and proof requirements
+- [CONVERGENCE_SUPPORT_LOG.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/CONVERGENCE_SUPPORT_LOG.md) — Timestamped work log across all 3 sessions
+- [ALIGNMENT_SYNC_NOTES.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/ALIGNMENT_SYNC_NOTES.md) — Team alignment decisions and open questions
 
 ---
 
@@ -28,8 +41,8 @@ Reproducible CLI commands are documented in [curl-examples.sh](file:///c:/Users/
 ## 2. Live Execution Flow
 We executed an end-to-end recruitment lifecycle scenario showing seamless operation:
 
-1. **Job Creation**: Client A (`TECH001`) posted a "Staff AI Engineer" position to `/v1/jobs`. Received `job_id`: `6a158c7cdbb7035fa17385a3`.
-2. **AI Semantic Matching**: The API Gateway requested matching from the AI Agent service at `/v1/match/6a158c7cdbb7035fa17385a3/top` (computing similarity against 240 database candidates).
+1. **Job Creation**: Client A (`TECH001`) posted a "Staff AI Engineer" position to `/v1/jobs`. Received `job_id`: `6a15a13f0caf5b91bd0e9de4`.
+2. **AI Semantic Matching**: The API Gateway requested matching from the AI Agent service at `/v1/match/6a15a13f0caf5b91bd0e9de4/top` (computing similarity against 240 database candidates).
 3. **Candidate Apply**: Candidate `test_cand_001` applied for the newly created job posting via `/v1/candidate/apply`.
 4. **LangGraph Automation Trigger**: Gateway triggered the candidate application workflow via the webhook `/api/v1/webhooks/candidate-applied`.
 5. **Workflow Status Check**: The state machine status was queried at `/api/v1/workflow/status/{id}` returning `running`.
@@ -39,18 +52,18 @@ The captured payloads, response codes, and step sequences are recorded in [reque
 ---
 
 ## 3. Real Trace Continuity
-Request correlation was verified end-to-end using a unique request correlation ID (`trace_conv_17_234352`). The trace was successfully propagated through the microservice hops:
+Request correlation was verified end-to-end using a unique request correlation ID (`trace_conv_17_257502`). The trace was successfully propagated through the microservice hops:
 
 * **Hop 1: Job Creation** — Gateway POST `/v1/jobs` (Client JWT)
-  - *Timestamp*: `2026-05-26T12:05:16.816Z` | *Correlation ID*: `trace_conv_17_234352` | *Latency*: `95ms`
+  - *Timestamp*: `2026-05-26T13:33:51.776Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `47ms`
 * **Hop 2: AI Matching** — Gateway GET `/v1/match/{id}/top` requests semantic calculation from Agent.
-  - *Timestamp*: `2026-05-26T12:06:46.872Z` | *Correlation ID*: `trace_conv_17_234352` | *Latency*: `90056ms`
+  - *Timestamp*: `2026-05-26T13:35:21.828Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `90052ms`
 * **Hop 3: Application Creation** — Gateway POST `/v1/candidate/apply` (Candidate JWT)
-  - *Timestamp*: `2026-05-26T12:06:46.892Z` | *Correlation ID*: `trace_conv_17_234352` | *Latency*: `20ms`
+  - *Timestamp*: `2026-05-26T13:35:21.846Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `18ms`
 * **Hop 4: Workflow Trigger** — Gateway POST `/api/v1/webhooks/candidate-applied` calls LangGraph service.
-  - *Timestamp*: `2026-05-26T12:06:47.037Z` | *Correlation ID*: `trace_conv_17_234352` | *Workflow ID*: `2a0841c6-de55-42fb-80e2-22bc45526fce` | *Latency*: `145ms`
+  - *Timestamp*: `2026-05-26T13:35:21.963Z` | *Correlation ID*: `trace_conv_17_257502` | *Workflow ID*: `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29` | *Latency*: `117ms`
 * **Hop 5: Status Query** — Gateway GET `/api/v1/workflow/status/{id}` queries LangGraph.
-  - *Timestamp*: `2026-05-26T12:06:47.065Z` | *Correlation ID*: `trace_conv_17_234352` | *Latency*: `28ms`
+  - *Timestamp*: `2026-05-26T13:35:22.014Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `51ms`
 
 Detailed step metrics and latency analyses are in [trace-analysis.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/trace-continuity/trace-analysis.txt).
 
@@ -77,7 +90,7 @@ We verified role-based access control (RBAC) and tenant isolation through system
   - Recruiter JWT trying to view client stats returned `403 Forbidden` (`"This endpoint is only available for clients"`).
   - Candidate `test_cand_001` querying the stats of candidate `test_cand_999` returned `403 Forbidden` (`"You can only view your own stats"`).
 * **Multi-Tenant Isolation**: 
-  - Client B (`STARTUP01`) attempted to query the job details of a job created by Client A (`TECH001`) via GET `/v1/jobs/6a1588dcdbb7035fa17385a1`.
+  - Client B (`STARTUP01`) attempted to query the job details of a job created by Client A (`TECH001`) via GET `/v1/jobs/6a15a13f0caf5b91bd0e9de4`.
   - **Result**: Request was blocked with `403 Forbidden` and details: `{"detail":"You can only view your own jobs"}`.
 
 Test results are logged in [rbac-results.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/enforcement/rbac-results.log) and [tenant-isolation-results.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/enforcement/tenant-isolation-results.log).

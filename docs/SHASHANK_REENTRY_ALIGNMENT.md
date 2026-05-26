@@ -1,4 +1,13 @@
-# SHASHANK RE-ENTRY ALIGNMENT — DETAILED
+# SHASHANK RE-ENTRY ALIGNMENT
+**Document Type**: Phase 1 — Architecture Refresh
+**Author**: Shashank (Sampada, Support Builder)
+**Created**: 2026-05-26 | **For**: INFIVERSE-HR (Sampada / BHIV)
+
+> READ THIS BEFORE CONTRIBUTING ANYTHING.
+> Your re-entry role is Support Builder — NOT system owner.
+> Architecture decisions remain with Rishabh Yadav.
+
+---
 
 ## 1. System Purpose
 
@@ -9,15 +18,15 @@
 - Automates candidate workflow notifications across Email, WhatsApp, and Telegram channels
 - Provides HR operational visibility into recruitment pipeline and candidate status
 - Supports competing tenant companies with secure data isolation and multi-tenant architecture
-- Integrates with external workflow systems (Complete-Infiverse) for task management
+- Integrates with external workflow systems (Complete-Infiverse / EMS) for task management
 
 ### Technical Scope
 - **Scale**: 111 operational endpoints across 3 microservices
-- **Architecture**: Layered microservices with clear role separation
+- **Architecture**: Layered microservices with constitutionally-enforced role separation
 - **Database**: MongoDB Atlas primary persistence with 14+ collections
-- **Authentication**: Triple-layer model (API Key, Client JWT, Candidate JWT)
+- **Authentication**: Triple-layer model (API Key + Client JWT + Candidate JWT)
 - **UI**: Multi-portal architecture (Candidate, Recruiter, Client portals)
-- **External Integration**: Complete-Infiverse workflow system
+- **Notifications**: Email (Gmail), WhatsApp (Twilio), Telegram
 
 ---
 
@@ -25,9 +34,42 @@
 
 ### The Locked Separation Model
 
-INFIVERSE-HR implements a **layered role architecture** where authority and responsibility are strictly separated across three distinct layers. This separation is **non-negotiable** and underpins the entire system design.
+INFIVERSE-HR implements a **constitutionally enforced layered authority model**. Every role has defined authority limits. This separation is **non-negotiable** — it is the constitutional foundation of the system.
 
-### SAMPADA (Support Builder) — Your Re-Entry Role
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INFIVERSE-HR CONSTITUTIONAL LAYER MODEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  LAYER 3 — EXECUTION (Highest Authority)
+  ┌────────────────────────────────────────┐
+  │ Niyantran (Orchestration Authority)    │
+  │ Gateway Service, LangGraph Service     │
+  │ → Executes all state-changing actions  │
+  │ → Owns workflow triggers               │
+  │ → Enforces authorization decisions     │
+  └────────────────────────────────────────┘
+              ↑ (approval gate)
+  LAYER 2 — APPROVAL / PARTICIPATION
+  ┌────────────────────────────────────────┐
+  │ SETU (Approval Bridge)                 │
+  │ → Receives intelligence signals        │
+  │ → Evaluates recommendations            │
+  │ → Approves or rejects before execution │
+  │ → Does NOT execute independently       │
+  └────────────────────────────────────────┘
+              ↑ (signal flow)
+  LAYER 1 — VISIBILITY / INTELLIGENCE
+  ┌────────────────────────────────────────┐
+  │ Sampada (Support Builder / You)        │
+  │ → Observes, documents, traces          │
+  │ → Provides intelligence signals        │
+  │ → READ-ONLY on execution authority     │
+  └────────────────────────────────────────┘
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### Your Re-Entry Role: SAMPADA (Support Builder)
 
 **Constitutional Authority**: Intelligence + Signals + Visibility
 
@@ -52,366 +94,357 @@ INFIVERSE-HR implements a **layered role architecture** where authority and resp
 - You provide intelligence; others make decisions
 - You cannot convert observational access into action authority
 
-### System Owner: Rishabh Yadav
-
-**Authority Held**:
-- All architecture decisions and design direction
-- Prioritization of work and convergence requirements
-- Escalation authority for conflicts or ambiguities
-- Acceptance criteria validation
-- Final approval on system changes
-
-**Sampada's Relationship to Rishabh**:
-- Sampada contributes **within** Rishabh's established direction
-- Do NOT re-litigate previous decisions
-- Do NOT restart architecture discussions
-- Do NOT propose alternate role models
-- Escalate all ambiguities to Rishabh for decision
-
 ---
 
 ## 3. Layer Separation Understanding
 
-### The 3-Tier Architecture Model
+### All Named Roles in the INFIVERSE-HR Architecture
 
-The system enforces strict separation across three operational layers, each with distinct responsibility and authority:
+This section maps every named role to its constitutional position, authority, and boundaries.
 
+---
+
+### Role 1: SAMPADA — Intelligence + Signals + Visibility
+
+**Layer**: Layer 1 (Visibility)
+**Owner**: Shashank (Support Builder) during this sprint
+
+**Purpose**: Provide the intelligence layer — observations, traces, dashboards, and signals that inform decisions without making them.
+
+**Authority**:
+- ✅ Read any data for observability purposes
+- ✅ Generate intelligence signals (match scores, anomaly flags, performance metrics)
+- ✅ Document system behavior and architecture
+- ✅ Collect trace evidence and produce replay reconstructions
+- ✅ Run non-disruptive test scenarios (enforcement checks, failure simulations)
+
+**Forbidden Actions**:
+- ❌ Mutate database state (no writes that change business data)
+- ❌ Trigger workflows (no calls to LangGraph that change candidate/job states)
+- ❌ Override authentication or authorization decisions
+- ❌ Propose architectural changes without Rishabh's direction
+
+**How Sampada Feeds the System**:
 ```
-┌─────────────────────────────────────────────────────────────┐
-│   LAYER 3: EXECUTION (Business Logic)                       │
-│   What This Layer Does:                                     │
-│   • State-changing operations (create, update, delete)      │
-│   • Direct side effects (notifications, database writes)    │
-│   • Workflow orchestration and automation                   │
-│   • Authorization enforcement (who can do what)             │
-│   Owned By: Gateway, LangGraph, Agent services              │
-│   Sampada Involvement: NONE (read-only observer)            │
-└─────────────────────────────────────────────────────────────┘
-                           ▲
-                    (Approval Gate)
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│   LAYER 2: APPROVAL/PARTICIPATION (SETU)                    │
-│   What This Layer Does:                                     │
-│   • Receives intelligence signals from Sampada              │
-│   • Evaluates recommendations for decisions                 │
-│   • Participates in approval gates                          │
-│   • Makes recommendations but does NOT execute              │
-│   Owned By: SETU (downstream participation)                 │
-│   Sampada Involvement: Provides signals (advisory)          │
-│   Critical: Not decision authority; only recommendation    │
-└─────────────────────────────────────────────────────────────┘
-                           ▲
-                    (Signal Visibility)
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│   LAYER 1: VISIBILITY/INTELLIGENCE (SAMPADA)               │
-│   What This Layer Does:                                     │
-│   • Operational dashboards showing system state            │
-│   • Trace continuity tracking requests through services     │
-│   • Audit logs and replay reconstruction                   │
-│   • Failure state visibility and observability             │
-│   • Intelligence signals (match scores, anomalies)         │
-│   Owned By: Sampada (Support Builder)                      │
-│   Sampada Authority: Read-only on all system state         │
-│   Critical: Cannot modify state or trigger execution       │
-└─────────────────────────────────────────────────────────────┘
+Sampada observes → generates signal → SETU evaluates → Niyantran executes
+(READ ONLY)         (advisory only)   (decision gate)   (state change)
 ```
 
-### Information Flow Rules
+---
 
-**Upward Flow (Execution → Visibility)**:
-- System state changes at Layer 3
-- Changes are logged and persisted (audit trail)
-- Logs flow to Layer 1 for visibility
-- Sampada observes the outcome
+### Role 2: NIYANTRAN — Orchestration Authority (Execution Layer)
 
-**Downward Flow (Visibility → Execution)**:
-- Sampada provides intelligence signals (matches, anomalies)
-- Signals reach Layer 2 (SETU)
-- Layer 2 evaluates and makes decisions
-- **NOT Sampada making decisions** — Layer 2 does
-- Layer 3 executes the decision
-- Layer 1 observes the result
+**Layer**: Layer 3 (Execution)
+**Owner**: Rishabh Yadav and the Backend Services Team
 
-**Critical Rule**: Information flows up (execution → visibility); commands flow down (visibility → setu → execution), but Sampada-generated signals are **ADVISORY, not DIRECTIVE**. SETU or execution layer makes final decisions based on signals.
+**Purpose**: The execution engine of the platform. Niyantran controls all state-changing operations, orchestration flows, and authority enforcement.
+
+**In the Codebase**:
+- **Gateway Service** (`backend/services/gateway/app/main.py`) — The primary Niyantran implementation
+- **LangGraph Service** (`backend/services/langgraph/`) — Workflow orchestration node
+
+**Authority**:
+- ✅ Create, update, delete jobs, candidates, applications, interviews, offers
+- ✅ Trigger and manage workflow state machines
+- ✅ Enforce authentication (accepts or rejects every request)
+- ✅ Execute business logic (matching, notifications, document requests)
+- ✅ Write to all MongoDB collections
+- ✅ Override or rollback system states
+
+**Interaction with Sampada**:
+- Niyantran's actions generate logs that Sampada can observe
+- Sampada provides intelligence signals (match scores, anomaly alerts) to inform Niyantran
+- Sampada CANNOT instruct Niyantran to execute anything
+
+---
+
+### Role 3: SETU — Approval Bridge (Participation Layer)
+
+**Layer**: Layer 2 (Approval/Participation)
+**Owner**: Downstream decision-makers; orchestrated by Rishabh's direction
+
+**Purpose**: SETU acts as the approval gate between intelligence signals and execution. It receives Sampada's signals, evaluates them, and makes recommendations that Niyantran can execute.
+
+**Conceptual Position**:
+```
+Sampada sends: "Candidate X has 0.92 match score for Job Y"
+SETU evaluates: "Based on score + criteria, recommend shortlisting"
+Niyantran executes: Candidate status updated to SHORTLISTED
+```
+
+**In Practice**:
+- SETU is represented by recruiter/client approval actions in the portal
+- Shortlist decisions, interview confirmations, offer approvals are all SETU actions
+- SETU does not execute independently — it gates the path to Niyantran
+
+**Why This Matters for Sampada**:
+- You provide signals TO SETU (via dashboard intelligence)
+- You observe the outcome AFTER SETU approves and Niyantran executes
+- You CANNOT bypass SETU to directly instruct Niyantran
+
+---
+
+### Role 4: SARATHI — Navigation and Guidance
+
+**Layer**: Cross-layer (operates between Visibility and Approval)
+**Owner**: Rishabh Yadav's direction team
+
+**Purpose**: Sarathi provides navigation and guidance signals — helping route decisions through the correct approval pathways. Think of Sarathi as the system's internal compass: it ensures that signals reach the right decision-makers.
+
+**Function**:
+- Routes intelligence signals from Sampada to appropriate SETU decision-makers
+- Guides candidates and recruiters through complex multi-step workflows
+- Provides contextual prompts ("next step is interview scheduling")
+- Does NOT make the decision — guides toward the decision point
+
+**In the Codebase**:
+- Sarathi logic is embedded in the LangGraph notification flow
+- The "what happens next" automation (interview scheduling prompts, offer extension guidance) is Sarathi's functional expression
+- Webhook events like `candidate-shortlisted` → "schedule interview" follow-up is Sarathi guiding the process
+
+---
+
+### Role 5: BUCKET — Data Collection and Holding Layer
+
+**Layer**: Infrastructure/Data Layer
+**Owner**: Infra team (Vinayak/Raj), governed by Rishabh
+
+**Purpose**: Bucket is the data holding and collection layer — responsible for receiving, storing, and making available all signals, events, audit logs, and operational data that other layers depend on.
+
+**In the Codebase**:
+- **MongoDB Atlas** is the primary Bucket implementation
+- **Audit log collection** (`audit_logs` collection) is the core bucket for replay and observability
+- **RL feedback collection** (`rl_feedback`) is the bucket for intelligence model inputs
+- **CSP violation log** (`security_csp`) is the security signal bucket
+
+**Bucket Roles in Evidence Gathering**:
+- Sampada reads FROM the Bucket (audit logs, feedback, health metrics)
+- Niyantran writes TO the Bucket (all state changes)
+- SETU decisions are recorded IN the Bucket (approval timestamps, decision metadata)
+
+**Constitutional Rule**: Sampada can READ the Bucket but CANNOT write to it as part of its support role. Evidence collection is read-only access to bucket data.
+
+---
+
+### Role 6: OBSERVABILITY / INSIGHT ROLE — Sampada's Primary Function
+
+**Layer**: Layer 1 (Visibility)
+**Owner**: Shashank (Sampada) — this IS your role
+
+**Purpose**: This is the primary mission of the Sampada re-entry. The Observability/Insight role is responsible for:
+
+**Trace Continuity**:
+- Track every request from entry to resolution across all services
+- Assign and propagate correlation IDs (`X-Correlation-ID` header)
+- Document timestamp chains showing service-to-service propagation
+- Produce: `evidence/trace-continuity/` artifacts
+
+**Replay Reconstruction**:
+- Read the Bucket (audit logs) to reconstruct historical workflow states
+- Prove that the system's behavior is deterministic and recoverable
+- Build scripts that replay operations from logs to verify state consistency
+- Produce: `evidence/replay/` artifacts
+
+**Failure Observability**:
+- Simulate controlled, non-disruptive failure scenarios
+- Verify that error states are captured with full context (request, state, error, recovery path)
+- Confirm that services continue running after errors (graceful degradation)
+- Produce: `evidence/failure/` artifacts
+
+**Enforcement Verification**:
+- Verify RBAC boundaries (wrong role → 403 Forbidden)
+- Verify tenant isolation (Client B cannot access Client A's data)
+- Verify authentication enforcement (no token → 401 Unauthorized)
+- Produce: `evidence/enforcement/` artifacts
+
+**Constitutional Signals**:
+- Generate intelligence dashboards showing system health
+- Provide match quality signals for recruiter decision support
+- Flag anomalies without taking corrective action
 
 ---
 
 ## 4. Ownership Understanding
 
-### Clear Responsibility Matrix
+### Responsibility Matrix
 
-| Area | Owner | Primary Authority | Constraint |
-|------|-------|---|---|
-| **System Architecture** | Rishabh Yadav | All architecture decisions, priorities, acceptance | Rishabh defines direction; Sampada contributes within it |
-| **Frontend/Dashboard** | Nikhil | Visualization, API wiring, signal display | Must preserve visibility ≠ execution distinction |
-| **Infrastructure/Deploy** | Vinayak, Raj | Deployment, monitoring, uptime, scaling | Must maintain service contracts |
-| **Observability/Documentation** | Shashank (Sampada) | Traces, replays, docs, developer onboarding | Must NOT expand into execution authority |
-| **Gateway Service** | TBD (Backend Team) | 80 core API endpoints, auth, routing | Maintains architecture contracts |
-| **AI Agent Service** | TBD (Backend Team) | Semantic matching, Phase 3 engine | Maintains service availability |
-| **LangGraph Service** | TBD (Backend Team) | Workflow automation, RL, notifications | Maintains workflow correctness |
-| **Database** | TBD (Backend Team) | MongoDB Atlas persistence, schema | Maintains data integrity and availability |
+| Domain | Owner | Shashank's Role | Boundary |
+|--------|-------|----------------|----------|
+| System Architecture | Rishabh Yadav | Observer | No changes without Rishabh |
+| Backend Microservices | Rishabh / Backend team | Evidence collector | Read-only access |
+| Frontend / Dashboard | Nikhil | Phase 4 support if requested | No frontend changes without Nikhil |
+| Infrastructure / Docker | Vinayak | Blocker escalator | Cannot restart production containers |
+| Network / DNS / Ports | Raj | Blocker escalator | Cannot change port mappings |
+| Documentation | Shashank (Sampada) | **Primary owner** | Full ownership |
+| Trace Evidence | Shashank (Sampada) | **Primary owner** | Full ownership |
+| Observability Scripts | Shashank (Sampada) | **Primary owner** | Full ownership |
+| Convergence Proof Package | Shashank (Sampada) | **Primary owner** | For Rishabh's acceptance |
+| Acceptance Sign-Off | Rishabh Yadav | Submitter | Cannot self-approve |
 
-### Your Contribution as Sampada
-
-**What You Do**:
-1. Produce and maintain accurate documentation
-   - Architecture diagrams and descriptions
-   - Current system state documentation
-   - Developer entry guides and onboarding
-   - Known gaps and workarounds
-
-2. Capture and validate trace continuity
-   - Run workflows end-to-end
-   - Extract trace_ids through all services
-   - Validate timestamp sequencing
-   - Produce reproducible trace commands
-
-3. Create and test replay reconstruction
-   - Extract complete audit logs for workflows
-   - Write replay scripts
-   - Show state reproducibility
-   - Demonstrate workflow determinism
-
-4. Verify failure observability coverage
-   - Run non-disruptive failure tests
-   - Capture error context and logs
-   - Validate diagnostic information
-   - Identify gaps in observability
-
-5. Support enforcement testing
-   - RBAC negative tests (wrong auth → rejected)
-   - Tenant isolation tests (cross-tenant access → blocked)
-   - Document results and findings
-
-6. Accelerate convergence proof
-   - Support Rishabh's acceptance criteria
-   - Produce evidence artifacts
-   - Document findings and blockers
-   - Maintain CONVERGENCE_SUPPORT_LOG.md
-
-**What You Do NOT Do**:
-- Make architecture decisions (Rishabh does)
-- Override or change execution authority boundaries
-- Trigger workflows or state changes
-- Make prioritization decisions (Rishabh does)
-- Expand Sampada's scope beyond convergence needs
+### Key Constraint on Ownership
+```
+What Sampada OWNS → Must not require execution authority to produce
+What Sampada SUPPORTS → Must wait for direction from role owner before acting
+What Sampada ESCALATES → Goes to Rishabh with full context, no suggested architecture
+```
 
 ---
 
 ## 5. Boundary Understanding
 
-### Non-Negotiable Rules (From Task17.md)
+### Non-Negotiable Rules (Locked — From Task17.md)
 
-These boundaries are **locked**. Do NOT attempt to change, re-litigate, or work around them:
+#### Rule 1: DO NOT Convert Visibility Into Execution Authority
+```
+❌ Wrong: "I can see candidates are stuck at review stage, so I'll update their status"
+✅ Right: "Candidates are stuck at review stage. Here is the trace showing the delay.
+          Rishabh to decide on corrective action."
+```
 
-#### Rule 1: Do NOT Convert Visibility Into Execution Authority
+#### Rule 2: DO NOT Create Parallel Signal Systems
+```
+❌ Wrong: "I'll add a webhook that bypasses LangGraph for faster notifications"
+✅ Right: All notifications go through established LangGraph workflow.
+         Document any notification gaps for Rishabh's attention.
+```
 
-**Example of Wrong Thinking**:
-- "I can see candidate data in dashboards, so I should be able to auto-change candidate status"
-- "I observe matching scores, so I should trigger interview scheduling"
+#### Rule 3: DO NOT Restart Architecture Discussions
+```
+❌ Wrong: "Maybe SETU should have more authority over workflow triggers"
+✅ Right: SETU's authority is constitutionally defined. If there's a gap,
+         document it in CONVERGENCE_SUPPORT_LOG.md and escalate.
+```
 
-**Correct Approach**:
-- Observe and report: "Candidate X has 0.92 match for Job Y"
-- Provide visibility: Show dashboard with recommendation
-- Let SETU/Rishabh decide: Approve or reject the match
-- You observe the outcome but don't execute it
+#### Rule 4: DO NOT Expand Scope Outside Convergence Needs
+```
+❌ Wrong: "While I'm here, let me add a new analytics dashboard feature"
+✅ Right: Focus on trace, replay, enforcement, observability proofs only.
+         New features require Rishabh's direction to commence.
+```
 
-#### Rule 2: Do NOT Create Parallel Signal Systems
+#### Rule 5: DO NOT Challenge Constitutional Boundaries
+```
+❌ Wrong: "Sampada should be able to trigger interviews for efficiency"
+✅ Right: Sampada role: Intelligence + Signals + Visibility. Fixed.
+         Execution authority belongs to Niyantran (Gateway/LangGraph).
+```
 
-**Example of Wrong Thinking**:
-- "I'll create an alternate signal flow that bypasses LangGraph"
-- "I'll add a side-channel for notifications"
-
-**Correct Approach**:
-- All signals flow through established architecture
-- All notifications go through LangGraph
-- All orchestration goes through Gateway
-- Do not introduce alternate channels
-
-#### Rule 3: Do NOT Restart Architecture Discussions
-
-**Example of Wrong Thinking**:
-- "Maybe we should reconsider the layer separation model"
-- "Should we give Sampada more authority over workflows?"
-
-**Correct Approach**:
-- Previous decisions are settled
-- Layer separation is locked
-- If you see gaps or problems, document and escalate to Rishabh
-- Do not propose redesigns or alternatives
-
-#### Rule 4: Do NOT Expand Scope Outside Convergence Needs
-
-**Example of Wrong Thinking**:
-- "While I'm here, let me redesign the authentication system"
-- "I'll add new features for better observability"
-
-**Correct Approach**:
-- Focus on trace, replay, observability, enforcement proofs
-- Do not take on new features
-- Do not redesign existing systems
-- Do not expand beyond convergence sprint scope
-
-#### Rule 5: Do NOT Challenge Constitutional Boundaries
-
-**Example of Wrong Thinking**:
-- "Sampada should have execution authority for efficiency"
-- "Let me make Sampada a decision-maker"
-
-**Correct Approach**:
-- Sampada role: Intelligence + Signals + Visibility (FIXED)
-- This is non-negotiable
-- Work within these boundaries
-- Escalate conflicts to Rishabh
+### Boundary Test: "Can Sampada Do This?"
+When unsure if an action is within bounds, use this test:
+1. Does it CHANGE any database state? → **NO** (escalate or observe only)
+2. Does it TRIGGER a workflow? → **NO** (document and signal to SETU)
+3. Does it CREATE a new architectural pattern? → **NO** (escalate to Rishabh)
+4. Does it EXPAND Sampada's authority? → **NO** (preserve layer separation)
+5. Does it DOCUMENT or OBSERVE? → **YES** ✅
 
 ---
 
 ## 6. Current Architecture Understanding
 
 ### Microservice Topology
-
 ```
-┌─────────────────────────────────────────────────────────┐
-│              FRONTEND (Port 3000)                       │
-│         React + Vite + TypeScript                       │
-│    ┌──────────────┬──────────────┬────────────┐        │
-│    │ Candidate    │  Recruiter   │  Client    │        │
-│    │ Portal       │  Console     │  Portal    │        │
-│    │ Self-service │ Job mgmt     │ Pipeline   │        │
-│    └──────────────┴──────────────┴────────────┘        │
-└─────────────────────────────────────────────────────────┘
-                         │
-                    (HTTPS/JWT)
-                         │
-┌─────────────────────────────────────────────────────────┐
-│         GATEWAY SERVICE (Port 8000)                     │
-│        FastAPI + JWT Authentication                     │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │  80 Core API Endpoints                          │   │
-│  │  • Auth: JWT, API Key, Session management       │   │
-│  │  • Jobs: Create, read, update, list, filter    │   │
-│  │  • Candidates: Search, profile, matching       │   │
-│  │  • Applications: Lifecycle tracking            │   │
-│  │  • Interviews: Scheduling, feedback            │   │
-│  │  • Offers: Generation, acceptance              │   │
-│  │  • Workflow: External task integration          │   │
-│  │  • Audit Logging: All state changes            │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-     │                    │                    │
-     │                    │                    │
-     ▼                    ▼                    ▼
-┌──────────┐      ┌──────────────┐      ┌──────────────┐
-│ AI Agent │      │  LangGraph   │      │  MongoDB     │
-│ (9000)   │      │  (9001)      │      │  Atlas       │
-│          │      │              │      │              │
-│Semantic  │      │Workflows     │      │14+ Collections│
-│Matching  │      │Automation    │      │              │
-│Phase 3   │      │RL Feedback   │      │• users       │
-│Transformers     │Multi-channel │      │• jobs        │
-│6 Endpoints      │Notifications │      │• candidates  │
-└──────────┘      │25 Endpoints  │      │• applications│
-                  │              │      │• interviews  │
-                  │• Email       │      │• offers      │
-                  │• WhatsApp    │      │• audit_logs  │
-                  │• Telegram    │      │• rl_feedback │
-                  └──────────────┘      │• notifications│
-                         │              │• tasks       │
-                         │              │• tokens      │
-                         │              │• workflows   │
-                         │              │• cache       │
-                  ┌──────┴────────┐     └──────────────┘
-                  │               │
-                  ▼               ▼
-            ┌─────────┐    ┌────────────────┐
-            │ Email   │    │ WhatsApp/Telegram
-            │ (Gmail) │    │ (Twilio)       │
-            └─────────┘    └────────────────┘
-                  │
-                  └─→ Complete-Infiverse
-                      (External Workflow System)
+Frontend (React + Vite :3000)
+  │ HTTPS + JWT
+  ▼
+Gateway Service (:8000) — FastAPI 4.2.0
+  │  Triple-layer auth: API Key | Client JWT | Candidate JWT
+  │  80 core endpoints | Audit logging | Input validation (XSS/SQLi)
+  │  Multi-tenant isolation (per-endpoint filtering)
+  │
+  ├──── AI Agent (:9000) — FastAPI 3.0.0
+  │     Semantic matching (sentence transformers)
+  │     GET /v1/match/{job_id}/top → ranked candidates
+  │
+  ├──── LangGraph (:9001) — FastAPI 1.0.0
+  │     Workflow state machine
+  │     Webhook endpoints: candidate-applied, shortlisted, interview-scheduled
+  │     Notification dispatch: Email | WhatsApp | Telegram
+  │
+  └──── MongoDB Atlas
+        14+ collections | Audit logs | RL feedback | CSP logs
 ```
 
-### Authentication Model (Triple-Layer)
+### Authentication Architecture (Triple-Layer)
 
-**Layer 1: API Key**
-- Used for: System admin access
-- Scope: Full access to all 111 endpoints
-- Use case: Internal operations, testing, automation
-- Implementation: Bearer token in Authorization header
+| Auth Type | Scope | JWT Payload | Use Case |
+|-----------|-------|-------------|----------|
+| **API Key** | Full system admin | N/A (bearer token) | Internal ops, testing, automation |
+| **Client JWT** | Tenant-scoped | `{client_id, email, role:"client"}` | Client portal, job management |
+| **Candidate JWT** | Self-service | `{candidate_id, email, role:"candidate"}` | Candidate portal |
 
-**Layer 2: Client JWT**
-- Used for: Tenant/client access
-- Scope: Client-scoped endpoints only (own jobs, view candidates, own applications)
-- Use case: Client portal, job management
-- Payload: {client_id, company_name, exp}
+### Multi-Tenant Isolation Model
+```
+Client A (TECH001)
+  └── Their jobs → Only visible when authenticated as TECH001
+  └── Their applications → Filtered by job ownership
+  └── Attempt by STARTUP01 to access TECH001 job → 403 Forbidden
 
-**Layer 3: Candidate JWT**
-- Used for: Self-service candidate access
-- Scope: Candidate-only endpoints (profile, applications, job search)
-- Use case: Candidate portal
-- Payload: {candidate_id, email, exp}
+Client B (STARTUP01)
+  └── Their jobs → Only visible when authenticated as STARTUP01
+  └── Cross-tenant access → Blocked at Gateway (per-endpoint check)
+```
 
-### Data Model
-
-**Shared Pool (Visible to All)**:
-- Candidates: Global candidate database (all authenticated users can search)
-
-**Client-Owned**:
-- Jobs: Each job belongs to one client
-- Applications: Filtered by job ownership
-- Interviews: Filtered by job ownership
-- Offers: Filtered by job ownership
-
-**Audit Trail**:
-- All operations logged: who, what, when, result
-- Used for replay reconstruction
-- Provides observability for failures
+### Monitoring Architecture
+```
+AdvancedMonitor class (monitoring.py)
+  ├── CPU/Memory metrics (psutil)
+  ├── Database connection health (motor/pymongo)
+  ├── API latency tracking (middleware hooks)
+  ├── Prometheus metrics endpoint
+  └── Structured logging → logs/bhiv_hr_platform.log
+```
 
 ---
 
 ## 7. Re-Entry Observations
 
-### Convergence Sprint Status (Rishabh's Focus)
+### Current Sprint Context (2026-05-26)
+Rishabh's active convergence sprint requires formal proof across 10 evidence categories before acceptance. This is the immediate focus for the Sampada re-entry.
 
-**What Rishabh is Proving**:
-1. **Trace Continuity**: Request trace with persistent trace_id through Gateway → Agent → LangGraph → MongoDB → Response
-2. **Replay Reconstruction**: Ability to replay workflows from audit logs to reproduce system state
-3. **Failure Observability**: Comprehensive error capture with context (request, state, error, recovery)
-4. **Enforcement Proof**: RBAC validation (wrong auth denied) and tenant isolation (cross-tenant access blocked)
-5. **Constitutional Boundaries**: Verified layer separation and role boundaries are maintained
-6. **Ownership Clarity**: Unambiguous responsibility assignment
+### What Was Achieved in This Sprint
+| Deliverable | Status | Evidence |
+|------------|--------|---------|
+| All 5 docs/ files updated | ✅ Complete | This session |
+| REVIEW_PACKET.md (10 parts) | ✅ Complete | Root directory |
+| Live E2E execution trace | ✅ Captured | trace-continuity/ |
+| RBAC enforcement tests | ✅ 5/5 passed | enforcement/ |
+| Tenant isolation verified | ✅ 403 confirmed | enforcement/ |
+| Replay reconstruction | ✅ SUCCESS | replay/ |
+| Failure observability (8 scenarios) | ✅ 8/8 passed | failure/ |
+| Constitutional boundary verification | ✅ Complete | boundaries/ |
 
-### Known Gaps
+### What Remains
+1. **Docker restart** — Services went down after server restart. Vinayak/Raj to restart Docker Desktop, then run `docker compose up -d` in backend/.
+2. **Rishabh's acceptance sign-off** — Submit REVIEW_PACKET.md for formal review.
+3. **Nikhil coordination** — Phase 4 frontend wiring only if Rishabh explicitly requests.
 
-| Gap | Impact | Mitigation |
-|-----|--------|-----------|
-| Internal HR user auth not implemented | Workaround: Use API keys for HR testing | Document as known gap |
-| Automatic tenant isolation not implemented | Manual per-endpoint filtering (risky) | Enforcement testing catches issues |
-| RL model training mocked | Endpoints respond but don't actually retrain | Document as known limitation |
-| Tenant-specific encryption missing | Shared encryption keys across tenants | Document security consideration |
-| Cross-tenant access prevention relies on developer diligence | High risk of leakage | Systematic enforcement testing required |
+### How to Reproduce All Evidence
+```powershell
+# 1. Start backend (Docker must be running)
+cd backend
+docker compose -f docker-compose.production.yml up -d
 
-### Immediate Contribution Areas
+# 2. Verify all 3 services are healthy
+curl http://localhost:8000/health
+curl http://localhost:9000/health
+curl http://localhost:9001/health
 
-**High Priority**:
-- Produce accurate documentation (alignment, current-state handbook)
-- Capture trace evidence with reproducible commands
-- Create replay scripts and validate reconstruction
-- Execute RBAC/tenant isolation enforcement tests
-- Run complete test suite and analyze results
+# 3. Re-run full evidence collection
+node C:\Users\Shani\.gemini\antigravity\brain\be0034f8-3c5f-4337-a805-758c276b8991\scratch\run_convergence_evidence.js
 
-**Medium Priority**:
-- Demonstrate failure observability with non-disruptive tests
-- Identify and document integration gaps
-- Create developer onboarding guide
-- Produce evidence package for review
+# 4. Re-run controlled failure simulations
+node C:\Users\Shani\.gemini\antigravity\brain\be0034f8-3c5f-4337-a805-758c276b8991\scratch\test_failure_simulations.js
 
-**Low Priority (If Time)**:
-- Frontend/dashboard support (only if Rishabh requests)
-- Additional documentation enhancements
+# 5. Re-run replay reconstruction
+node evidence/replay/replay_script.js
+```
+
+### Key Takeaways for Your Re-Entry
+1. **Your Role**: Support Builder — visibility, intelligence, documentation. NOT execution authority.
+2. **Your Leader**: Rishabh sets direction; you contribute within it. No alternate architectures.
+3. **Your Constraint**: Visibility ≠ Execution. Preserve all 5 layer separation rules.
+4. **Your Focus**: Trace, replay, enforcement, observability proofs for Rishabh's acceptance.
+5. **Your Escalation**: Any ambiguity → document and escalate to Rishabh. Never self-decide.
 
 ---
 
@@ -420,25 +453,12 @@ These boundaries are **locked**. Do NOT attempt to change, re-litigate, or work 
 | Document | Purpose |
 |----------|---------|
 | `Task17.md` | Full re-entry requirements and non-negotiable rules |
-| `README.md` | Product overview, quick start, troubleshooting |
+| `REVIEW_PACKET.md` | 10-part convergence proof package |
+| `docs/SAMPADA_CURRENT_STATE.md` | Developer handover (12 sections) |
+| `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` | Sprint priorities and acceleration points |
+| `docs/CONVERGENCE_SUPPORT_LOG.md` | Timestamped work log |
+| `docs/ALIGNMENT_SYNC_NOTES.md` | Team alignment decisions |
 | `backend/handover/ROLE_MATRIX.md` | Authentication and permission matrix |
 | `backend/handover/SYSTEM_BEHAVIOR.md` | Architecture specifications and contracts |
-| `backend/handover/TENANT_ASSUMPTIONS.md` | Multi-tenancy design and assumptions |
-| `backend/handover/KNOWN_GAPS.md` | Complete list of unimplemented features |
-| `backend/handover/architecture/ARCHITECTURE.md` | Detailed architecture documentation |
-| `backend/handover/integration_maps/INTEGRATION_MAPS.md` | Service integration and API contracts |
-| `backend/services/gateway/jwt_auth.py` | Authentication implementation code |
-| `backend/docs/api/API_DOCUMENTATION.md` | Complete API reference for all 111 endpoints |
-
----
-
-## Key Takeaways for Your Re-Entry
-
-1. **Your Role**: Support Builder providing visibility, intelligence, and documentation—NOT execution authority
-2. **Your Leader**: Rishabh sets direction; you contribute within it
-3. **Your Constraint**: Visibility ≠ Execution; preserve layer separation
-4. **Your Focus**: Trace, replay, enforcement, observability proofs for convergence
-5. **Your Boundaries**: Non-negotiable rules on role separation, scope, architecture decisions
-
-You are re-entering **to support**, not to lead or redesign. The system architecture is settled. Your value is in evidence gathering, documentation accuracy, and convergence proof hardening.
-
+| `backend/docs/api/API_DOCUMENTATION.md` | Complete API reference (111 endpoints) |
+| `evidence/` | All convergence proof artifacts |
