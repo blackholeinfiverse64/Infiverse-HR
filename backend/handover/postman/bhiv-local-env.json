@@ -1,0 +1,301 @@
+{
+  "id": "bhiv-hr-local-env",
+  "name": "BHIV HR Local Development",
+  "values": [
+    {
+      "key": "DATABASE_URL",
+      "value": "postgresql://bhiv_user:bhiv_password@localhost:5432/bhiv_hr",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "DB_PASSWORD",
+      "value": "bhiv_password",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "POSTGRES_PASSWORD",
+      "value": "bhiv_password",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "POSTGRES_USER",
+      "value": "bhiv_user",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "POSTGRES_DB",
+      "value": "bhiv_hr",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "API_KEY_SECRET",
+      "value": "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "JWT_SECRET_KEY",
+      "value": "prod_jwt_Ova9A8L-OU4uIcAero0v3ZLQRckNr3xBDuO0OXF6uwA",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "CANDIDATE_JWT_SECRET_KEY",
+      "value": "candidate_jwt_secret_key_2025",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "GATEWAY_SECRET_KEY",
+      "value": "prod_gateway_secret_key_2025",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "GATEWAY_SERVICE_URL",
+      "value": "http://localhost:8000",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "AGENT_SERVICE_URL",
+      "value": "http://localhost:9000",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "LANGGRAPH_SERVICE_URL",
+      "value": "http://localhost:9001",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "PORTAL_SERVICE_URL",
+      "value": "http://localhost:8501",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "CLIENT_PORTAL_SERVICE_URL",
+      "value": "http://localhost:8502",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "CANDIDATE_PORTAL_SERVICE_URL",
+      "value": "http://localhost:8503",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "ENABLE_SEMANTIC",
+      "value": "true",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "ENABLE_AUTO_SYNC",
+      "value": "true",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "ENABLE_VALUES_ASSESSMENT",
+      "value": "true",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "ENABLE_LEARNING_ENGINE",
+      "value": "true",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "MAX_CANDIDATES_PER_REQUEST",
+      "value": "50",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "AI_MATCHING_TIMEOUT",
+      "value": "15",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "DATABASE_POOL_SIZE",
+      "value": "10",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "LOG_LEVEL",
+      "value": "INFO",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "LOG_FORMAT",
+      "value": "json",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "ENVIRONMENT",
+      "value": "development",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "OBSERVABILITY_ENABLED",
+      "value": "true",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "PYTHON_VERSION",
+      "value": "3.12.7",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "TWILIO_ACCOUNT_SID",
+      "value": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "TWILIO_AUTH_TOKEN",
+      "value": "your_twilio_auth_token_here",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "TWILIO_WHATSAPP_NUMBER",
+      "value": "+14155238886",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "GMAIL_EMAIL",
+      "value": "shashankmishra0411@gmail.com",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "GMAIL_APP_PASSWORD",
+      "value": "your_gmail_app_password",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "TELEGRAM_BOT_TOKEN",
+      "value": "your_telegram_bot_token",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "TELEGRAM_BOT_USERNAME",
+      "value": "BHIV_HR_PLATFORM_ASSISTANT_bot",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "GEMINI_API_KEY",
+      "value": "your_gemini_api_key",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "GEMINI_MODEL",
+      "value": "gemini-pro",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "value": "your_openai_api_key",
+      "enabled": true,
+      "type": "secret"
+    },
+    {
+      "key": "test_user_id",
+      "value": "test_user",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_candidate_id",
+      "value": "1",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_job_id",
+      "value": "1",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_email",
+      "value": "shashankmishra0411@gmail.com",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_phone",
+      "value": "9284967526",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "client_id",
+      "value": "TECH001",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "client_password",
+      "value": "demo123",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_totp_code",
+      "value": "582299",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "admin_username",
+      "value": "admin",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "admin_password",
+      "value": "admin123",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "test_password",
+      "value": "Test123!",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "telegram_chat_id",
+      "value": "123456",
+      "enabled": true,
+      "type": "default"
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
