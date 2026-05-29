@@ -144,6 +144,8 @@ config/*secrets*
 *.env.production
 *credentials.env
 *secrets.env
+BHIV HR RENDER CREDENTIALS.txt
+handover/postman/bhiv-local-env.json
 
 # Logs
 *.log
