@@ -1,158 +1,350 @@
-# 🧪 BHIV HR Platform — Convergence Review Packet
+# BHIV Sampada — Task18 Review Packet
 
-**Status**: ✅ All 10 categories COMPLETE
-**Evidence Collected**: 2026-05-26T13:35:50Z (live against Docker containers)
-**Docs Updated**: 2026-05-26T13:38:00Z (this session)
-**Maintained by**: Shashank (Sampada, Support Builder)
-**For Acceptance Review By**: Rishabh Yadav
+**Status**: ✅ All 6 Phases Complete (2026-05-30)  
+**Task18 Deliverables**: 7/7 complete  
+**Evidence Collected**: 2026-05-26T13:35:50Z (live against Docker containers)  
+**Docs Updated**: 2026-05-30 (Task18 session)  
+**Maintained by**: Shashank (Sampada, Support Builder)  
+**For Acceptance Review By**: Rishabh Yadav  
 
-> **Note**: Docker services are fully online and healthy. Evidence was successfully collected/re-run in the current session against live running containers.
-
-### Supporting Documentation
-- [SHASHANK_REENTRY_ALIGNMENT.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SHASHANK_REENTRY_ALIGNMENT.md) — All 6 named roles, constitutional boundaries, architecture understanding
-- [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md) — 12-section developer handover document
-- [EXECUTION_UNDERSTANDING_SUMMARY.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/EXECUTION_UNDERSTANDING_SUMMARY.md) — Sprint priorities and proof requirements
-- [CONVERGENCE_SUPPORT_LOG.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/CONVERGENCE_SUPPORT_LOG.md) — Timestamped work log across all 3 sessions
-- [ALIGNMENT_SYNC_NOTES.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/ALIGNMENT_SYNC_NOTES.md) — Team alignment decisions and open questions
+> **Operational Role**: Support Builder + Expansion Builder under Rishabh Yadav's leadership. All architectural decisions and acceptance remain with Rishabh Yadav. Sampada's position: intelligence and visibility layer — no execution authority.
 
 ---
 
-## 1. Entry Points
-The system enforces a strict **triple-authentication model** separating administrator, tenant, and self-service scopes.
+## Task18 Deliverable Index
 
-* **API Key (System Admin Scope)**:
-  - **Secret**: `prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o`
-  - **Usage**: Administrative statistics, direct matching query, and service-to-service communication.
-  - **Evidence File**: [api-key-sample.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/entry-points/api-key-sample.txt)
-* **Client JWT (Tenant Scope)**:
-  - **Token**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiJURUNIMDAxIiwiZW1haWwiOiJ0ZWNoMDAxQHRlc3QuY29tIiwicm9sZSI6ImNsaWVudCJ9.dMbImh6FoyaNH6u2w0C-FTVwQbCkJCfz7o50GtW4iVk` (signed via `JWT_SECRET_KEY` for client `TECH001`).
-  - **Usage**: Scoped to view own jobs, candidate matches, and tenant metrics.
-  - **Evidence File**: [client-jwt-sample.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/entry-points/client-jwt-sample.txt)
-* **Candidate JWT (Self-Service Scope)**:
-  - **Token**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYW5kaWRhdGVfaWQiOiJ0ZXN0X2NhbmRfMDAxIiwiZW1haWwiOiJjYW5kQHRlc3QuY29tIiwicm9sZSI6ImNhbmRpZGF0ZSJ9.X8vRN6MqG0tybaUa6Cw0Xn0jS3_FFBhn2sPELJCNFHE` (signed via `CANDIDATE_JWT_SECRET_KEY` for candidate `test_cand_001`).
-  - **Usage**: Candidate profile update, job browsing, and self-application submissions.
-  - **Evidence File**: [candidate-jwt-sample.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/entry-points/candidate-jwt-sample.txt)
-
-Authentication implementation rules are verified in `backend/services/gateway/jwt_auth.py`. 
-Reproducible CLI commands are documented in [curl-examples.sh](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/entry-points/curl-examples.sh).
+| # | Deliverable | Status | Path |
+|---|---|---|---|
+| 1 | SAMPADA_WORKFORCE_OS_ARCHITECTURE.md | ✅ Complete | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` |
+| 2 | SAMPADA_SETU_CONVERGENCE_MAP.md | ✅ Complete | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` |
+| 3 | SAMPADA_CONTROL_CENTER_BLUEPRINT.md | ✅ Complete | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` |
+| 4 | SAMPADA_HUMAN_GROWTH_MODEL.md | ✅ Complete | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` |
+| 5 | SAMPADA_CURRENT_STATE.md (updated) | ✅ Complete | `docs/SAMPADA_CURRENT_STATE.md` |
+| 6 | CONTRIBUTION_LOG.md | ✅ Complete | `CONTRIBUTION_LOG.md` |
+| 7 | Control Center Prototype | ✅ Complete | `frontend/src/pages/control/ControlCenter.tsx` |
 
 ---
 
-## 2. Live Execution Flow
-We executed an end-to-end recruitment lifecycle scenario showing seamless operation:
+## 1. Architecture Expansion
 
-1. **Job Creation**: Client A (`TECH001`) posted a "Staff AI Engineer" position to `/v1/jobs`. Received `job_id`: `6a15a13f0caf5b91bd0e9de4`.
-2. **AI Semantic Matching**: The API Gateway requested matching from the AI Agent service at `/v1/match/6a15a13f0caf5b91bd0e9de4/top` (computing similarity against 240 database candidates).
-3. **Candidate Apply**: Candidate `test_cand_001` applied for the newly created job posting via `/v1/candidate/apply`.
-4. **LangGraph Automation Trigger**: Gateway triggered the candidate application workflow via the webhook `/api/v1/webhooks/candidate-applied`.
-5. **Workflow Status Check**: The state machine status was queried at `/api/v1/workflow/status/{id}` returning `running`.
+Sampada has been architecturally mapped as a **5-Layer Workforce OS**:
 
-The captured payloads, response codes, and step sequences are recorded in [request-trace.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/trace-continuity/request-trace.log).
+| Layer | Responsibilities | Key Repo Paths |
+|-------|-----------------|----------------|
+| **Talent Intelligence** | Candidate matching, recruiter scoring, hiring pipeline, NDA/onboarding | `backend/services/agent/`, `frontend/src/pages/candidate/`, `frontend/src/pages/recruiter/` |
+| **Workforce Operations** | Employee profiles, attendance/leave visibility, HR requests, reimbursements, payroll visibility | `backend/services/gateway/`, MongoDB collections |
+| **Growth & Development** | Learning progress, skills, mentorship, aspirations, growth tracking | `frontend/src/pages/`, `backend/services/langgraph/` |
+| **Workforce Observability** | Org visibility, team load, bottlenecks, risk signals, operational health | `evidence/`, `evidence/replay/`, Gateway + LangGraph telemetry |
+| **Executive Control Center** | High-density dashboard aggregating all layer signals | `frontend/src/pages/control/ControlCenter.tsx`, `/v1/dashboard/*` |
 
----
+### Architecture Guardrails Applied
+- No hidden execution authority created
+- No coercive productivity engine
+- No dopamine leaderboard system
+- No surveillance dashboard
+- No governance authority claimed
+- All architecture under Rishabh Yadav's decision authority
 
-## 3. Real Trace Continuity
-Request correlation was verified end-to-end using a unique request correlation ID (`trace_conv_17_257502`). The trace was successfully propagated through the microservice hops:
-
-* **Hop 1: Job Creation** — Gateway POST `/v1/jobs` (Client JWT)
-  - *Timestamp*: `2026-05-26T13:33:51.776Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `47ms`
-* **Hop 2: AI Matching** — Gateway GET `/v1/match/{id}/top` requests semantic calculation from Agent.
-  - *Timestamp*: `2026-05-26T13:35:21.828Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `90052ms`
-* **Hop 3: Application Creation** — Gateway POST `/v1/candidate/apply` (Candidate JWT)
-  - *Timestamp*: `2026-05-26T13:35:21.846Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `18ms`
-* **Hop 4: Workflow Trigger** — Gateway POST `/api/v1/webhooks/candidate-applied` calls LangGraph service.
-  - *Timestamp*: `2026-05-26T13:35:21.963Z` | *Correlation ID*: `trace_conv_17_257502` | *Workflow ID*: `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29` | *Latency*: `117ms`
-* **Hop 5: Status Query** — Gateway GET `/api/v1/workflow/status/{id}` queries LangGraph.
-  - *Timestamp*: `2026-05-26T13:35:22.014Z` | *Correlation ID*: `trace_conv_17_257502` | *Latency*: `51ms`
-
-Detailed step metrics and latency analyses are in [trace-analysis.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/trace-continuity/trace-analysis.txt).
+**Reference**: [docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md](docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md)
 
 ---
 
-## 4. Real Downstream Participation
-To prove downstream workflow engagement, recruiter signals were injected to release notification loops and evaluate decisions in LangGraph:
+## 2. SETU Integration Model
 
-1. **Shortlisted Webhook**: Called `/api/v1/webhooks/candidate-shortlisted` to simulate recruiter shortlisting. This triggers LangGraph to send notifications via Email and WhatsApp (via Twilio).
-2. **Interview Scheduled Webhook**: Called `/api/v1/webhooks/interview-scheduled` to trigger calendar event creation and notifications.
+The convergence map defines interaction boundaries between Sampada and all SETU-connected systems:
 
-Downstream service responses are saved in [downstream-participation.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/tests/downstream-participation.log).
+### Ownership Matrix
+| System | Primary Ownership | Responsibilities |
+|--------|-------------------|-----------------|
+| **Sampada** | Rishabh Yadav | Intelligence, workforce visibility, candidate/recruiter portals |
+| **Niyantran** | Niyantran Owner | Tasking, execution telemetry, payroll calculation participation |
+| **Artha** | Artha Owner | Financial systems, payroll ownership, ledger reconciliation |
+| **Logistics** | Logistics Owner | Asset/equipment logistics |
+| **CRM** | CRM Owner | Relationship intelligence, client engagement |
+| **SETU** | SETU Platform | Cross-domain aggregation, unified operational visibility |
 
----
+### Signal Exchange (Key Examples)
+| Signal | Source → Consumer | Endpoint |
+|--------|------------------|----------|
+| Job/Match Request | Client → Gateway → Agent | `GET /v1/match/{job_id}/top` |
+| Workflow Trigger | Gateway → LangGraph | `POST /v1/langgraph/trigger` |
+| RL Feedback | Portal → LangGraph | `POST /rl/feedback` |
+| Payroll Cue (visibility) | Artha → Sampada | Visibility-only; hashed IDs |
+| Execution Telemetry | Niyantran → SETU/Sampada | Correlation ID required |
 
-## 5. Enforcement Proof
-We verified role-based access control (RBAC) and tenant isolation through systematic negative tests:
+### Critical Boundary Enforced
+`payroll visibility participation ≠ payroll ownership`  
+Sampada surfaces payroll cues — Artha owns payroll. This boundary is enforced at API level (read-only endpoints, no calculation logic in Sampada).
 
-* **Authentication Enforcement**: 
-  - Accessing `/v1/client/stats` without headers returned `401 Unauthorized`.
-  - Accessing with a corrupt/invalid token returned `401 Unauthorized` with detail `"Invalid authentication token"`.
-* **RBAC Role Constraints**: 
-  - Candidate JWT trying to view client stats returned `403 Forbidden` (`"This endpoint is only available for clients"`).
-  - Recruiter JWT trying to view client stats returned `403 Forbidden` (`"This endpoint is only available for clients"`).
-  - Candidate `test_cand_001` querying the stats of candidate `test_cand_999` returned `403 Forbidden` (`"You can only view your own stats"`).
-* **Multi-Tenant Isolation**: 
-  - Client B (`STARTUP01`) attempted to query the job details of a job created by Client A (`TECH001`) via GET `/v1/jobs/6a15a13f0caf5b91bd0e9de4`.
-  - **Result**: Request was blocked with `403 Forbidden` and details: `{"detail":"You can only view your own jobs"}`.
-
-Test results are logged in [rbac-results.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/enforcement/rbac-results.log) and [tenant-isolation-results.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/enforcement/tenant-isolation-results.log).
-
----
-
-## 6. Replay Reconstruction
-Workflows are deterministic and can be recovered from database audit logs. We wrote a replay engine [replay_script.js](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/replay/replay_script.js) that:
-1. Reads chronological audit events (Job creation → Candidate apply → Interview scheduled → Feedback submitted → Offer extended).
-2. Sequentially rebuilds the state machine.
-3. Compares the final state with the expected state.
-
-**Result**: State validation completed successfully, proving deterministic lifecycle transitions.
-Execution output is available in [replay-output.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/replay/replay-output.log).
+**Reference**: [docs/SAMPADA_SETU_CONVERGENCE_MAP.md](docs/SAMPADA_SETU_CONVERGENCE_MAP.md)
 
 ---
 
-## 7. Failure Observability
-The platform handles failures gracefully without crashes and logs detailed diagnostic context:
+## 3. Ownership Matrix
 
-* **Weak Credentials**: Posting a simple password to password validator returns `is_valid: false` and a feedback array listing specific unmet rules.
-* **XSS Attack Injection**: Malicious script payloads sent to `/v1/security/test-input-validation` are flagged as `BLOCKED` with detailed threat context logged.
-* **MFA Failures**: Bad TOTP verification codes return `401 Unauthorized` with clear reason details.
-* **Resource Absence**: Requesting missing ObjectId strings returns `404 Not Found` with resource class details.
+| Area | Owner | Authority Level |
+|------|-------|----------------|
+| **System Architecture & Design** | Rishabh Yadav | Full — all decisions |
+| **Backend Microservices** | Rishabh Yadav | Full execution authority |
+| **Acceptance Criteria** | Rishabh Yadav | Final approval |
+| **Frontend / Dashboard UI** | Nikhil | Interface wiring, API consumption |
+| **Infrastructure / Deployment** | Vinayak | Container management, uptime |
+| **Infra Support / Network** | Raj | Port mappings, DNS, cluster health |
+| **Observability & Documentation** | Shashank (Sampada) | Read-only on execution; docs & traces |
+| **Niyantran** | Niyantran Owner (external) | Tasking, execution |
+| **Artha** | Artha Owner (external) | Financial systems, payroll |
+| **Logistics** | Logistics Owner (external) | Logistics operations |
+| **CRM** | CRM Owner (external) | Relationship intelligence |
 
-Scenario details and logs are collected in [failure-observability.log](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/failure/failure-observability.log) and [failure-scenarios.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/failure/failure-scenarios.md).
+**Locked boundaries (non-negotiable)**:
+1. Sampada cannot mutate system state
+2. Sampada cannot override execution decisions
+3. Sampada cannot create parallel signal channels
+4. All architecture decisions: Rishabh Yadav only
+
+**Reference**: [evidence/ownership/ownership_matrix.md](evidence/ownership/ownership_matrix.md)
 
 ---
 
-## 8. Constitutional Boundaries
-To enforce the locked separation model, visibility actions must be read-only and never trigger state changes or execution tasks:
+## 4. Dashboard Capability Blueprint
 
-- GET endpoints (/health/detailed, /v1/jobs, /v1/candidates/stats) only retrieve database snapshots and CPU/memory metrics.
-- Verified in tests that candidate counts and job tables remain unchanged during repeated visibility queries.
+The Master Workforce Control Center has been designed per BHIV Dashboard Capability Transmission principles.
 
-Verification details are logged in [boundaries-verification.txt](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/boundaries/boundaries-verification.txt).
+### Cognition Principles Applied
+| Principle | How Applied |
+|-----------|------------|
+| Scan speed | 3–5 critical KPIs per zone; sparklines + single number |
+| Hierarchy clarity | Alert (red) > Warning (amber) > Info (neutral) throughout |
+| Low-scroll density | Zone navigation via top rail; no vertical stacking of cards |
+| Zoning discipline | 6 distinct zones; each with single primary KPI + 3 secondary |
+| Operational cognition | Causal breadcrumbs; synthetic insights not raw event streams |
+
+### 6 Dashboard Zones
+| Zone | Purpose | Primary KPI |
+|------|---------|-------------|
+| **Executive** | Workforce health, hiring health, payroll state, escalations | Workforce Health Index |
+| **Hiring** | Candidate pipeline, recruiter throughput, interview velocity | Pipeline Velocity |
+| **Workforce Ops** | HR requests, attendance, leave, reimbursements | Operational SLA Health |
+| **Growth** | Learning, mentorship, skill trajectory | Growth Momentum |
+| **Org Visibility** | Dept map, dependency risk, staffing gaps | Staffing Gap Score |
+| **Replay/Trace** | Audit trail, replay reconstruction, evidence | Last Replay Timestamp |
+
+### Anti-Patterns Enforced
+- ❌ No random widget dumping
+- ❌ No infinite stacked cards
+- ❌ No dashboard-as-webpage thinking
+- ❌ No surveillance widgets
+- ❌ No leaderboards or gamification
+- ✅ Progressive disclosure — details on demand
+
+**Reference**: [docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md](docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md)  
+**Prototype**: [frontend/src/pages/control/ControlCenter.tsx](frontend/src/pages/control/ControlCenter.tsx)
 
 ---
 
-## 9. Ownership Matrix
-System ownership boundaries are strictly mapped to prevent scope creep:
+## 5. Human Growth Framework
 
-| Area | Owner | Role | Authority |
-| :--- | :--- | :--- | :--- |
-| **System & Architecture** | Rishabh Yadav | Owner / Leader | State mutation, prioritizations, acceptance approval |
-| **Frontend UI** | Nikhil | Collaborator | Interface wiring, API mapping, data display |
-| **Infra & DevOps** | Vinayak / Raj | Collaborator | Port mappings, container lifecycles, cluster uptime |
-| **Observability & Docs** | Shashank (Sampada) | Support Builder | Trace evidence, replay verification, handbook steward |
+The Human-Centric Growth Model defines all employee growth data policies.
 
-Refer to [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md) for the complete state documentation. The signed copy is saved in [ownership_matrix.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/ownership/ownership_matrix.md).
+### Core Design Principles (All Non-Negotiable)
+| Principle | Meaning |
+|-----------|---------|
+| Growth ≠ Pressure | Growth signals empower; never weaponised for productivity pressure |
+| Metrics ≠ Human Worth | No metric implies judgment of a person's worth |
+| Visibility ≠ Surveillance | Invited visibility (employee-initiated) ≠ imposed observation |
+| Analytics ≠ Coercion | Analytics is advisory; execution decisions remain with humans |
+
+### 8 Growth Dimensions (Balanced Framework)
+1. **Contribution** — meaningful participation in team outcomes (team-level aggregate default)
+2. **Learning** — modules completed, skills acquired (individual visible to self; team aggregate to HR)
+3. **Ownership Maturity** — qualitative trajectory over quarters, not weekly snapshots
+4. **Collaboration** — cross-team participation, knowledge sharing (self-reported or opted-in)
+5. **Mentoring** — active mentoring relationships (activity-based, not ranked)
+6. **Growth Trajectory** — direction and velocity vs own past baseline (never vs colleagues)
+7. **Aspirations** — career goals (strictly individual and confidential)
+8. **Wellbeing Signals** — anonymised team-level flags only; strictest boundary of all
+
+### Anti-Patterns Prohibited
+- ❌ Employee leaderboards
+- ❌ Dopamine loops (streaks, badges for output)
+- ❌ Productivity heat maps (individual, hourly)
+- ❌ Composite "employee score"
+- ❌ Forced learning deadlines with penalty
+- ❌ Real-time activity monitoring
+- ❌ Cross-employee skill comparison
+
+**Reference**: [docs/SAMPADA_HUMAN_GROWTH_MODEL.md](docs/SAMPADA_HUMAN_GROWTH_MODEL.md)
+
+---
+
+## 6. Boundary Protection
+
+### Constitutional Boundaries (Enforced Throughout Task18)
+
+| Boundary | Enforcement Mechanism |
+|----------|----------------------|
+| Visibility ≠ Execution Authority | All dashboard KPIs are read-only; no action buttons that mutate system state |
+| Intelligence ≠ Governance Authority | Sampada surfaces signals; decisions made by owning system humans |
+| No surveillance-driven scoring | Growth model prohibits individual productivity scoring |
+| No dopamine gamification | Control Center has no streak mechanics, badges, or leaderboards |
+| No ownership drift | All 6 phases executed as Support Builder under Rishabh direction |
+| No scope expansion without lead approval | No new features introduced beyond Task18 specification |
+| Payroll visibility ≠ payroll ownership | SETU convergence map enforces this at ownership, participation, and API levels |
+
+### Replay & Trace Boundary Evidence
+- All cross-system requests include `X-Correlation-Id` and `trace_id`
+- Audit logs persisted to `audit_logs` MongoDB collection
+- Replay engine (`evidence/replay/replay_script.js`) reconstructs state deterministically
+- Evidence bundle includes request/response pairs, DB snapshots, and replay logs
+
+---
+
+## 7. Implementation Support Evidence
+
+### Phase 5 Support Activities (Under Rishabh Direction)
+
+| Activity | Deliverable | Status |
+|----------|-------------|--------|
+| Architecture documentation | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` | ✅ |
+| SETU convergence mapping | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` | ✅ |
+| Dashboard blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` | ✅ |
+| Human growth model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` | ✅ |
+| Control Center prototype | `frontend/src/pages/control/ControlCenter.tsx` | ✅ |
+| JSON Signal Schemas | `docs/schemas/*.json` (4 schemas) | ✅ |
+| Postman snippets | `docs/postman/` | ✅ |
+| Owner request templates | `docs/requests/` | ✅ |
+| Current state refresh | `docs/SAMPADA_CURRENT_STATE.md` | ✅ |
+| Contribution tracking | `CONTRIBUTION_LOG.md` | ✅ |
+
+### Prior Convergence Evidence (2026-05-26)
+All 10 convergence evidence categories collected during live Docker session:
+
+| Category | Status | Evidence |
+|----------|--------|---------|
+| Entry Points (3 auth types) | ✅ | `evidence/entry-points/` |
+| Live Execution Flow (E2E) | ✅ | `evidence/trace-continuity/request-trace.log` |
+| Real Trace Continuity (correlation IDs) | ✅ | `evidence/trace-continuity/trace-analysis.txt` |
+| Real Downstream Participation | ✅ | `evidence/tests/downstream-participation.log` |
+| Enforcement Proof (RBAC + isolation) | ✅ | `evidence/enforcement/` |
+| Replay Reconstruction | ✅ | `evidence/replay/` |
+| Failure Observability (8 scenarios) | ✅ | `evidence/failure/` |
+| Constitutional Boundaries | ✅ | `evidence/boundaries/` |
+| Ownership Matrix | ✅ | `evidence/ownership/ownership_matrix.md` |
+| Proof/Logs Summary | ✅ | `evidence/general/verification_summary.md` |
+
+---
+
+## 8. Risks
+
+### Active Risk Register
+
+| # | Risk | Likelihood | Impact | Owner | Mitigation |
+|---|------|-----------|--------|-------|-----------|
+| R1 | Cross-tenant data leakage via manual endpoint filtering | Medium | Critical | Rishabh | Systematic RBAC + isolation tests every sprint |
+| R2 | Mocked RL endpoints produce non-deterministic replay evidence | Low | Medium | Backend team | Documented as known limitation |
+| R3 | Docker service unavailability breaks all backend testing | Medium | High | Vinayak | Restart procedures documented; container health monitored |
+| R4 | Missing internal HR auth creates security surface | Low | High | Rishabh | API key workaround for testing; HR auth on roadmap |
+| R5 | Shared JWT secrets across environments | Low | High | Rishabh | Rotate before production; use secrets manager |
+| R6 | MongoDB Atlas IP allowlist blocks testing from new networks | Medium | Medium | Vinayak/Raj | Add dev IPs to Atlas allowlist |
+| R7 | LangGraph state machine doesn't persist across container restarts | Medium | Medium | Backend team | Evidence replay covers recovery |
+| R8 | Niyantran/Artha/Logistics/CRM owner contacts unknown | High | Medium | Rishabh to authorize outreach | Owner request templates prepared in `docs/requests/` |
+| R9 | Control Center wired to mock data only (not live endpoints) | Medium | Low | Nikhil | Blueprint specifies `/v1/dashboard/*` endpoints to implement |
+| R10 | GrowthConsent model not yet implemented | Medium | Medium | Backend team | Model design documented in Human Growth Model |
+
+---
+
+## 9. Roadmap
+
+### Immediate (Current Sprint — Task18)
+- ✅ All 6 phases of Task18 complete
+- ✅ All 7 Task18 deliverables created/updated
+- 🔲 Acceptance sign-off from Rishabh Yadav on this REVIEW_PACKET
+
+### Next Sprint
+- Wire Control Center to live `/v1/dashboard/*` endpoints (Nikhil + backend team)
+- Docker deployment stabilization (Vinayak/Raj)
+- Obtain Niyantran/Artha owner contacts (Rishabh to authorize outreach)
+
+### Workforce OS (1-3 months)
+- Workforce Operations Layer API surface (HR requests, leave, reimbursement endpoints)
+- Growth & Development Layer — LXP integration for learning signals
+- GrowthConsent model implementation in MongoDB
+- Personal growth map UI component (individual view)
+- Team momentum panel (aggregate Growth Zone)
+- Internal HR auth implementation (Rishabh direction)
+- Automated tenant isolation middleware
+
+### Long Term (3+ months)
+- Secrets management infrastructure
+- Tenant-specific encryption
+- Advanced observability (OpenTelemetry distributed tracing)
+- Full SETU live signal exchange (Niyantran telemetry, Artha payroll cues, Logistics, CRM)
+- Multi-region deployment strategy
 
 ---
 
 ## 10. Proof / Screenshots / Logs
-All convergence logs and scripts are stored in the following folder structures under the project root:
 
-- [evidence/entry-points/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/entry-points) — Sample tokens and curl commands.
-- [evidence/trace-continuity/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/trace-continuity) — Core workflow trace and correlation logs.
-- [evidence/enforcement/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/enforcement) — RBAC test runs and tenant isolation verification.
-- [evidence/replay/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/replay) — State reconstruction script and output logs.
-- [evidence/failure/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/failure) — Observability checks and scenario documents.
-- [evidence/boundaries/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/boundaries) — Visibility vs execution boundaries verification.
-- [evidence/ownership/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/ownership) — System ownership and responsibility matrix file.
-- [evidence/general/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/general) — General verification summaries.
-- [evidence/tests/](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/evidence/tests) — Overall health check summaries and downstream participation logs.
+### Live Test Results (2026-05-26T13:35Z)
+- **Trace ID**: `trace_conv_17_257502`
+- **Workflow ID**: `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29`
+- **Job Created**: `6a15a13f0caf5b91bd0e9de4`
+- **Resilience Tests**: 8/8 PASSED
+- **RBAC Negative Tests**: 5/5 PASSED (401/403 enforced correctly)
+- **Tenant Isolation Test**: PASSED (Client B blocked from Client A's job)
+- **Replay Reconstruction**: SUCCESS ✅
+
+### Authentication Proof
+- **API Key** (System Admin): `prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o`
+- **Client JWT** (TECH001): JWT signed via `JWT_SECRET_KEY`
+- **Candidate JWT** (test_cand_001): JWT signed via `CANDIDATE_JWT_SECRET_KEY`
+
+### E2E Trace Hops Verified
+| Hop | Service | Operation | Correlation ID | Latency |
+|-----|---------|-----------|---------------|---------|
+| 1 | Gateway | POST /v1/jobs | trace_conv_17_257502 | 47ms |
+| 2 | Agent | GET /v1/match/{id}/top | trace_conv_17_257502 | 90052ms |
+| 3 | Gateway | POST /v1/candidate/apply | trace_conv_17_257502 | 18ms |
+| 4 | LangGraph | POST /api/v1/webhooks/candidate-applied | trace_conv_17_257502 | 117ms |
+| 5 | Gateway | GET /api/v1/workflow/status/{id} | trace_conv_17_257502 | 51ms |
+
+### Evidence Directory Structure
+```
+evidence/
+├── entry-points/          # API Key + JWT samples + curl examples
+├── trace-continuity/      # request-trace.log, trace-analysis.txt
+├── enforcement/           # rbac-results.log, tenant-isolation-results.log
+├── replay/                # replay_script.js, replay-output.log
+├── failure/               # failure-observability.log, failure-scenarios.md
+├── boundaries/            # boundaries-verification.txt
+├── ownership/             # ownership_matrix.md
+├── general/               # verification_summary.md
+└── tests/                 # downstream-participation.log
+```
+
+### Task18 Deliverable Evidence
+```
+docs/
+├── SAMPADA_WORKFORCE_OS_ARCHITECTURE.md   # Phase 1 — complete
+├── SAMPADA_SETU_CONVERGENCE_MAP.md        # Phase 2 — complete
+├── SAMPADA_CONTROL_CENTER_BLUEPRINT.md    # Phase 3 — complete
+├── SAMPADA_HUMAN_GROWTH_MODEL.md          # Phase 4 — complete (full doc)
+├── SAMPADA_CURRENT_STATE.md               # Phase 6 — refreshed
+├── schemas/
+│   ├── match_request.json
+│   ├── workflow_trigger.json
+│   ├── execution_telemetry.json
+│   └── payroll_visibility.json
+├── postman/               # Postman snippets + importable collection
+└── requests/              # Owner outreach templates
+
+frontend/src/pages/control/
+└── ControlCenter.tsx      # Phase 5 — Control Center prototype
+
+CONTRIBUTION_LOG.md        # Phase 5 — updated, all phases logged
+REVIEW_PACKET.md           # This document — all 10 sections complete
+```
+
+---
+
+*This review packet is maintained by the Sampada Support Builder role. All architectural decisions, acceptance criteria, and sign-off authority remain with Rishabh Yadav.*

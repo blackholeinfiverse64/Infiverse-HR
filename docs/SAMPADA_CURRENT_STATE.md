@@ -1,24 +1,43 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-05-26 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Active Convergence Sprint
+**Last Updated**: 2026-05-30 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Active Convergence Sprint · Workforce OS Expansion
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
+
+### Task18 Required Sections Index
+
+| # | Required Section (Task18) | Section in This Document |
+|---|---------------------------|--------------------------|
+| 1 | Product Purpose | §1 Product Purpose |
+| 2 | Ownership Matrix | §2 Ownership Matrix |
+| 3 | Architecture Layers | §3 Architecture Layers (Workforce OS) |
+| 4 | SETU Relationship | §4 SETU Relationship |
+| 5 | Integration Model | §5 Integration Model |
+| 6 | Current Implementation State | §6 Current Implementation State |
+| 7 | Open Risks | §7 Open Risks |
+| 8 | Open Work | §8 Open Work |
+| 9 | Roadmap | §9 Roadmap |
+| 10 | Developer Entry Guide | §10 Developer Entry Guide |
 
 ---
 
 ## 1. Product Purpose
 
-**INFIVERSE-HR (codename: Sampada / BHIV)** is an enterprise-grade AI-enabled multi-tenant recruitment platform.
+**INFIVERSE-HR (codename: Sampada / BHIV)** is an enterprise-grade AI-enabled multi-tenant **Workforce Intelligence + HR Operations Platform** — evolving beyond a recruitment portal into a full BHIV Workforce OS inside the SETU unified operational ecosystem.
 
 ### What It Does
-The platform manages the complete hiring lifecycle for multiple client companies (tenants) from a single system:
+The platform manages the complete hiring lifecycle **and** broader workforce intelligence for multiple client companies (tenants) from a single system:
 - **Job Posting & Management**: Client companies post roles; recruiters manage hiring pipelines.
 - **Candidate Sourcing & Matching**: AI-powered semantic matching scores candidates against job descriptions using sentence transformers.
 - **Application Lifecycle**: Candidates apply, move through review → shortlist → interview → offer stages.
 - **Workflow Automation**: Every lifecycle event (apply, shortlist, schedule, offer) triggers automated notifications via Email, WhatsApp, and Telegram.
 - **Multi-Tenant Isolation**: Each client company's data is isolated — Client A cannot see Client B's jobs or candidates.
 - **External Workflow Integration**: Candidate task assignments sync with the Complete-Infiverse external workflow system.
+- **Workforce Operations Layer**: Employee profiles, attendance visibility, leave requests, HR requests, reimbursements, payroll visibility (not ownership).
+- **Growth & Development Layer**: Learning progress visibility, skills evolution, mentorship tracking, strengths mapping.
+- **Workforce Observability Layer**: Organizational visibility, team load signals, bottlenecks, operational health signals.
+- **Executive Workforce Control Center**: Low-scroll, high-density operational dashboard for workforce health, hiring health, escalations, and observability.
 
 ### Who Uses It
 | Portal | Users | Core Actions |
@@ -35,7 +54,9 @@ The platform manages the complete hiring lifecycle for multiple client companies
 
 ---
 
-## 2. Constitutional Position
+## 2. Ownership Matrix
+
+### Constitutional Position (Sampada Layer)
 
 ### The Locked Separation Model
 
@@ -74,9 +95,7 @@ LAYER 1 — VISIBILITY / INTELLIGENCE (SAMPADA)
 4. Sampada cannot expand scope beyond convergence needs
 5. All architecture decisions remain with Rishabh Yadav
 
----
-
-## 3. Ownership Matrix
+### Team Ownership
 
 | Area | Owner | Authority Level | Contact |
 |------|-------|----------------|---------|
@@ -99,7 +118,34 @@ Acceptance criteria question → Rishabh only
 
 ---
 
-## 4. Architecture Map
+## 3. Architecture Layers (Workforce OS)
+
+| Layer | Responsibilities | Key Repo Paths |
+|-------|-----------------|----------------|
+| **Talent Intelligence** | Candidate matching, recruiter scoring, hiring pipeline, NDA/onboarding | `backend/services/agent/`, `frontend/src/pages/candidate/`, `frontend/src/pages/recruiter/` |
+| **Workforce Operations** | Employee profiles, attendance/leave visibility, HR requests, reimbursements, payroll visibility | `backend/services/gateway/`, MongoDB collections |
+| **Growth & Development** | Learning progress, skills, mentorship, aspirations, growth tracking | `frontend/src/pages/`, `backend/services/langgraph/` |
+| **Workforce Observability** | Org visibility, team load, bottlenecks, risk signals, operational health | `evidence/`, `evidence/replay/`, telemetry in Gateway + LangGraph |
+| **Executive Control Center** | High-density dashboard aggregating all layer signals | `frontend/src/pages/control/ControlCenter.tsx`, `/v1/dashboard/*` endpoints |
+
+---
+
+## 4. SETU Relationship
+
+| System | Owns | Sampada's Relationship |
+|--------|------|------------------------|
+| **Sampada** | Intelligence, workforce visibility, candidate/recruiter portals | Source system |
+| **Niyantran** | Tasking, execution, execution telemetry, payroll calculation participation | Sampada receives execution telemetry (read); does not issue execution commands |
+| **Artha** | Financial systems, payroll ownership | Sampada shows payroll cues (visibility-only); Artha owns payroll |
+| **Logistics** | Asset/equipment provisioning | Sampada reads logistics signals (visibility) |
+| **CRM** | Relationship intelligence | Sampada reads CRM candidate context; does not own relationships |
+| **SETU (Aggregator)** | Cross-domain aggregation, unified operational visibility | SETU aggregates Sampada signals; Sampada does not control SETU |
+
+**Key boundary**: `payroll visibility participation ≠ payroll ownership`. Sampada surfaces payroll cues; Artha owns the numbers.
+
+---
+
+## 5. Integration Model
 
 ### Service Topology
 ```
@@ -198,7 +244,7 @@ Frontend runs **outside** Docker via `npm run dev` on the host.
 
 ---
 
-## 5. Signal Flow
+### Signal Flow
 
 ### Operational Signal Flow (State Transitions)
 ```
@@ -241,7 +287,7 @@ Commands FROM Sampada: NONE — Sampada does not issue commands
 
 ---
 
-## 6. Integration Map
+### Integration Map
 
 | Integration | Direction | Protocol | Auth | Purpose |
 |-------------|-----------|----------|------|---------|
@@ -270,7 +316,9 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 
 ---
 
-## 7. Active Components
+## 6. Current Implementation State
+
+### Active Components
 
 ### Running Services (Docker)
 | Service | Container | Port | Version | Status |
@@ -302,7 +350,7 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 
 ---
 
-## 8. Current Proof Status
+### Current Proof Status
 
 ### Convergence Evidence Collected (2026-05-26)
 
@@ -338,7 +386,7 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 
 ---
 
-## 9. Open Risks
+## 7. Open Risks
 
 ### Risk Register
 | # | Risk | Likelihood | Impact | Owner | Mitigation |
@@ -354,17 +402,23 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 
 ---
 
-## 10. Open Tasks
+## 8. Open Work
 
-### Sprint Tasks (Active)
+### Sprint Tasks (Active — Task18)
 - [x] Collect all 10 evidence categories for REVIEW_PACKET.md
 - [x] Prove trace continuity end-to-end with correlation IDs
 - [x] Execute RBAC negative tests (wrong roles → 403)
 - [x] Execute tenant isolation tests (Client B → Client A denied)
 - [x] Build and validate replay reconstruction script
 - [x] Document failure observability (8 scenarios)
-- [x] Update all 5 docs/ files to full quality
-- [x] Restart Docker after server downtime and re-verify health endpoints
+- [x] Phase 1 — SAMPADA_WORKFORCE_OS_ARCHITECTURE.md (complete)
+- [x] Phase 2 — SAMPADA_SETU_CONVERGENCE_MAP.md (complete)
+- [x] Phase 3 — SAMPADA_CONTROL_CENTER_BLUEPRINT.md (complete)
+- [x] Phase 4 — SAMPADA_HUMAN_GROWTH_MODEL.md (complete — full document)
+- [x] Phase 5 — Control Center prototype: frontend/src/pages/control/ControlCenter.tsx
+- [x] Phase 6 — SAMPADA_CURRENT_STATE.md updated for Workforce OS direction
+- [x] CONTRIBUTION_LOG.md updated with all phase entries
+- [x] REVIEW_PACKET.md updated with all 10 required sections
 - [ ] Get acceptance sign-off from Rishabh Yadav on REVIEW_PACKET.md
 
 ### Backlog Tasks (Post-Sprint)
@@ -373,25 +427,30 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 - [ ] Integrate real RL model training pipeline (currently mocked)
 - [ ] Add tenant-specific encryption for data at rest
 - [ ] Implement proper secrets management (HashiCorp Vault or AWS Secrets Manager)
-- [ ] Dashboard wiring for live trace view (Phase 4, if requested by Rishabh)
+- [ ] Wire Control Center to live /v1/dashboard/* endpoints (Phase 5 extension, if requested by Rishabh)
 - [ ] Add automated E2E test suite to CI/CD pipeline
+- [ ] Implement GrowthConsent model for human growth framework
+- [ ] LXP integration for learning signals in Growth Zone
 
 ---
 
-## 11. Near-Term Roadmap
+## 9. Roadmap
 
-### Current Sprint (Week of 2026-05-26)
-- **Goal**: Convergence proof hardening — complete all 10 REVIEW_PACKET categories
+### Current Sprint (Week of 2026-05-30 — Task18)
+- **Goal**: Workforce OS expansion — complete all 6 Task18 phases + REVIEW_PACKET
 - **Owner**: Rishabh Yadav (lead) + Shashank (support builder)
-- **Deliverables**: All evidence collected ✅, REVIEW_PACKET.md complete ✅, docs refreshed ✅
+- **Deliverables**: Architecture docs ✅, SETU convergence map ✅, Control Center blueprint ✅, Human Growth Model ✅, Control Center prototype ✅, Current State refresh ✅
 
 ### Next Sprint (Planned)
-- **Goal**: Docker deployment stabilization + acceptance review
-- **Focus**: Rishabh's formal acceptance sign-off on convergence evidence
-- **Nikhil**: Dashboard wiring for operational visibility (if Phase 4 triggered)
+- **Goal**: Acceptance review + Docker deployment stabilization
+- **Focus**: Rishabh's formal acceptance sign-off on Task18 REVIEW_PACKET
+- **Nikhil**: Wire Control Center to live /v1/dashboard/* endpoints
 - **Vinayak/Raj**: Production deployment hardening
 
-### Medium Term (1-2 months)
+### Workforce OS Roadmap (Medium Term — 1-3 months)
+- Workforce Operations Layer: HR requests, leave, reimbursement API surface
+- Growth & Development Layer: LXP integration, GrowthConsent model
+- Growth Zone UI: personal growth map (individual view), team momentum panel
 - Internal HR auth implementation
 - Automated tenant isolation middleware
 - RL model training pipeline (real training, not mocked)
@@ -402,10 +461,11 @@ WORKFLOW_API_BASE_URL=<complete-infiverse base url>
 - Tenant-specific encryption
 - Advanced observability (distributed tracing with OpenTelemetry)
 - Multi-region deployment strategy
+- Full SETU convergence: live signal exchange with Niyantran, Artha, Logistics, CRM
 
 ---
 
-## 12. Developer Entry Guide
+## 10. Developer Entry Guide
 
 ### Prerequisites Checklist
 ```
@@ -499,6 +559,20 @@ backend/docs/api/API_DOCUMENTATION.md   ← Full API reference
 - **Frontend questions**: Nikhil (Frontend Developer)
 - **Deployment questions**: Vinayak / Raj (Infra)
 - **Documentation / Observability**: Shashank (Sampada, Support Builder)
+
+---
+
+### Supporting Documents (Task18 Deliverables)
+
+| Document | Path | Status |
+|----------|------|--------|
+| Architecture Expansion | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` | ✅ Complete |
+| SETU Convergence Map | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` | ✅ Complete |
+| Control Center Blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` | ✅ Complete |
+| Human Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` | ✅ Complete |
+| Control Center Prototype | `frontend/src/pages/control/ControlCenter.tsx` | ✅ Created |
+| Review Packet | `REVIEW_PACKET.md` | ✅ Updated |
+| Contribution Log | `CONTRIBUTION_LOG.md` | ✅ Updated |
 
 ---
 

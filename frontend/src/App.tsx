@@ -44,6 +44,7 @@ import ClientCandidates from './pages/client/ClientCandidates'
 import MatchResults from './pages/client/MatchResults'
 import ClientReports from './pages/client/ClientReports'
 import LiveRecruiterMonitoring from './pages/client/LiveRecruiterMonitoring'
+import ControlCenter from './pages/control/ControlCenter'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -72,6 +73,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
+              <Route path="/control" element={<ControlCenter />} />
 
               {/* Candidate Routes - Protected for 'candidate' role only */}
               <Route path="/candidate" element={

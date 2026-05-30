@@ -69,3 +69,6 @@ psutil>=5.9.0
 pyotp>=2.9.0
 qrcode>=7.4.0
 pillow>=10.0.0
+
+# JSON Schema validation for docs/tests
+jsonschema>=4.19.0
