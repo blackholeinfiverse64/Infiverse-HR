@@ -4,8 +4,9 @@ import { authStorage } from '../utils/authStorage'
 // API Base URL - Gateway service
 // Standardized variable name: VITE_API_BASE_URL (see ENVIRONMENT_VARIABLES.md)
 // Default to localhost for local development, use env var or Render URL for production
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://bhiv-hr-gateway-l0xp.onrender.com')
+// All production URLs must be set via Vercel environment variables (dashboard → Settings → Environment Variables).
+// Localhost fallbacks are only for local development.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 export const AGENT_SERVICE_URL = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:9000'
 export const LANGGRAPH_SERVICE_URL = import.meta.env.VITE_LANGGRAPH_SERVICE_URL || 'http://localhost:9001'
 
