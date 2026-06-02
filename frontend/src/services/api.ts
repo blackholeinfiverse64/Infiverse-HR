@@ -6,6 +6,8 @@ import { authStorage } from '../utils/authStorage'
 // Default to localhost for local development, use env var or Render URL for production
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.DEV ? 'http://localhost:8000' : 'https://bhiv-hr-gateway-l0xp.onrender.com')
+export const AGENT_SERVICE_URL = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:9000'
+export const LANGGRAPH_SERVICE_URL = import.meta.env.VITE_LANGGRAPH_SERVICE_URL || 'http://localhost:9001'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,6 +21,152 @@ const NOTIFICATION_REQUEST_TIMEOUT_MS = 150000
 const NOTIFICATION_TRANSIENT_RETRIES = 1
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const stripTrailingSlash = (url: string) => url.replace(/\/+$/, '')
+
+const getAuthHeaders = () => {
+  const token = authStorage.getItem('auth_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export interface GatewayMetricsDashboard {
+  performance_summary: Record<string, unknown>
+  business_metrics: Record<string, unknown>
+  system_metrics: Record<string, unknown>
+}
+
+export interface ControlCenterApiMeta {
+  correlationId?: string
+}
+
+export interface ControlCenterAuditEvent {
+  action: string
+  outcome: 'success' | 'failure' | 'denied'
+  detail?: string
+  correlation_id?: string
+  context?: Record<string, unknown>
+}
+
+export interface GatewayCandidateStats {
+  total_candidates: number
+  active_jobs: number
+  recent_matches: number
+  pending_interviews: number
+  new_candidates_this_week: number
+  total_feedback_submissions: number
+  statistics_generated_at?: string
+  data_source?: string
+  dashboard_ready?: boolean
+}
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const parsed = typeof value === 'string' ? Number(value) : typeof value === 'number' ? value : Number.NaN
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export interface ServiceHealthSnapshot {
+  service: string
+  status: string
+  version?: string
+  timestamp?: string
+  environment?: string
+  baseUrl: string
+  healthy: boolean
+  raw: Record<string, unknown>
+}
+
+export const fetchGatewayMetricsDashboard = async (): Promise<{
+  data: GatewayMetricsDashboard
+  meta: ControlCenterApiMeta
+}> => {
+  const response = await api.get('/metrics/dashboard')
+  return {
+    data: response.data as GatewayMetricsDashboard,
+    meta: {
+      correlationId:
+        String(response.headers?.['x-correlation-id'] || response.headers?.['X-Correlation-ID'] || '').trim() ||
+        undefined,
+    },
+  }
+}
+
+export const fetchGatewayCandidateStats = async (): Promise<{
+  data: GatewayCandidateStats
+  meta: ControlCenterApiMeta
+}> => {
+  const response = await api.get('/v1/candidates/stats')
+  const data = (response.data || {}) as Record<string, unknown>
+
+  return {
+    data: {
+      total_candidates: toNumber(data.total_candidates),
+      active_jobs: toNumber(data.active_jobs),
+      recent_matches: toNumber(data.recent_matches),
+      pending_interviews: toNumber(data.pending_interviews),
+      new_candidates_this_week: toNumber(data.new_candidates_this_week),
+      total_feedback_submissions: toNumber(data.total_feedback_submissions),
+      statistics_generated_at: typeof data.statistics_generated_at === 'string' ? data.statistics_generated_at : undefined,
+      data_source: typeof data.data_source === 'string' ? data.data_source : undefined,
+      dashboard_ready: typeof data.dashboard_ready === 'boolean' ? data.dashboard_ready : undefined,
+    },
+    meta: {
+      correlationId:
+        String(response.headers?.['x-correlation-id'] || response.headers?.['X-Correlation-ID'] || '').trim() ||
+        undefined,
+    },
+  }
+}
+
+export const fetchServiceHealth = async (
+  serviceBaseUrl: string,
+  fallbackServiceName: string,
+): Promise<ServiceHealthSnapshot> => {
+  const normalizedBaseUrl = stripTrailingSlash(serviceBaseUrl)
+
+  try {
+    const response = await axios.get(`${normalizedBaseUrl}/health`, {
+      timeout: 10000,
+      headers: getAuthHeaders(),
+    })
+
+    const data = (response.data || {}) as Record<string, unknown>
+    const status = String(data.status || 'unknown')
+
+    return {
+      service: String(data.service || fallbackServiceName),
+      status,
+      version: typeof data.version === 'string' ? data.version : undefined,
+      timestamp: typeof data.timestamp === 'string' ? data.timestamp : undefined,
+      environment: typeof data.environment === 'string' ? data.environment : undefined,
+      baseUrl: normalizedBaseUrl,
+      healthy: status.toLowerCase() === 'healthy' || status.toLowerCase() === 'ok',
+      raw: {
+        ...data,
+        correlation_id:
+          String(response.headers?.['x-correlation-id'] || response.headers?.['X-Correlation-ID'] || '').trim() ||
+          undefined,
+      },
+    }
+  } catch (error) {
+    const errorMessage = axios.isAxiosError(error)
+      ? error.message || 'Health endpoint unavailable'
+      : error instanceof Error
+        ? error.message
+        : 'Health endpoint unavailable'
+
+    return {
+      service: fallbackServiceName,
+      status: 'offline',
+      baseUrl: normalizedBaseUrl,
+      healthy: false,
+      raw: { error: errorMessage },
+    }
+  }
+}
+
+export const postControlCenterAuditEvent = async (event: ControlCenterAuditEvent): Promise<void> => {
+  await api.post('/v1/control-center/audit-events', event)
+}
 
 const shouldRetryNotificationRequest = (error: unknown): boolean => {
   if (!axios.isAxiosError(error)) return false

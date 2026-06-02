@@ -1,348 +1,217 @@
-# BHIV Sampada — Task18 Review Packet
+# BHIV Sampada — Task19 Review Packet
 
-**Status**: ✅ All 6 Phases Complete (2026-05-30)  
-**Task18 Deliverables**: 7/7 complete  
-**Evidence Collected**: 2026-05-26T13:35:50Z (live against Docker containers)  
-**Docs Updated**: 2026-05-30 (Task18 session)  
+**Status**: Task19 boundary documents complete; Phase 6 support packaging in progress  
+**Task19 Deliverables**: 5/5 primary docs created, current-state and contribution log updated  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
+**Updated**: 2026-06-02
 
-> **Operational Role**: Support Builder + Expansion Builder under Rishabh Yadav's leadership. All architectural decisions and acceptance remain with Rishabh Yadav. Sampada's position: intelligence and visibility layer — no execution authority.
-
----
-
-## Task18 Deliverable Index
-
-| # | Deliverable | Status | Path |
-|---|---|---|---|
-| 1 | SAMPADA_WORKFORCE_OS_ARCHITECTURE.md | ✅ Complete | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` |
-| 2 | SAMPADA_SETU_CONVERGENCE_MAP.md | ✅ Complete | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` |
-| 3 | SAMPADA_CONTROL_CENTER_BLUEPRINT.md | ✅ Complete | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` |
-| 4 | SAMPADA_HUMAN_GROWTH_MODEL.md | ✅ Complete | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` |
-| 5 | SAMPADA_CURRENT_STATE.md (updated) | ✅ Complete | `docs/SAMPADA_CURRENT_STATE.md` |
-| 6 | CONTRIBUTION_LOG.md | ✅ Complete | `CONTRIBUTION_LOG.md` |
-| 7 | Control Center Prototype | ✅ Complete | `frontend/src/pages/control/ControlCenter.tsx` |
+> **Operational Role**: Support Builder under Rishabh Yadav's leadership. Sampada remains an intelligence and visibility layer only. No execution authority is claimed here.
 
 ---
 
-## 1. Architecture Expansion
+## 1. Government-Scale Architecture
 
-Sampada has been architecturally mapped as a **5-Layer Workforce OS**:
+The architecture boundary for Task19 is defined in [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md).
 
-| Layer | Responsibilities | Key Repo Paths |
-|-------|-----------------|----------------|
-| **Talent Intelligence** | Candidate matching, recruiter scoring, hiring pipeline, NDA/onboarding | `backend/services/agent/`, `frontend/src/pages/candidate/`, `frontend/src/pages/recruiter/` |
-| **Workforce Operations** | Employee profiles, attendance/leave visibility, HR requests, reimbursements, payroll visibility | `backend/services/gateway/`, MongoDB collections |
-| **Growth & Development** | Learning progress, skills, mentorship, aspirations, growth tracking | `frontend/src/pages/`, `backend/services/langgraph/` |
-| **Workforce Observability** | Org visibility, team load, bottlenecks, risk signals, operational health | `evidence/`, `evidence/replay/`, Gateway + LangGraph telemetry |
-| **Executive Control Center** | High-density dashboard aggregating all layer signals | `frontend/src/pages/control/ControlCenter.tsx`, `/v1/dashboard/*` |
+### What it establishes
+- Ministry, department, division, unit, office, and contractor/vendor participation levels
+- Permanent, contractual, consultant, outsourced, volunteer, fellow, and advisor workforce scope
+- Federated administration with local, department, platform, and auditor roles
+- Tenant, org, visibility, and policy isolation boundaries
 
-### Architecture Guardrails Applied
-- No hidden execution authority created
-- No coercive productivity engine
-- No dopamine leaderboard system
-- No surveillance dashboard
-- No governance authority claimed
-- All architecture under Rishabh Yadav's decision authority
-
-**Reference**: [docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md](docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md)
+### Key rule
+- Sampada must not collapse the multi-org model into a single global admin or a universal workforce state.
 
 ---
 
-## 2. SETU Integration Model
+## 2. Policy / Governance Model
 
-The convergence map defines interaction boundaries between Sampada and all SETU-connected systems:
+The governance model is defined in [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md).
 
-### Ownership Matrix
-| System | Primary Ownership | Responsibilities |
-|--------|-------------------|-----------------|
-| **Sampada** | Rishabh Yadav | Intelligence, workforce visibility, candidate/recruiter portals |
-| **Niyantran** | Niyantran Owner | Tasking, execution telemetry, payroll calculation participation |
-| **Artha** | Artha Owner | Financial systems, payroll ownership, ledger reconciliation |
-| **Logistics** | Logistics Owner | Asset/equipment logistics |
-| **CRM** | CRM Owner | Relationship intelligence, client engagement |
-| **SETU** | SETU Platform | Cross-domain aggregation, unified operational visibility |
+### Core rules
+- Policy examples: leave, attendance, growth, visibility, consent, retention
+- Governance verbs: observe, assess, recommend, approve, execute
+- Required separation: observation ≠ assessment ≠ recommendation ≠ approval ≠ execution
+- Enforcement patterns: policy tags, rule provenance, auditability, override recording, challenge pathways
 
-### Signal Exchange (Key Examples)
-| Signal | Source → Consumer | Endpoint |
-|--------|------------------|----------|
-| Job/Match Request | Client → Gateway → Agent | `GET /v1/match/{job_id}/top` |
-| Workflow Trigger | Gateway → LangGraph | `POST /v1/langgraph/trigger` |
-| RL Feedback | Portal → LangGraph | `POST /rl/feedback` |
-| Payroll Cue (visibility) | Artha → Sampada | Visibility-only; hashed IDs |
-| Execution Telemetry | Niyantran → SETU/Sampada | Correlation ID required |
-
-### Critical Boundary Enforced
-`payroll visibility participation ≠ payroll ownership`  
-Sampada surfaces payroll cues — Artha owns payroll. This boundary is enforced at API level (read-only endpoints, no calculation logic in Sampada).
-
-**Reference**: [docs/SAMPADA_SETU_CONVERGENCE_MAP.md](docs/SAMPADA_SETU_CONVERGENCE_MAP.md)
+### Key rule
+- No hidden governance and no dashboard-level authority drift.
 
 ---
 
-## 3. Ownership Matrix
+## 3. Federated Workforce Model
 
-| Area | Owner | Authority Level |
-|------|-------|----------------|
-| **System Architecture & Design** | Rishabh Yadav | Full — all decisions |
-| **Backend Microservices** | Rishabh Yadav | Full execution authority |
-| **Acceptance Criteria** | Rishabh Yadav | Final approval |
-| **Frontend / Dashboard UI** | Nikhil | Interface wiring, API consumption |
-| **Infrastructure / Deployment** | Vinayak | Container management, uptime |
-| **Infra Support / Network** | Raj | Port mappings, DNS, cluster health |
-| **Observability & Documentation** | Shashank (Sampada) | Read-only on execution; docs & traces |
-| **Niyantran** | Niyantran Owner (external) | Tasking, execution |
-| **Artha** | Artha Owner (external) | Financial systems, payroll |
-| **Logistics** | Logistics Owner (external) | Logistics operations |
-| **CRM** | CRM Owner (external) | Relationship intelligence |
+The federated identity and ontology model is defined in [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md).
 
-**Locked boundaries (non-negotiable)**:
-1. Sampada cannot mutate system state
-2. Sampada cannot override execution decisions
-3. Sampada cannot create parallel signal channels
-4. All architecture decisions: Rishabh Yadav only
+### Core rules
+- Minimal shared workforce reference only
+- Sampada owns growth, lifecycle, and workforce intelligence
+- Niyantran owns execution telemetry
+- Artha owns payroll truth
+- Other systems participate only within bounded scopes
+- Derived intelligence remains challengeable, not canonical truth
 
-**Reference**: [evidence/ownership/ownership_matrix.md](evidence/ownership/ownership_matrix.md)
+### Key rule
+- No universal human-state model and no silent absorption of other systems' sovereignty.
 
 ---
 
-## 4. Dashboard Capability Blueprint
+## 4. Dashboard Governance Hardening
 
-The Master Workforce Control Center has been designed per BHIV Dashboard Capability Transmission principles.
+The command center governance model is defined in [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md).
 
-### Cognition Principles Applied
-| Principle | How Applied |
-|-----------|------------|
-| Scan speed | 3–5 critical KPIs per zone; sparklines + single number |
-| Hierarchy clarity | Alert (red) > Warning (amber) > Info (neutral) throughout |
-| Low-scroll density | Zone navigation via top rail; no vertical stacking of cards |
-| Zoning discipline | 6 distinct zones; each with single primary KPI + 3 secondary |
-| Operational cognition | Causal breadcrumbs; synthetic insights not raw event streams |
+### Executive use cases
+- Minister
+- Secretary
+- Department Head
+- HR Operator
+- Auditor
 
-### 6 Dashboard Zones
-| Zone | Purpose | Primary KPI |
-|------|---------|-------------|
-| **Executive** | Workforce health, hiring health, payroll state, escalations | Workforce Health Index |
-| **Hiring** | Candidate pipeline, recruiter throughput, interview velocity | Pipeline Velocity |
-| **Workforce Ops** | HR requests, attendance, leave, reimbursements | Operational SLA Health |
-| **Growth** | Learning, mentorship, skill trajectory | Growth Momentum |
-| **Org Visibility** | Dept map, dependency risk, staffing gaps | Staffing Gap Score |
-| **Replay/Trace** | Audit trail, replay reconstruction, evidence | Last Replay Timestamp |
+### Cognition separation
+- Observation
+- Assessment
+- Recommendation
+- Decision
+- Execution
 
-### Anti-Patterns Enforced
-- ❌ No random widget dumping
-- ❌ No infinite stacked cards
-- ❌ No dashboard-as-webpage thinking
-- ❌ No surveillance widgets
-- ❌ No leaderboards or gamification
-- ✅ Progressive disclosure — details on demand
+### Explainability surfaces
+- Source visibility
+- Calculation explanation
+- Signal provenance
 
-**Reference**: [docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md](docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md)  
-**Prototype**: [frontend/src/pages/control/ControlCenter.tsx](frontend/src/pages/control/ControlCenter.tsx)
+### Key rule
+- The dashboard informs, but does not become legitimacy or execution authority.
 
 ---
 
-## 5. Human Growth Framework
+## 5. Human Safety Framework
 
-The Human-Centric Growth Model defines all employee growth data policies.
+The safety model is defined in [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md).
 
-### Core Design Principles (All Non-Negotiable)
-| Principle | Meaning |
-|-----------|---------|
-| Growth ≠ Pressure | Growth signals empower; never weaponised for productivity pressure |
-| Metrics ≠ Human Worth | No metric implies judgment of a person's worth |
-| Visibility ≠ Surveillance | Invited visibility (employee-initiated) ≠ imposed observation |
-| Analytics ≠ Coercion | Analytics is advisory; execution decisions remain with humans |
+### Core principles
+- Human dignity
+- Explainability
+- Bounded scoring
+- Context awareness
+- Assistive intelligence
+- Reviewability
 
-### 8 Growth Dimensions (Balanced Framework)
-1. **Contribution** — meaningful participation in team outcomes (team-level aggregate default)
-2. **Learning** — modules completed, skills acquired (individual visible to self; team aggregate to HR)
-3. **Ownership Maturity** — qualitative trajectory over quarters, not weekly snapshots
-4. **Collaboration** — cross-team participation, knowledge sharing (self-reported or opted-in)
-5. **Mentoring** — active mentoring relationships (activity-based, not ranked)
-6. **Growth Trajectory** — direction and velocity vs own past baseline (never vs colleagues)
-7. **Aspirations** — career goals (strictly individual and confidential)
-8. **Wellbeing Signals** — anonymised team-level flags only; strictest boundary of all
+### Required controls
+- Role-based visibility
+- Org-scoped visibility
+- Policy-scoped visibility
+- Minimum necessary display
+- Challenge and appeal paths
 
-### Anti-Patterns Prohibited
-- ❌ Employee leaderboards
-- ❌ Dopamine loops (streaks, badges for output)
-- ❌ Productivity heat maps (individual, hourly)
-- ❌ Composite "employee score"
-- ❌ Forced learning deadlines with penalty
-- ❌ Real-time activity monitoring
-- ❌ Cross-employee skill comparison
-
-**Reference**: [docs/SAMPADA_HUMAN_GROWTH_MODEL.md](docs/SAMPADA_HUMAN_GROWTH_MODEL.md)
+### Key rule
+- No surveillance-style monitoring, opaque scoring, or coercive productivity ranking.
 
 ---
 
 ## 6. Boundary Protection
 
-### Constitutional Boundaries (Enforced Throughout Task18)
+### Task19 constitutional boundaries
+| Boundary | Protection |
+|---|---|
+| Visibility ≠ execution authority | Dashboards remain read-only by default |
+| Policy ≠ hidden governance | All policy effects must be inspectable |
+| Derived insight ≠ canonical truth | Provenance and source visibility remain mandatory |
+| Aggregation ≠ sovereignty | Cross-system references preserve origin |
+| Assistive intelligence ≠ coercion | Recommendations stay advisory until explicitly approved |
 
-| Boundary | Enforcement Mechanism |
-|----------|----------------------|
-| Visibility ≠ Execution Authority | All dashboard KPIs are read-only; no action buttons that mutate system state |
-| Intelligence ≠ Governance Authority | Sampada surfaces signals; decisions made by owning system humans |
-| No surveillance-driven scoring | Growth model prohibits individual productivity scoring |
-| No dopamine gamification | Control Center has no streak mechanics, badges, or leaderboards |
-| No ownership drift | All 6 phases executed as Support Builder under Rishabh direction |
-| No scope expansion without lead approval | No new features introduced beyond Task18 specification |
-| Payroll visibility ≠ payroll ownership | SETU convergence map enforces this at ownership, participation, and API levels |
-
-### Replay & Trace Boundary Evidence
-- All cross-system requests include `X-Correlation-Id` and `trace_id`
-- Audit logs persisted to `audit_logs` MongoDB collection
-- Replay engine (`evidence/replay/replay_script.js`) reconstructs state deterministically
-- Evidence bundle includes request/response pairs, DB snapshots, and replay logs
+### Reinforced by
+- [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md)
+- [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md)
+- [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md)
+- [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md)
+- [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md)
 
 ---
 
-## 7. Implementation Support Evidence
+## 7. SETU Alignment
 
-### Phase 5 Support Activities (Under Rishabh Direction)
+### Alignment summary
+- Sampada remains the intelligence layer inside SETU-connected operations.
+- Niyantran remains the execution telemetry domain.
+- Artha remains the payroll truth domain.
+- SETU aggregation must not erase local ownership or policy context.
 
-| Activity | Deliverable | Status |
-|----------|-------------|--------|
-| Architecture documentation | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` | ✅ |
-| SETU convergence mapping | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` | ✅ |
-| Dashboard blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` | ✅ |
-| Human growth model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` | ✅ |
-| Control Center prototype | `frontend/src/pages/control/ControlCenter.tsx` | ✅ |
-| JSON Signal Schemas | `docs/schemas/*.json` (4 schemas) | ✅ |
-| Postman snippets | `docs/postman/` | ✅ |
-| Owner request templates | `docs/requests/` | ✅ |
-| Current state refresh | `docs/SAMPADA_CURRENT_STATE.md` | ✅ |
-| Contribution tracking | `CONTRIBUTION_LOG.md` | ✅ |
+### Boundary note
+- Payroll visibility participation does not become payroll ownership.
+- Derived workforce intelligence remains challengeable and scoped.
 
-### Prior Convergence Evidence (2026-05-26)
-All 10 convergence evidence categories collected during live Docker session:
-
-| Category | Status | Evidence |
-|----------|--------|---------|
-| Entry Points (3 auth types) | ✅ | `evidence/entry-points/` |
-| Live Execution Flow (E2E) | ✅ | `evidence/trace-continuity/request-trace.log` |
-| Real Trace Continuity (correlation IDs) | ✅ | `evidence/trace-continuity/trace-analysis.txt` |
-| Real Downstream Participation | ✅ | `evidence/tests/downstream-participation.log` |
-| Enforcement Proof (RBAC + isolation) | ✅ | `evidence/enforcement/` |
-| Replay Reconstruction | ✅ | `evidence/replay/` |
-| Failure Observability (8 scenarios) | ✅ | `evidence/failure/` |
-| Constitutional Boundaries | ✅ | `evidence/boundaries/` |
-| Ownership Matrix | ✅ | `evidence/ownership/ownership_matrix.md` |
-| Proof/Logs Summary | ✅ | `evidence/general/verification_summary.md` |
+### Existing reference material
+- [docs/SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md)
+- [CONTRIBUTION_LOG.md](CONTRIBUTION_LOG.md)
+- [docs/SAMPADA_SETU_CONVERGENCE_MAP.md](docs/SAMPADA_SETU_CONVERGENCE_MAP.md)
 
 ---
 
 ## 8. Risks
 
-### Active Risk Register
-
-| # | Risk | Likelihood | Impact | Owner | Mitigation |
-|---|------|-----------|--------|-------|-----------|
-| R1 | Cross-tenant data leakage via manual endpoint filtering | Medium | Critical | Rishabh | Systematic RBAC + isolation tests every sprint |
-| R2 | Mocked RL endpoints produce non-deterministic replay evidence | Low | Medium | Backend team | Documented as known limitation |
-| R3 | Docker service unavailability breaks all backend testing | Medium | High | Vinayak | Restart procedures documented; container health monitored |
-| R4 | Missing internal HR auth creates security surface | Low | High | Rishabh | API key workaround for testing; HR auth on roadmap |
-| R5 | Shared JWT secrets across environments | Low | High | Rishabh | Rotate before production; use secrets manager |
-| R6 | MongoDB Atlas IP allowlist blocks testing from new networks | Medium | Medium | Vinayak/Raj | Add dev IPs to Atlas allowlist |
-| R7 | LangGraph state machine doesn't persist across container restarts | Medium | Medium | Backend team | Evidence replay covers recovery |
-| R8 | Niyantran/Artha/Logistics/CRM owner contacts unknown | High | Medium | Rishabh to authorize outreach | Owner request templates prepared in `docs/requests/` |
-| R9 | Control Center wired to mock data only (not live endpoints) | Medium | Low | Nikhil | Blueprint specifies `/v1/dashboard/*` endpoints to implement |
-| R10 | GrowthConsent model not yet implemented | Medium | Medium | Backend team | Model design documented in Human Growth Model |
+| # | Risk | Impact | Mitigation |
+|---|---|---|---|
+| R1 | Multi-org hierarchy collapses into a flat admin model | Critical | Keep ministry/department/division/unit/office boundaries explicit |
+| R2 | Policy logic becomes hidden governance | High | Preserve policy source, scope, and override traceability |
+| R3 | Derived dashboard insights are mistaken for authority | High | Show source visibility, calculation explanation, and provenance |
+| R4 | Workforce truth becomes centralized in one layer | Critical | Maintain federated ownership across Sampada, Niyantran, Artha, and others |
+| R5 | Safety controls drift into surveillance or coercion | High | Keep human dignity, explainability, bounded scoring, and reviewability explicit |
 
 ---
 
 ## 9. Roadmap
 
-### Immediate (Current Sprint — Task18)
-- ✅ All 6 phases of Task18 complete
-- ✅ All 7 Task18 deliverables created/updated
-- 🔲 Acceptance sign-off from Rishabh Yadav on this REVIEW_PACKET
+### Immediate
+- Rishabh review of the five Task19 boundary docs
+- Phase 6 direction setting for any live implementation support
+- Final sign-off on this review packet
 
-### Next Sprint
-- Wire Control Center to live `/v1/dashboard/*` endpoints (Nikhil + backend team)
-- Docker deployment stabilization (Vinayak/Raj)
-- Obtain Niyantran/Artha owner contacts (Rishabh to authorize outreach)
+### Next
+- If directed, perform implementation hardening support on schemas, API contracts, dashboard wiring, replay readiness, trace lineage, and ownership metadata
+- Capture any new evidence or diagrams in the contribution log and supporting artifacts
 
-### Workforce OS (1-3 months)
-- Workforce Operations Layer API surface (HR requests, leave, reimbursement endpoints)
-- Growth & Development Layer — LXP integration for learning signals
-- GrowthConsent model implementation in MongoDB
-- Personal growth map UI component (individual view)
-- Team momentum panel (aggregate Growth Zone)
-- Internal HR auth implementation (Rishabh direction)
-- Automated tenant isolation middleware
-
-### Long Term (3+ months)
-- Secrets management infrastructure
-- Tenant-specific encryption
-- Advanced observability (OpenTelemetry distributed tracing)
-- Full SETU live signal exchange (Niyantran telemetry, Artha payroll cues, Logistics, CRM)
-- Multi-region deployment strategy
+### Later
+- Extend the government-scale model into runtime enforcement where the lead approves it
+- Reconcile any live implementation details back into the current-state handover
 
 ---
 
-## 10. Proof / Screenshots / Logs
+## 10. Proof / Evidence
 
-### Live Test Results (2026-05-26T13:35Z)
-- **Trace ID**: `trace_conv_17_257502`
-- **Workflow ID**: `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29`
-- **Job Created**: `6a15a13f0caf5b91bd0e9de4`
-- **Resilience Tests**: 8/8 PASSED
-- **RBAC Negative Tests**: 5/5 PASSED (401/403 enforced correctly)
-- **Tenant Isolation Test**: PASSED (Client B blocked from Client A's job)
-- **Replay Reconstruction**: SUCCESS ✅
+### Created Task19 artifacts
+- [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md)
+- [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md)
+- [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md)
+- [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md)
+- [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md)
 
-### Authentication Proof
-- **API Key** (System Admin): `prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o`
-- **Client JWT** (TECH001): JWT signed via `JWT_SECRET_KEY`
-- **Candidate JWT** (test_cand_001): JWT signed via `CANDIDATE_JWT_SECRET_KEY`
+### Updated support artifacts
+- [docs/SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md)
+- [CONTRIBUTION_LOG.md](CONTRIBUTION_LOG.md)
 
-### E2E Trace Hops Verified
-| Hop | Service | Operation | Correlation ID | Latency |
-|-----|---------|-----------|---------------|---------|
-| 1 | Gateway | POST /v1/jobs | trace_conv_17_257502 | 47ms |
-| 2 | Agent | GET /v1/match/{id}/top | trace_conv_17_257502 | 90052ms |
-| 3 | Gateway | POST /v1/candidate/apply | trace_conv_17_257502 | 18ms |
-| 4 | LangGraph | POST /api/v1/webhooks/candidate-applied | trace_conv_17_257502 | 117ms |
-| 5 | Gateway | GET /api/v1/workflow/status/{id} | trace_conv_17_257502 | 51ms |
+### Existing convergence evidence baseline
+- `evidence/entry-points/`
+- `evidence/trace-continuity/`
+- `evidence/enforcement/`
+- `evidence/replay/`
+- `evidence/failure/`
+- `evidence/boundaries/`
+- `evidence/ownership/`
+- `evidence/general/`
+- `evidence/tests/`
 
-### Evidence Directory Structure
-```
-evidence/
-├── entry-points/          # API Key + JWT samples + curl examples
-├── trace-continuity/      # request-trace.log, trace-analysis.txt
-├── enforcement/           # rbac-results.log, tenant-isolation-results.log
-├── replay/                # replay_script.js, replay-output.log
-├── failure/               # failure-observability.log, failure-scenarios.md
-├── boundaries/            # boundaries-verification.txt
-├── ownership/             # ownership_matrix.md
-├── general/               # verification_summary.md
-└── tests/                 # downstream-participation.log
-```
+### Diagram note
+- Task19 boundary documents are textual controls; any runtime diagramming or replay evidence should be added only when Rishabh directs a live implementation support slice.
 
-### Task18 Deliverable Evidence
-```
-docs/
-├── SAMPADA_WORKFORCE_OS_ARCHITECTURE.md   # Phase 1 — complete
-├── SAMPADA_SETU_CONVERGENCE_MAP.md        # Phase 2 — complete
-├── SAMPADA_CONTROL_CENTER_BLUEPRINT.md    # Phase 3 — complete
-├── SAMPADA_HUMAN_GROWTH_MODEL.md          # Phase 4 — complete (full doc)
-├── SAMPADA_CURRENT_STATE.md               # Phase 6 — refreshed
-├── schemas/
-│   ├── match_request.json
-│   ├── workflow_trigger.json
-│   ├── execution_telemetry.json
-│   └── payroll_visibility.json
-├── postman/               # Postman snippets + importable collection
-└── requests/              # Owner outreach templates
-
-frontend/src/pages/control/
-└── ControlCenter.tsx      # Phase 5 — Control Center prototype
-
-CONTRIBUTION_LOG.md        # Phase 5 — updated, all phases logged
-REVIEW_PACKET.md           # This document — all 10 sections complete
+### Task19 boundary stack
+```mermaid
+flowchart TB
+	A[Government-Scale Architecture] --> B[Policy / Governance Model]
+	B --> C[Federated Workforce Model]
+	C --> D[Command Center Governance]
+	D --> E[Human Safety Model]
+	E --> F[Current State + Contribution Log + Review Packet]
 ```
 
 ---

@@ -236,6 +236,59 @@ try:
 except ImportError as e:
     print(f"WARNING: workflow_proxy not available: {e}")
 
+# ── Auth dependency resolution ─────────────────────────────────────────────────
+# Must be defined BEFORE any @app route that uses Depends(get_auth).
+if jwt_get_auth is not None:
+    # Use the proper authentication functions from jwt_auth.py
+    get_auth = jwt_get_auth
+    get_api_key = jwt_get_api_key
+    validate_api_key = jwt_validate_api_key
+    get_optional_auth = jwt_get_optional_auth
+else:
+    # Fallback: define basic functions if import failed
+    def validate_api_key(api_key: str) -> bool:
+        expected_key = os.getenv("API_KEY_SECRET")
+        return api_key == expected_key
+
+    def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+        if not credentials or not validate_api_key(credentials.credentials):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        return credentials.credentials
+
+    def get_optional_auth(credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
+        """Optional auth - returns None if not authenticated (fallback when jwt_auth not loaded)."""
+        return None
+
+    def get_auth(credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
+        """Dual authentication: API key or client JWT token"""
+        if not credentials:
+            raise HTTPException(status_code=401, detail="Authentication required")
+
+        # Try API key first
+        if validate_api_key(credentials.credentials):
+            return {"type": "api_key", "credentials": credentials.credentials}
+
+        # Try client JWT token
+        try:
+            jwt_secret = os.getenv("JWT_SECRET_KEY")
+            if jwt_secret:
+                payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
+                return {"type": "client_token", "client_id": payload.get("client_id")}
+        except Exception:
+            pass
+
+        # Try candidate JWT token
+        try:
+            candidate_jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
+            if candidate_jwt_secret:
+                payload = jwt.decode(credentials.credentials, candidate_jwt_secret, algorithms=["HS256"])
+                return {"type": "candidate_token", "candidate_id": payload.get("candidate_id")}
+        except Exception:
+            pass
+
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+# ──────────────────────────────────────────────────────────────────────────────
+
 # Add monitoring endpoints
 @app.get("/metrics", tags=["Monitoring"])
 async def get_prometheus_metrics():
@@ -248,8 +301,15 @@ async def detailed_health_check():
     return monitor.health_check()
 
 @app.get("/metrics/dashboard", tags=["Monitoring"])
-async def metrics_dashboard():
+async def metrics_dashboard(response: Response, auth=Depends(get_auth)):
     """Metrics Dashboard Data"""
+    user_role = auth.get("role", "")
+    if auth.get("type") != "api_key" and user_role not in ["client", "recruiter", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Control center metrics are restricted to authorized command-center roles",
+        )
+    response.headers["X-Control-Center-Access"] = "granted"
     return {
         "performance_summary": monitor.get_performance_summary(24),
         "business_metrics": monitor.get_business_metrics(),
@@ -323,6 +383,14 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 app.middleware("http")(rate_limit_middleware)
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    request.state.correlation_id = correlation_id
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
 
 class JobCreate(BaseModel):
     title: str
@@ -585,58 +653,6 @@ class AutomationTriggerRequest(BaseModel):
 # Legacy get_db_engine function - replaced by MongoDB
 # MongoDB connection is handled by app.database module
 # Use: db = await get_mongo_db() for async database access
-
-# Use proper JWT authentication from jwt_auth.py module
-# If import failed, define fallback functions
-if jwt_get_auth is not None:
-    # Use the proper authentication functions from jwt_auth.py
-    get_auth = jwt_get_auth
-    get_api_key = jwt_get_api_key
-    validate_api_key = jwt_validate_api_key
-    get_optional_auth = jwt_get_optional_auth
-else:
-    # Fallback: define basic functions if import failed
-    def validate_api_key(api_key: str) -> bool:
-        expected_key = os.getenv("API_KEY_SECRET")
-        return api_key == expected_key
-
-    def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
-        if not credentials or not validate_api_key(credentials.credentials):
-            raise HTTPException(status_code=401, detail="Invalid API key")
-        return credentials.credentials
-
-    def get_optional_auth(credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
-        """Optional auth - returns None if not authenticated (fallback when jwt_auth not loaded)."""
-        return None
-
-    def get_auth(credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
-        """Dual authentication: API key or client JWT token"""
-        if not credentials:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        
-        # Try API key first
-        if validate_api_key(credentials.credentials):
-            return {"type": "api_key", "credentials": credentials.credentials}
-        
-        # Try client JWT token
-        try:
-            jwt_secret = os.getenv("JWT_SECRET_KEY")
-            if jwt_secret:
-                payload = jwt.decode(credentials.credentials, jwt_secret, algorithms=["HS256"])
-                return {"type": "client_token", "client_id": payload.get("client_id")}
-        except Exception as e:
-            pass
-        
-        # Try candidate JWT token
-        try:
-            candidate_jwt_secret = os.getenv("CANDIDATE_JWT_SECRET_KEY")
-            if candidate_jwt_secret:
-                payload = jwt.decode(credentials.credentials, candidate_jwt_secret, algorithms=["HS256"])
-                return {"type": "candidate_token", "candidate_id": payload.get("candidate_id")}
-        except Exception as e:
-            pass
-        
-        raise HTTPException(status_code=401, detail="Invalid authentication")
 
 def _get_langgraph_service_url() -> str:
     return os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
@@ -1948,6 +1964,46 @@ async def get_notification_history(
         print(traceback.format_exc())
         return {"candidate_id": candidate_id, "history": [], "error": str(e)}
 
+class ControlCenterAuditEvent(BaseModel):
+    action: str
+    outcome: str
+    detail: Optional[str] = None
+    correlation_id: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+
+@app.post("/v1/control-center/audit-events", tags=["Monitoring"])
+async def create_control_center_audit_event(
+    event: ControlCenterAuditEvent,
+    request: Request,
+    auth=Depends(get_auth),
+):
+    if auth.get("type") != "api_key" and auth.get("role", "") not in ["client", "recruiter", "admin"]:
+        raise HTTPException(status_code=403, detail="Control center audit endpoint is role-restricted")
+
+    try:
+        db = await get_mongo_db()
+        await db.audit_logs.insert_one(
+            {
+                "event_type": "control_center",
+                "action": event.action,
+                "outcome": event.outcome,
+                "detail": event.detail,
+                "correlation_id": event.correlation_id or getattr(request.state, "correlation_id", None),
+                "context": event.context or {},
+                "actor": {
+                    "user_id": auth.get("user_id"),
+                    "role": auth.get("role"),
+                    "auth_type": auth.get("type"),
+                },
+                "created_at": datetime.now(timezone.utc),
+            }
+        )
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write control-center audit event: {e}")
+
+
 # Analytics & Statistics - Move stats endpoint before parameterized routes
 @app.get("/v1/candidates/stats", tags=["Analytics & Statistics"])
 async def get_candidate_stats(auth=Depends(get_auth)):
@@ -1963,6 +2019,12 @@ async def get_candidate_stats(auth=Depends(get_auth)):
     
     **Response:** Real-time statistics including total candidates, active jobs, recent matches, and pending interviews.
     """
+    if auth.get("type") != "api_key" and auth.get("role", "") not in ["client", "recruiter", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Candidate statistics for command center are restricted to authorized roles",
+        )
+
     try:
         db = await get_mongo_db()
         

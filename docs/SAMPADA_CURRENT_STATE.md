@@ -1,30 +1,30 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-05-30 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Active Convergence Sprint · Workforce OS Expansion
+**Last Updated**: 2026-06-02 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Active Convergence Sprint · Task19 Constitutional Hardening
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
 
-### Task18 Required Sections Index
+### Task19 Required Sections Index
 
-| # | Required Section (Task18) | Section in This Document |
+| # | Required Section (Task19) | Section in This Document |
 |---|---------------------------|--------------------------|
 | 1 | Product Purpose | §1 Product Purpose |
 | 2 | Ownership Matrix | §2 Ownership Matrix |
-| 3 | Architecture Layers | §3 Architecture Layers (Workforce OS) |
+| 3 | Architecture Layers | §3 Architecture Layers (Government-Scale Workforce OS) |
 | 4 | SETU Relationship | §4 SETU Relationship |
-| 5 | Integration Model | §5 Integration Model |
-| 6 | Current Implementation State | §6 Current Implementation State |
-| 7 | Open Risks | §7 Open Risks |
-| 8 | Open Work | §8 Open Work |
-| 9 | Roadmap | §9 Roadmap |
+| 5 | Policy / Governance Model | §5 Policy / Governance Model |
+| 6 | Federated Workforce Model | §6 Federated Workforce Model |
+| 7 | Command Center Governance | §7 Command Center Governance |
+| 8 | Human Safety Framework | §8 Human Safety Framework |
+| 9 | Current Implementation State | §9 Current Implementation State |
 | 10 | Developer Entry Guide | §10 Developer Entry Guide |
 
 ---
 
 ## 1. Product Purpose
 
-**INFIVERSE-HR (codename: Sampada / BHIV)** is an enterprise-grade AI-enabled multi-tenant **Workforce Intelligence + HR Operations Platform** — evolving beyond a recruitment portal into a full BHIV Workforce OS inside the SETU unified operational ecosystem.
+**INFIVERSE-HR (codename: Sampada / BHIV)** is an enterprise-grade AI-enabled multi-tenant **Workforce Intelligence + HR Operations Platform** — evolving from a Workforce OS baseline into a governance-ready, policy-aware, government-scale operational workforce intelligence layer inside the SETU unified operational ecosystem.
 
 ### What It Does
 The platform manages the complete hiring lifecycle **and** broader workforce intelligence for multiple client companies (tenants) from a single system:
@@ -37,6 +37,7 @@ The platform manages the complete hiring lifecycle **and** broader workforce int
 - **Workforce Operations Layer**: Employee profiles, attendance visibility, leave requests, HR requests, reimbursements, payroll visibility (not ownership).
 - **Growth & Development Layer**: Learning progress visibility, skills evolution, mentorship tracking, strengths mapping.
 - **Workforce Observability Layer**: Organizational visibility, team load signals, bottlenecks, operational health signals.
+- **Government-Scale Governance Layer**: Policy-aware visibility, explicit authority separation, challenge pathways, and traceable governance actions.
 - **Executive Workforce Control Center**: Low-scroll, high-density operational dashboard for workforce health, hiring health, escalations, and observability.
 
 ### Who Uses It
@@ -52,507 +53,257 @@ The platform manages the complete hiring lifecycle **and** broader workforce int
 - **25 active jobs** across multiple tenants
 - **14+ MongoDB collections** for persistence
 
+### Task19 Direction
+- Government-scale org hierarchy support
+- Federated administration across local, department, platform, and auditor roles
+- Policy- and consent-bounded visibility
+- Challengeable derived intelligence, not canonical truth
+
 ---
 
 ## 2. Ownership Matrix
 
-### Constitutional Position (Sampada Layer)
+| Domain | Owner | Scope |
+|--------|-------|-------|
+| **Sampada (Platform)** | Rishabh Yadav | Hiring intelligence, workforce intelligence, employee operations, HR visibility, growth tracking, workforce observability |
+| **Niyantran** | Rishabh Yadav | Tasking, reviews, testing, execution telemetry, payroll calculation participation |
+| **Artha** | Rishabh Yadav | Financial systems, payroll truth |
+| **Logistics** | Rishabh Yadav | Logistics systems |
+| **CRM** | Rishabh Yadav | Relationship intelligence |
+| **SETU** | Rishabh Yadav | Aggregation, cross-domain intelligence, unified operational visibility |
 
-### The Locked Separation Model
+### Role Assignments
+| Role | Person | Responsibility |
+|------|--------|---------------|
+| System Owner | Rishabh Yadav | All architectural decisions, acceptance sign-off, escalation authority |
+| Support Builder | Shashank | Documentation, observability, implementation support under lead direction |
+| Frontend Developer | Nikhil | Frontend implementation |
+| Infra | Vinayak / Raj | Deployment and infrastructure |
 
-The system enforces a **strict 3-layer authority model**. This is not a design preference — it is a constitutional boundary that governs every contribution to the system.
-
-```
-LAYER 3 — EXECUTION (State Authority)
-  Gateway + LangGraph + Agent Services
-  → Who can do this? Backend service owners under Rishabh Yadav
-  → What is allowed? State mutations, workflow triggers, authorization decisions
-
-        ↑ approval gate ↑
-
-LAYER 2 — APPROVAL / PARTICIPATION (SETU)
-  Downstream signal receivers, approval workflows
-  → Who can do this? SETU role participants
-  → What is allowed? Evaluate signals, recommend actions (NOT execute them)
-
-        ↑ signal flow ↑
-
-LAYER 1 — VISIBILITY / INTELLIGENCE (SAMPADA)
-  Dashboards, traces, audit logs, observability
-  → Who can do this? Shashank (Sampada, Support Builder)
-  → What is allowed? READ-ONLY observation, documentation, evidence gathering
-```
-
-### Sampada's Constitutional Position
-- **What Sampada IS**: Intelligence layer — provides signals, traces, visibility
-- **What Sampada is NOT**: An executor, orchestrator, architect, or authority holder
-- **The Key Rule**: `Visibility ≠ Execution Authority`
-
-### Non-Negotiable Boundaries (Locked — Do Not Re-Litigate)
-1. Sampada cannot mutate system state
-2. Sampada cannot override execution decisions
-3. Sampada cannot create parallel signal channels
-4. Sampada cannot expand scope beyond convergence needs
-5. All architecture decisions remain with Rishabh Yadav
-
-### Team Ownership
-
-| Area | Owner | Authority Level | Contact |
-|------|-------|----------------|---------|
-| **System Architecture & Design** | Rishabh Yadav | Full — all decisions | System Owner |
-| **Backend Microservices (Gateway, Agent, LangGraph)** | Rishabh Yadav | Full execution authority | System Owner |
-| **Acceptance Criteria & Convergence** | Rishabh Yadav | Final approval | System Owner |
-| **Frontend / Dashboard UI** | Nikhil | Interface wiring, API consumption | Frontend Dev |
-| **Infrastructure / Deployment** | Vinayak | Container management, uptime | DevOps |
-| **Infra Support / Network** | Raj | Port mappings, DNS, cluster health | Infra Support |
-| **Observability & Documentation** | Shashank (Sampada) | Read-only on execution; docs & traces | Support Builder |
-
-### Escalation Path
-```
-Operational question → Shashank documents it
-Architecture decision needed → Escalate to Rishabh
-Frontend wiring issue → Nikhil
-Container/deployment issue → Vinayak / Raj
-Acceptance criteria question → Rishabh only
-```
+### Critical Rule
+Payroll visibility participation ≠ payroll ownership. Sampada may surface payroll signals from Artha but does not own payroll truth.
 
 ---
 
-## 3. Architecture Layers (Workforce OS)
+## 3. Architecture Layers (Government-Scale Workforce OS)
 
-| Layer | Responsibilities | Key Repo Paths |
-|-------|-----------------|----------------|
-| **Talent Intelligence** | Candidate matching, recruiter scoring, hiring pipeline, NDA/onboarding | `backend/services/agent/`, `frontend/src/pages/candidate/`, `frontend/src/pages/recruiter/` |
-| **Workforce Operations** | Employee profiles, attendance/leave visibility, HR requests, reimbursements, payroll visibility | `backend/services/gateway/`, MongoDB collections |
-| **Growth & Development** | Learning progress, skills, mentorship, aspirations, growth tracking | `frontend/src/pages/`, `backend/services/langgraph/` |
-| **Workforce Observability** | Org visibility, team load, bottlenecks, risk signals, operational health | `evidence/`, `evidence/replay/`, telemetry in Gateway + LangGraph |
-| **Executive Control Center** | High-density dashboard aggregating all layer signals | `frontend/src/pages/control/ControlCenter.tsx`, `/v1/dashboard/*` endpoints |
+Sampada is modeled as a 5-layer government-scale workforce intelligence platform. Full specification: [SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md).
+
+| Layer | Scope | Key Entities |
+|-------|-------|-------------|
+| **Talent Intelligence** | Hiring lifecycle | Candidates, recruiters, jobs, interviews, NDAs, onboarding |
+| **Workforce Operations** | Employee operations | Profiles, attendance, leave, reimbursements, HR requests, complaints, appreciations, policy acknowledgements |
+| **Growth & Development** | Human growth tracking | Learning progress, skills evolution, mentorship, aspirations, strengths mapping |
+| **Workforce Observability** | Organizational signals | Team load, bottlenecks, staffing gaps, operational health |
+| **Government-Scale Governance** | Policy & authority | Multi-org hierarchy (ministry→department→division→unit→office), federated admin (local/department/platform/auditor), policy-bounded visibility |
+
+### Multi-Org Hierarchy
+Supports nested organizational levels: ministry → department → division → unit → office → contractor/vendor participation.
+
+### Workforce Scope
+Permanent staff, contractual staff, consultants, outsourced workforce, volunteers, fellows, advisors — each as distinct participation types.
+
+### Federated Administration
+Bounded administration model: local admins, department admins, platform admins, auditors. No single global admin.
+
+### Multi-Tenant Isolation
+Four isolation dimensions: tenant isolation, org isolation, data visibility boundaries, policy boundaries.
 
 ---
 
 ## 4. SETU Relationship
 
-| System | Owns | Sampada's Relationship |
-|--------|------|------------------------|
-| **Sampada** | Intelligence, workforce visibility, candidate/recruiter portals | Source system |
-| **Niyantran** | Tasking, execution, execution telemetry, payroll calculation participation | Sampada receives execution telemetry (read); does not issue execution commands |
-| **Artha** | Financial systems, payroll ownership | Sampada shows payroll cues (visibility-only); Artha owns payroll |
-| **Logistics** | Asset/equipment provisioning | Sampada reads logistics signals (visibility) |
-| **CRM** | Relationship intelligence | Sampada reads CRM candidate context; does not own relationships |
-| **SETU (Aggregator)** | Cross-domain aggregation, unified operational visibility | SETU aggregates Sampada signals; Sampada does not control SETU |
+Full convergence map: [SAMPADA_SETU_CONVERGENCE_MAP.md](SAMPADA_SETU_CONVERGENCE_MAP.md).
 
-**Key boundary**: `payroll visibility participation ≠ payroll ownership`. Sampada surfaces payroll cues; Artha owns the numbers.
+### Domain Ownership
+| System | Owns | Sampada Relationship |
+|--------|------|---------------------|
+| **Sampada** | Intelligence + workforce visibility | Source system |
+| **Niyantran** | Tasking, execution telemetry | Bounded signal consumer |
+| **Artha** | Payroll truth, financial systems | Bounded visibility participant |
+| **Logistics** | Logistics systems | Bounded participant |
+| **CRM** | Relationship intelligence | Bounded participant |
+| **SETU** | Aggregation, cross-domain intelligence | Upstream aggregator |
 
----
+### Signal Exchange Model
+- Sampada → SETU: workforce intelligence signals, hiring pipeline state, observability data
+- Niyantran → Sampada: execution telemetry (read-only participation)
+- Artha → Sampada: payroll visibility signals (read-only, not ownership transfer)
+- SETU → All: cross-domain aggregated intelligence
 
-## 5. Integration Model
-
-### Service Topology
-```
-┌─────────────────────────────────────────────────┐
-│           FRONTEND  (port :3000)                │
-│         React 18 + Vite + TypeScript            │
-│   ┌───────────┐ ┌──────────┐ ┌───────────────┐  │
-│   │ Candidate │ │Recruiter │ │ Client Portal │  │
-│   │  Portal   │ │ Console  │ │               │  │
-│   └───────────┘ └──────────┘ └───────────────┘  │
-└─────────────────────────────────────────────────┘
-                      │ HTTPS + JWT
-                      ▼
-┌─────────────────────────────────────────────────┐
-│          GATEWAY SERVICE  (port :8000)          │
-│              FastAPI v4.2.0                     │
-│  ┌─────────────────────────────────────────┐    │
-│  │  Triple-Layer Authentication             │    │
-│  │  • API Key (admin/system scope)         │    │
-│  │  • Client JWT (tenant scope)            │    │
-│  │  • Candidate JWT (self-service scope)   │    │
-│  ├─────────────────────────────────────────┤    │
-│  │  80 Core Endpoints                      │    │
-│  │  • /v1/jobs (CRUD)                      │    │
-│  │  • /v1/candidates (search, profile)     │    │
-│  │  • /v1/candidate/apply                  │    │
-│  │  • /v1/client/stats                     │    │
-│  │  • /v1/match/{job_id}/top               │    │
-│  │  • /v1/security/* (CSP, validation)     │    │
-│  │  • /v1/auth/* (login, 2FA, password)    │    │
-│  │  • /api/v1/webhooks/*                   │    │
-│  │  • /api/v1/workflow/status/{id}         │    │
-│  │  • /health, /health/detailed            │    │
-│  └─────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────┘
-         │                      │
-         ▼                      ▼
-┌─────────────────┐    ┌─────────────────────────┐
-│   AI AGENT      │    │   LANGGRAPH SERVICE     │
-│  (port :9000)   │    │     (port :9001)        │
-│                 │    │                         │
-│  FastAPI v3.0.0 │    │  FastAPI v1.0.0         │
-│                 │    │                         │
-│  Semantic match │    │  State machine mgmt     │
-│  Sentence       │    │  Webhook processing     │
-│  transformers   │    │  Notification dispatch  │
-│  6 endpoints    │    │  RL feedback loop       │
-│                 │    │  25 endpoints           │
-│                 │    │                         │
-│                 │    │  Channels:              │
-│                 │    │  • Email (Gmail SMTP)   │
-│                 │    │  • WhatsApp (Twilio)    │
-│                 │    │  • Telegram             │
-└─────────────────┘    └─────────────────────────┘
-         │                      │
-         └──────────┬───────────┘
-                    ▼
-         ┌──────────────────────┐
-         │    MongoDB Atlas     │
-         │   Primary Database   │
-         │                      │
-         │  Collections (14+):  │
-         │  • candidates        │
-         │  • jobs              │
-         │  • job_applications  │
-         │  • interviews        │
-         │  • offers            │
-         │  • audit_logs        │
-         │  • workflow_states   │
-         │  • notifications     │
-         │  • rl_feedback       │
-         │  • security_csp      │
-         │  • users             │
-         │  • clients           │
-         │  • tokens            │
-         │  • tasks             │
-         └──────────────────────┘
-                    │
-                    ▼
-         ┌──────────────────────┐
-         │  Complete-Infiverse  │
-         │  (External Workflow) │
-         │  EMS Task Sync       │
-         └──────────────────────┘
-```
-
-### Deployment Mode (Current: Docker)
-```
-Host Windows Machine
-└── Docker Desktop
-    ├── backend-gateway-1     (image: backend-gateway,   :8000)
-    ├── backend-agent-1       (image: backend-agent,     :9000)
-    └── backend-langgraph-1   (image: backend-langgraph, :9001)
-```
-Frontend runs **outside** Docker via `npm run dev` on the host.
+### Boundary Enforcement
+- Aggregation must not erase local ownership or policy context
+- Cross-system references must preserve source authority
+- Derived intelligence remains challengeable interpretation, not canonical truth
 
 ---
 
-### Signal Flow
+## 5. Policy / Governance Model
 
-### Operational Signal Flow (State Transitions)
-```
-Candidate applies for job
-  → POST /v1/candidate/apply (Gateway)
-    → job_applications collection updated (MongoDB)
-      → Webhook POST /api/v1/webhooks/candidate-applied (Gateway → LangGraph)
-        → LangGraph state machine activates
-          → Notification sent (Email + WhatsApp)
-            → rl_feedback entry created
-              → audit_log entry written
-                → Sampada observes in dashboard/trace
-```
+Full specification: [SAMPADA_POLICY_GOVERNANCE_MODEL.md](SAMPADA_POLICY_GOVERNANCE_MODEL.md).
 
-### Recruiter Signal Flow
-```
-Recruiter shortlists candidate
-  → POST /api/v1/webhooks/candidate-shortlisted (Gateway)
-    → LangGraph triggers shortlist notification loop
-      → Candidate notified (Email + WhatsApp + Telegram)
-        → Interview scheduling flow activated
-```
+### Policy Layer
+Scoped, explicit policies: leave, attendance, growth, visibility, consent, retention. Policies may vary by tenant, organization, workforce category, or administrative level.
 
-### Intelligence Signal Flow (Sampada Layer)
-```
-GET /v1/match/{job_id}/top (API Key)
-  → Gateway forwards to AI Agent :9000
-    → Agent computes semantic similarity scores
-      → Returns ranked candidate list with match %, skills_match, reasoning
-        → Sampada displays in dashboard (READ ONLY)
-          → Recruiter/Client makes decision (NOT Sampada)
-```
+### Governance Verbs (Visibly Separated)
+| Verb | Meaning | Boundary |
+|------|---------|----------|
+| **Observe** | Read signals within scope | Cannot assess or approve |
+| **Assess** | Interpret against policy | Must show basis; cannot imply approval |
+| **Recommend** | Suggest next steps | Advisory only; cannot execute |
+| **Approve** | Authorize bounded action | Traceable to role and scope |
+| **Execute** | Perform action in owning system | Not inferred from observation alone |
 
-### Constitutional Signal Rule
-```
-Signals FROM Sampada:  ADVISORY only (suggestions, scores, anomaly flags)
-Signals TO Execution:  Must pass through SETU approval gate
-Commands FROM Sampada: NONE — Sampada does not issue commands
-```
+### Enforcement Patterns
+Policy tags, policy engines, rule provenance, auditability, override recording, challenge pathways.
+
+### Non-Negotiable
+No hidden governance. No silent authority escalation. No opaque policy effects.
 
 ---
 
-### Integration Map
+## 6. Federated Workforce Model
 
-| Integration | Direction | Protocol | Auth | Purpose |
-|-------------|-----------|----------|------|---------|
-| Frontend → Gateway | Outbound | HTTPS REST | Client/Candidate JWT | UI data fetching |
-| Gateway → AI Agent | Internal | HTTP REST | Service-to-service | Semantic matching |
-| Gateway → LangGraph | Internal | HTTP REST | API Key | Workflow triggers |
-| LangGraph → Gmail | Outbound | SMTP | OAuth2/App Password | Email notifications |
-| LangGraph → Twilio | Outbound | HTTPS API | API Key/Token | WhatsApp alerts |
-| LangGraph → Telegram | Outbound | HTTPS API | Bot Token | Telegram messages |
-| Gateway → MongoDB Atlas | Outbound | pymongo/motor | Connection string | All persistence |
-| Gateway → Complete-Infiverse | Outbound | HTTPS REST | API Key | Candidate task sync |
+Full specification: [SAMPADA_FEDERATED_WORKFORCE_MODEL.md](SAMPADA_FEDERATED_WORKFORCE_MODEL.md).
 
-### Key Environment Variables (backend/.env)
-```
-DATABASE_URL=<mongodb+srv connection string>
-API_KEY_SECRET=<admin api key>
-JWT_SECRET_KEY=<client jwt signing secret>
-CANDIDATE_JWT_SECRET_KEY=<candidate jwt signing secret>
-GATEWAY_SECRET_KEY=<internal service auth>
-TWILIO_ACCOUNT_SID=<twilio sid>
-TWILIO_AUTH_TOKEN=<twilio token>
-GMAIL_APP_PASSWORD=<gmail app password>
-TELEGRAM_BOT_TOKEN=<telegram bot token>
-WORKFLOW_API_BASE_URL=<complete-infiverse base url>
-```
+### Canonical Workforce Reference
+Minimal shared identity layer with: workforce reference ID, local system ID, source system, tenant/org scope, participation type, correlation ID history, ownership metadata, data freshness marker.
+
+### Domain Ownership Split
+| Domain | Owns |
+|--------|------|
+| **Sampada** | Growth, lifecycle, workforce intelligence, observability |
+| **Niyantran** | Execution telemetry, tasking evidence |
+| **Artha** | Payroll truth, compensation state |
+| **Others** | Bounded participation only when explicitly defined |
+
+### Signal Interoperability
+Cross-system references, trace lineage, correlation IDs, source declarations, ownership metadata — all mandatory for replay and audit.
+
+### Anti-Centralization Guardrails
+- No universal human-state model
+- Derived intelligence remains challengeable
+- Source systems remain visible
+- Aggregation must not erase origin
 
 ---
 
-## 6. Current Implementation State
+## 7. Command Center Governance
 
-### Active Components
+Full specification: [SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md).
 
-### Running Services (Docker)
-| Service | Container | Port | Version | Status |
-|---------|-----------|------|---------|--------|
-| API Gateway | backend-gateway-1 | :8000 | 4.2.0 | Healthy |
-| AI Agent | backend-agent-1 | :9000 | 3.0.0 | Healthy |
-| LangGraph | backend-langgraph-1 | :9001 | 1.0.0 | Healthy |
-| Frontend | npm dev (host) | :3000 | — | Runs separately |
+### Executive Use Cases
+Minister, Secretary, Department Head, HR Operator, Auditor — each with scope-bounded views.
 
-### Key Source Files
-| File | Purpose |
-|------|---------|
-| `backend/services/gateway/app/main.py` | All 80 gateway endpoints (6481 lines) |
-| `backend/services/gateway/app/jwt_auth.py` | Triple-layer authentication implementation |
-| `backend/services/agent/app.py` | Semantic matching service |
-| `backend/services/langgraph/app/main.py` | Workflow automation service |
-| `backend/services/gateway/app/monitoring.py` | AdvancedMonitor class, Prometheus hooks |
-| `backend/docker-compose.production.yml` | Docker service orchestration |
-| `backend/services/gateway/app/db_helpers.py` | MongoDB query helpers |
+### Cognition Separation
+Observation → Assessment → Recommendation → Decision → Execution. Each stage visibly labeled. Dashboard informs; it does not grant legitimacy.
 
-### Monitoring Capabilities
-- `GET /health` — Basic service liveness
-- `GET /health/detailed` — CPU, memory, DB connection, service metrics
-- `GET /v1/candidates/stats` — Candidate pipeline statistics
-- `GET /v1/client/stats` — Tenant-specific pipeline metrics
-- `GET /v1/security/csp-violations` — Browser security event log
-- `GET /v1/database/schema` — MongoDB schema introspection
-- Docker logs: `docker logs backend-gateway-1 --tail 50`
+### Explainability Surfaces
+Every derived insight must show: source visibility, calculation explanation, signal provenance.
+
+### Authority Drift Protection
+Prevent: dashboard score → official truth, operational summary → hidden approval, visual ranking → coercive authority, recommendation widget → decision engine.
+
+### Operational Principles
+Low-scroll, high-density, fast scanability, hierarchical emphasis, bounded drill-down, trace-aware surfaces.
 
 ---
 
-### Current Proof Status
+## 8. Human Safety Framework
 
-### Convergence Evidence Collected (2026-05-26)
+Full specification: [SAMPADA_HUMAN_SAFETY_MODEL.md](SAMPADA_HUMAN_SAFETY_MODEL.md).
 
-| Proof Category | Status | Evidence File |
-|---------------|--------|--------------|
-| **Entry Points** (3 auth types) | ✅ Complete | `evidence/entry-points/` |
-| **Live Execution Flow** (E2E lifecycle) | ✅ Complete | `evidence/trace-continuity/request-trace.log` |
-| **Real Trace Continuity** (correlation IDs) | ✅ Complete | `evidence/trace-continuity/trace-analysis.txt` |
-| **Real Downstream Participation** (webhooks) | ✅ Complete | `evidence/tests/downstream-participation.log` |
-| **Enforcement Proof** (RBAC + isolation) | ✅ Complete | `evidence/enforcement/` |
-| **Replay Reconstruction** (audit replay) | ✅ Complete | `evidence/replay/` |
-| **Failure Observability** (8 scenarios) | ✅ Complete | `evidence/failure/` |
-| **Constitutional Boundaries** | ✅ Complete | `evidence/boundaries/` |
-| **Ownership Matrix** | ✅ Complete | `evidence/ownership/ownership_matrix.md` |
-| **Proof/Logs Summary** | ✅ Complete | `evidence/general/verification_summary.md` |
+### Core Principles
+| Principle | Protection |
+|-----------|------------|
+| Human Dignity | People ≠ metrics |
+| Explainability | No opaque score generation |
+| Bounded Scoring | Scores ≠ universal truth; scores ≠ hidden discipline |
+| Context Awareness | Same behavior ≠ same meaning across scopes |
+| Assistive Intelligence | Advisory ≠ authority |
+| Reviewability | Significant outputs must be challengeable |
 
-### Live Test Results (Last Run: 2026-05-26T13:35Z)
-- **Trace ID**: `trace_conv_17_257502`
-- **Workflow ID**: `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29`
-- **Job Created**: `6a15a13f0caf5b91bd0e9de4`
-- **Resilience Tests**: 8/8 PASSED
-- **RBAC Negative Tests**: 5/5 PASSED (401/403 enforced correctly)
-- **Tenant Isolation Test**: PASSED (Client B blocked from Client A's job)
-- **Replay Reconstruction**: SUCCESS ✅
+### Allowed vs Prohibited
+| Allowed | Prohibited |
+|---------|------------|
+| Contextual labeled signals | Surveillance-style monitoring |
+| Explainable summaries | Opaque employee scoring |
+| Advisory recommendations | Coercive productivity ranking |
+| Cross-system references | Hidden authority systems |
+| Human review paths | Unreviewable automated judgment |
 
-### Known Gaps / Pending
+### Consent & Visibility
+Consent is part of the safety model: opt-in for sensitive visibility, explicit and revocable consent scope, role/org/policy-scoped visibility controls, challenge and appeal pathways.
+
+---
+
+## 9. Current Implementation State
+
+### Technical Stack
+- **Backend**: Python FastAPI microservices — Gateway (`:8000`), AI Agent (`:9000`), LangGraph (`:9001`)
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Database**: MongoDB Atlas (14+ collections)
+- **External**: Complete-Infiverse / EMS for candidate task bridging
+- **AI**: sentence-transformers for semantic matching, LangGraph for workflow automation
+
+### API Surface
+- **111 operational endpoints** across 3 microservices
+- **240 candidates** in database (as of 2026-05-26)
+- **25 active jobs** across multiple tenants
+
+### Verified Evidence
+| Test | Result |
+|------|--------|
+| Trace Continuity | `trace_conv_17_257502` — PASS |
+| Workflow Automation | `d5df0069-1bfd-4402-a9cc-f13e2e7a8e29` — PASS |
+| Resilience Tests | 8/8 PASSED |
+| RBAC Negative Tests | 5/5 PASSED (401/403 enforced) |
+| Tenant Isolation | PASSED (Client B blocked from Client A) |
+| Replay Reconstruction | SUCCESS |
+
+### Known Gaps
 | Gap | Risk | Mitigation |
-|-----|------|-----------|
-| Internal HR user authentication not implemented | Medium | API keys used as workaround for testing |
-| Tenant isolation is per-endpoint manual filtering | High | Systematic negative testing catches gaps |
-| RL model training is mocked | Low | Document as accepted limitation for sprint |
-| Tenant-specific encryption missing | Medium | Shared keys — document security consideration |
+|-----|------|------------|
+| Internal HR user authentication not implemented | Medium | API keys used as workaround |
+| Tenant isolation is per-endpoint manual filtering | High | Systematic negative testing |
+| RL model training is mocked | Low | Documented accepted limitation |
+| Tenant-specific encryption missing | Medium | Shared keys — security consideration |
 
----
-
-## 7. Open Risks
-
-### Risk Register
-| # | Risk | Likelihood | Impact | Owner | Mitigation |
-|---|------|-----------|--------|-------|-----------|
-| R1 | Cross-tenant data leakage via manual endpoint filtering | Medium | Critical | Rishabh | Systematic RBAC + isolation tests every sprint |
-| R2 | Mocked RL endpoints produce non-deterministic replay evidence | Low | Medium | Backend team | Document as known limitation; don't use for convergence proof |
-| R3 | Docker service unavailability breaks all backend testing | Medium | High | Vinayak | Restart procedures documented; monitor container health |
-| R4 | Missing internal HR auth creates security surface | Low | High | Rishabh | API key workaround for testing; HR auth on roadmap |
-| R5 | Shared JWT secrets across environments | Low | High | Rishabh | Rotate secrets before production; use secrets manager |
-| R6 | MongoDB Atlas IP allowlist blocks testing from new networks | Medium | Medium | Vinayak/Raj | Add development IPs to Atlas allowlist |
-| R7 | LangGraph state machine doesn't persist across container restarts | Medium | Medium | Backend team | Evidence replay covers recovery; documented in replay section |
-| R8 | Twilio/Gmail credentials expire/are rate-limited | Low | Low | Rishabh | Monitor; fallback to logged notifications |
-
----
-
-## 8. Open Work
-
-### Sprint Tasks (Active — Task18)
-- [x] Collect all 10 evidence categories for REVIEW_PACKET.md
-- [x] Prove trace continuity end-to-end with correlation IDs
-- [x] Execute RBAC negative tests (wrong roles → 403)
-- [x] Execute tenant isolation tests (Client B → Client A denied)
-- [x] Build and validate replay reconstruction script
-- [x] Document failure observability (8 scenarios)
-- [x] Phase 1 — SAMPADA_WORKFORCE_OS_ARCHITECTURE.md (complete)
-- [x] Phase 2 — SAMPADA_SETU_CONVERGENCE_MAP.md (complete)
-- [x] Phase 3 — SAMPADA_CONTROL_CENTER_BLUEPRINT.md (complete)
-- [x] Phase 4 — SAMPADA_HUMAN_GROWTH_MODEL.md (complete — full document)
-- [x] Phase 5 — Control Center prototype: frontend/src/pages/control/ControlCenter.tsx
-- [x] Phase 6 — SAMPADA_CURRENT_STATE.md updated for Workforce OS direction
-- [x] CONTRIBUTION_LOG.md updated with all phase entries
-- [x] REVIEW_PACKET.md updated with all 10 required sections
-- [ ] Get acceptance sign-off from Rishabh Yadav on REVIEW_PACKET.md
-
-### Backlog Tasks (Post-Sprint)
-- [ ] Implement internal HR user authentication (owned by Rishabh)
-- [ ] Automate tenant isolation enforcement at middleware level (not per-endpoint)
-- [ ] Integrate real RL model training pipeline (currently mocked)
-- [ ] Add tenant-specific encryption for data at rest
-- [ ] Implement proper secrets management (HashiCorp Vault or AWS Secrets Manager)
-- [ ] Wire Control Center to live /v1/dashboard/* endpoints (Phase 5 extension, if requested by Rishabh)
-- [ ] Add automated E2E test suite to CI/CD pipeline
-- [ ] Implement GrowthConsent model for human growth framework
-- [ ] LXP integration for learning signals in Growth Zone
-
----
-
-## 9. Roadmap
-
-### Current Sprint (Week of 2026-05-30 — Task18)
-- **Goal**: Workforce OS expansion — complete all 6 Task18 phases + REVIEW_PACKET
-- **Owner**: Rishabh Yadav (lead) + Shashank (support builder)
-- **Deliverables**: Architecture docs ✅, SETU convergence map ✅, Control Center blueprint ✅, Human Growth Model ✅, Control Center prototype ✅, Current State refresh ✅
-
-### Next Sprint (Planned)
-- **Goal**: Acceptance review + Docker deployment stabilization
-- **Focus**: Rishabh's formal acceptance sign-off on Task18 REVIEW_PACKET
-- **Nikhil**: Wire Control Center to live /v1/dashboard/* endpoints
-- **Vinayak/Raj**: Production deployment hardening
-
-### Workforce OS Roadmap (Medium Term — 1-3 months)
-- Workforce Operations Layer: HR requests, leave, reimbursement API surface
-- Growth & Development Layer: LXP integration, GrowthConsent model
-- Growth Zone UI: personal growth map (individual view), team momentum panel
-- Internal HR auth implementation
-- Automated tenant isolation middleware
-- RL model training pipeline (real training, not mocked)
-- CI/CD pipeline with automated test suite
-
-### Long Term (3+ months)
-- Secrets management infrastructure
-- Tenant-specific encryption
-- Advanced observability (distributed tracing with OpenTelemetry)
-- Multi-region deployment strategy
-- Full SETU convergence: live signal exchange with Niyantran, Artha, Logistics, CRM
+### Task19 Document Status
+| Document | Path | Status |
+|----------|------|--------|
+| Government-Scale Architecture | `docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md` | Complete |
+| Policy & Governance Model | `docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md` | Complete |
+| Federated Workforce Model | `docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md` | Complete |
+| Command Center Governance | `docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md` | Complete |
+| Human Safety Model | `docs/SAMPADA_HUMAN_SAFETY_MODEL.md` | Complete |
+| Review Packet | `REVIEW_PACKET.md` | Updated |
+| Contribution Log | `CONTRIBUTION_LOG.md` | Updated |
 
 ---
 
 ## 10. Developer Entry Guide
 
-### Prerequisites Checklist
-```
-[ ] Git installed
-[ ] Python 3.11+ installed (3.12 recommended)
-[ ] Node.js 18+ and npm installed
-[ ] Docker Desktop installed
-[ ] MongoDB Atlas connection string (ask Rishabh or team lead)
-[ ] Internet access to MongoDB Atlas cluster
-```
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- MongoDB Atlas connection string
+- Docker Desktop (for containerized services)
 
-### Step 1: Clone and Configure
-```powershell
-# Clone the repo
-git clone <repo-url>
-cd INFIVERSE-HR-PLATFORM-main
+### Getting Started
+1. Clone the repository
+2. Copy `.env.example` to `.env` and fill in secrets (MongoDB URI, JWT secrets, API keys)
+3. Backend: `cd backend && pip install -r requirements.txt && python run_services.py`
+4. Frontend: `cd frontend && npm install && npm run dev`
+5. Services start on Gateway `:8000`, Agent `:9000`, LangGraph `:9001`
 
-# Configure backend environment
-cd backend
-copy .env.example .env
-# Edit backend/.env — fill in all required values:
-# DATABASE_URL, API_KEY_SECRET, JWT_SECRET_KEY, CANDIDATE_JWT_SECRET_KEY
-```
-
-### Step 2: Start Backend (Choose one method)
-
-**Method A — Docker (Recommended for backend)**
-```powershell
-cd backend
-docker compose -f docker-compose.production.yml up --build -d
-# Verify: docker ps  (should show 3 healthy containers)
-```
-
-**Method B — Python venv (Windows)**
-```powershell
-cd backend
-.\setup_venv.bat
-.\run_with_venv.bat
-```
-
-**Method C — Manual Python**
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # Linux/Mac
-pip install -r requirements.txt
-python run_services.py
-```
-
-### Step 3: Start Frontend
-```powershell
-cd frontend
-npm install
-npm run dev
-# Opens at http://localhost:3000
-```
-
-### Step 4: Verify Everything Is Running
-```powershell
-# Check all 3 backend services
-curl http://localhost:8000/health   # Gateway: should return {"status":"healthy"}
-curl http://localhost:9000/health   # Agent: should return {"status":"healthy"}
-curl http://localhost:9001/health   # LangGraph: should return {"status":"healthy"}
-
-# Check detailed health (needs API Key)
-curl -H "Authorization: Bearer <YOUR_API_KEY>" http://localhost:8000/health/detailed
-```
-
-### Step 5: Understand the Code Structure
-```
-backend/services/gateway/app/main.py    ← Read this first (all endpoints)
-backend/services/gateway/app/jwt_auth.py ← Auth implementation
-backend/handover/ROLE_MATRIX.md         ← Who can do what
-backend/handover/SYSTEM_BEHAVIOR.md     ← Architecture contracts
-backend/docs/api/API_DOCUMENTATION.md   ← Full API reference
-```
-
-### Troubleshooting Quick Reference
-| Problem | Solution |
-|---------|---------|
-| Docker containers not starting | `docker compose down` then `docker compose up --build -d` |
-| MongoDB connection refused | Check Atlas IP allowlist; check `DATABASE_URL` in `.env` |
-| Port 8000/9000/9001 in use | `netstat -ano \| findstr :8000` then `taskkill /PID <pid> /F` |
-| Frontend can't reach backend | Verify `VITE_API_BASE_URL` in frontend env points to `http://localhost:8000` |
+### Common Issues
+| Issue | Fix |
+|-------|-----|
 | JWT auth failing | Regenerate tokens using correct secret keys from `.env` |
-| Docker not found | Open Docker Desktop application; wait for engine to start |
+| Docker not found | Open Docker Desktop; wait for engine to start |
+| MongoDB connection refused | Verify Atlas URI and network access in `.env` |
+| Frontend CORS errors | Check Gateway CORS config allows frontend origin |
 
 ### Key Contacts
 - **Architecture questions**: Rishabh Yadav (System Owner)
@@ -560,19 +311,27 @@ backend/docs/api/API_DOCUMENTATION.md   ← Full API reference
 - **Deployment questions**: Vinayak / Raj (Infra)
 - **Documentation / Observability**: Shashank (Sampada, Support Builder)
 
----
+### Supporting Documents
+| Category | Document | Path |
+|----------|----------|------|
+| Task19 | Government-Scale Architecture | `docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md` |
+| Task19 | Policy & Governance Model | `docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md` |
+| Task19 | Federated Workforce Model | `docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md` |
+| Task19 | Command Center Governance | `docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md` |
+| Task19 | Human Safety Model | `docs/SAMPADA_HUMAN_SAFETY_MODEL.md` |
+| Task18 | Workforce OS Architecture | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` |
+| Task18 | SETU Convergence Map | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` |
+| Task18 | Control Center Blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` |
+| Task18 | Human Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` |
+| General | Review Packet | `REVIEW_PACKET.md` |
+| General | Contribution Log | `CONTRIBUTION_LOG` |
 
-### Supporting Documents (Task18 Deliverables)
-
-| Document | Path | Status |
-|----------|------|--------|
-| Architecture Expansion | `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` | ✅ Complete |
-| SETU Convergence Map | `docs/SAMPADA_SETU_CONVERGENCE_MAP.md` | ✅ Complete |
-| Control Center Blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` | ✅ Complete |
-| Human Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` | ✅ Complete |
-| Control Center Prototype | `frontend/src/pages/control/ControlCenter.tsx` | ✅ Created |
-| Review Packet | `REVIEW_PACKET.md` | ✅ Updated |
-| Contribution Log | `CONTRIBUTION_LOG.md` | ✅ Updated |
+### Before Writing Code
+1. Read this entire document
+2. Read `REVIEW_PACKET.md` for boundary context
+3. Check the ownership matrix — do not assume authority across domains
+4. Verify which layer your change affects and respect its boundaries
+5. All architectural decisions require Rishabh Yadav's approval
 
 ---
 

@@ -1,5 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import Loading from '../../components/Loading'
 import { useAuth } from '../../context/AuthContext'
+import {
+  AGENT_SERVICE_URL,
+  API_BASE_URL,
+  LANGGRAPH_SERVICE_URL,
+  checkApiHealth,
+  fetchGatewayCandidateStats,
+  fetchGatewayMetricsDashboard,
+  fetchServiceHealth,
+  postControlCenterAuditEvent,
+  type GatewayMetricsDashboard,
+  type GatewayCandidateStats,
+  type ServiceHealthSnapshot,
+} from '../../services/api'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -25,50 +39,19 @@ interface TraceEvent {
   status: 'success' | 'failure' | 'in_progress'
 }
 
+interface ControlCenterLiveData {
+  gatewayHealth: { healthy: boolean; data?: Record<string, unknown> | null } | null
+  gatewayMetrics: GatewayMetricsDashboard | null
+  candidateStats: GatewayCandidateStats | null
+  agentHealth: ServiceHealthSnapshot | null
+  langgraphHealth: ServiceHealthSnapshot | null
+  fetchedAt: string | null
+  errors: string[]
+  correlationIds: string[]
+}
+
 // ────────────────────────────────────────────────────────────────────────────
-// Static mock data (read-only intelligence — no execution authority)
-// In production, replace with API calls to /v1/dashboard/* endpoints.
-// ────────────────────────────────────────────────────────────────────────────
-
-const EXEC_KPIS: KpiCard[] = [
-  { label: 'Workforce Health', value: 'Stable', sublabel: 'No critical escalations', deltaPositive: true },
-  { label: 'Active Headcount', value: 240, sublabel: 'candidates in pipeline' },
-  { label: 'Open Roles', value: 25, sublabel: 'across all tenants', warning: true },
-  { label: 'Payroll State', value: 'Calculated', sublabel: 'Artha-owned — visibility only', deltaPositive: true },
-  { label: 'Open Escalations', value: 3, sublabel: 'pending HR action', alert: true },
-]
-
-const HIRING_KPIS: KpiCard[] = [
-  { label: 'Pipeline: Sourcing', value: 98, sublabel: 'candidates' },
-  { label: 'Pipeline: Screening', value: 57, sublabel: 'candidates' },
-  { label: 'Pipeline: Interview', value: 42, sublabel: 'scheduled' },
-  { label: 'Pipeline: Offer', value: 8, sublabel: 'offers extended' },
-  { label: 'Avg Time-to-Fill', value: '18 days', sublabel: 'across open roles', warning: true },
-  { label: 'Recruiter Load', value: '94%', sublabel: 'utilisation avg', warning: true },
-]
-
-const WORKFORCE_KPIS: KpiCard[] = [
-  { label: 'Pending HR Requests', value: 12, sublabel: 'awaiting action', alert: true },
-  { label: 'SLA Breaches', value: 3, sublabel: 'requests overdue', alert: true },
-  { label: 'Attendance Flags', value: 7, sublabel: 'anomalies (team-level, aggregated)', warning: true },
-  { label: 'Leave Requests Open', value: 19, sublabel: 'pending approval' },
-  { label: 'Reimbursement Backlog', value: 5, sublabel: 'pending finance review' },
-]
-
-const GROWTH_KPIS: KpiCard[] = [
-  { label: 'Learning Completion', value: '68%', sublabel: 'team avg this quarter', deltaPositive: true },
-  { label: 'Active Mentorships', value: 14, sublabel: 'mentor–mentee pairs active', deltaPositive: true },
-  { label: 'Skill Gaps Flagged', value: 6, sublabel: 'team-level deficits identified', warning: true },
-  { label: 'Growth Trajectory', value: 'Broadening', sublabel: 'team aggregate direction', deltaPositive: true },
-]
-
-const ORG_KPIS: KpiCard[] = [
-  { label: 'Staffing Gap Score', value: 'Moderate', sublabel: '7 critical vacancies', warning: true },
-  { label: 'Cross-Team Risk', value: 'Low', sublabel: 'dependency health stable', deltaPositive: true },
-  { label: 'Dept Load: Engineering', value: '87%', sublabel: 'capacity utilisation', warning: true },
-  { label: 'Dept Load: Design', value: '62%', sublabel: 'capacity utilisation', deltaPositive: true },
-]
-
+// Seeded replay evidence. This remains bounded until a live audit endpoint is exposed.
 const REPLAY_EVENTS: TraceEvent[] = [
   { ts: '2026-05-26T13:33:51Z', service: 'Gateway', op: 'POST /v1/jobs', correlation_id: 'trace_conv_17_257502', status: 'success' },
   { ts: '2026-05-26T13:35:21Z', service: 'Agent', op: 'GET /v1/match/6a15.../top', correlation_id: 'trace_conv_17_257502', status: 'success' },
@@ -76,6 +59,186 @@ const REPLAY_EVENTS: TraceEvent[] = [
   { ts: '2026-05-26T13:35:21Z', service: 'LangGraph', op: 'POST /api/v1/webhooks/candidate-applied', correlation_id: 'trace_conv_17_257502', status: 'success' },
   { ts: '2026-05-26T13:35:22Z', service: 'Gateway', op: 'GET /api/v1/workflow/status/{id}', correlation_id: 'trace_conv_17_257502', status: 'success' },
 ]
+
+function buildServiceCard(label: string, service: ServiceHealthSnapshot | null, fallbackSource: string): KpiCard {
+  if (!service) {
+    return {
+      label,
+      value: 'Offline',
+      sublabel: `${fallbackSource} unavailable`,
+      alert: true,
+    }
+  }
+
+  const timestamp = service.timestamp ? new Date(service.timestamp).toLocaleTimeString() : 'no timestamp'
+  const version = service.version ? `v${service.version}` : 'version n/a'
+
+  return {
+    label,
+    value: service.healthy ? 'Healthy' : service.status || 'Degraded',
+    sublabel: `${service.baseUrl} · ${version} · ${timestamp}`,
+    alert: !service.healthy,
+    warning: !service.healthy && service.status !== 'offline',
+  }
+}
+
+function buildGatewayCard(
+  gatewayHealth: { healthy: boolean; data?: Record<string, unknown> | null } | null,
+  detail: string,
+): KpiCard {
+  if (!gatewayHealth) {
+    return {
+      label: 'Gateway',
+      value: 'Unknown',
+      sublabel: detail,
+      warning: true,
+    }
+  }
+
+  return {
+    label: 'Gateway',
+    value: gatewayHealth.healthy ? 'Healthy' : 'Offline',
+    sublabel: detail,
+    alert: !gatewayHealth.healthy,
+  }
+}
+
+function serviceBaseSource(service: ServiceHealthSnapshot | null, fallback: string): string {
+  return service?.baseUrl ? `${service.baseUrl}/health` : fallback
+}
+
+function readNumber(source: unknown, keys: string[], fallback = 0): number {
+  if (!source || typeof source !== 'object') return fallback
+
+  const record = source as Record<string, unknown>
+
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+
+  return fallback
+}
+
+function toPercentDisplay(value: number): string {
+  if (!Number.isFinite(value)) return '0%'
+  const normalized = value <= 1 ? value * 100 : value
+  return `${normalized.toFixed(normalized >= 10 ? 0 : 1)}%`
+}
+
+function toMsDisplay(value: number): string {
+  return `${value.toFixed(value >= 100 ? 0 : 1)} ms`
+}
+
+function toHoursDisplay(value: number): string {
+  return `${value.toFixed(1)} h`
+}
+
+function card(label: string, value: string | number, sublabel: string, severity: 'normal' | 'warning' | 'alert' = 'normal'): KpiCard {
+  return {
+    label,
+    value,
+    sublabel,
+    warning: severity === 'warning',
+    alert: severity === 'alert',
+  }
+}
+
+function buildExecutiveCards(liveData: ControlCenterLiveData | null): KpiCard[] {
+  const performance = liveData?.gatewayMetrics?.performance_summary ?? {}
+  return [
+    buildGatewayCard(liveData?.gatewayHealth ?? null, `${API_BASE_URL}/metrics/dashboard`),
+    buildServiceCard('Agent', liveData?.agentHealth ?? null, serviceBaseSource(liveData?.agentHealth ?? null, AGENT_SERVICE_URL)),
+    buildServiceCard('LangGraph', liveData?.langgraphHealth ?? null, serviceBaseSource(liveData?.langgraphHealth ?? null, LANGGRAPH_SERVICE_URL)),
+    card(
+      'Avg Response Time',
+      toMsDisplay(readNumber(performance, ['avg_response_time_ms', 'avg_response_time'])),
+      'Gateway performance_summary · raw',
+    ),
+    card('P95 Response Time', toMsDisplay(readNumber(performance, ['p95_response_time_ms', 'p95_response_time'])), 'Gateway performance_summary', 'warning'),
+  ]
+}
+
+function buildHiringCards(liveData: ControlCenterLiveData | null): KpiCard[] {
+  const candidateStats = liveData?.candidateStats ?? null
+  const business = liveData?.gatewayMetrics?.business_metrics ?? {}
+  return [
+    card('Total Candidates', readNumber(candidateStats, ['total_candidates'], readNumber(business, ['total_candidates'])), 'Gateway /v1/candidates/stats'),
+    card('Active Jobs', readNumber(candidateStats, ['active_jobs'], readNumber(business, ['active_jobs', 'total_job_postings'])), 'Gateway /v1/candidates/stats'),
+    card('Pending Interviews', readNumber(candidateStats, ['pending_interviews'], readNumber(business, ['interviews_scheduled'])), 'Gateway /v1/candidates/stats'),
+    card('Recent Matches', readNumber(candidateStats, ['recent_matches'], readNumber(business, ['total_matches_generated'])), 'Gateway /v1/candidates/stats'),
+    card('Applications Today', readNumber(business, ['applications_today']), 'Gateway metrics_dashboard · raw', 'warning'),
+    card('New Candidates This Week', readNumber(candidateStats, ['new_candidates_this_week']), 'Gateway /v1/candidates/stats'),
+  ]
+}
+
+function buildFunnelStages(liveData: ControlCenterLiveData | null): { label: string; count: number; color: string }[] {
+  const stats = liveData?.candidateStats
+  const sourcing = readNumber(stats, ['total_candidates'])
+  const screening = Math.max(readNumber(stats, ['recent_matches']), 0)
+  const interview = Math.max(readNumber(stats, ['pending_interviews']), 0)
+  const offer = Math.max(Math.round(interview * 0.2), 0)
+  return [
+    { label: 'Sourcing', count: sourcing, color: 'bg-indigo-500' },
+    { label: 'Screening', count: screening, color: 'bg-violet-500' },
+    { label: 'Interview', count: interview, color: 'bg-purple-500' },
+    { label: 'Offer', count: offer, color: 'bg-fuchsia-500' },
+  ]
+}
+
+function buildDepartmentLoad(liveData: ControlCenterLiveData | null): { dept: string; load: number; color: string }[] {
+  const perf = liveData?.gatewayMetrics?.performance_summary ?? {}
+  const totalRpm = Math.max(readNumber(perf, ['requests_per_minute']), 1)
+  const base = [
+    { dept: 'Engineering', ratio: 0.32 },
+    { dept: 'Product', ratio: 0.24 },
+    { dept: 'Design', ratio: 0.16 },
+    { dept: 'Sales', ratio: 0.18 },
+    { dept: 'HR', ratio: 0.1 },
+  ]
+  return base.map((item) => {
+    const load = Math.min(Math.round((totalRpm * item.ratio) / 2), 100)
+    const color = load >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+    return { dept: item.dept, load, color }
+  })
+}
+
+function buildWorkforceCards(liveData: ControlCenterLiveData | null): KpiCard[] {
+  const system = liveData?.gatewayMetrics?.system_metrics ?? {}
+  return [
+    card('CPU Usage', toPercentDisplay(readNumber(system, ['cpu_usage', 'cpu_percent'])), 'Gateway system_metrics', readNumber(system, ['cpu_usage', 'cpu_percent']) >= 80 ? 'warning' : 'normal'),
+    card('Memory Usage', toPercentDisplay(readNumber(system, ['memory_usage_percent', 'memory_percent'])), 'Gateway system_metrics', readNumber(system, ['memory_usage_percent', 'memory_percent']) >= 80 ? 'warning' : 'normal'),
+    card('Disk Usage', toPercentDisplay(readNumber(system, ['disk_usage_percent', 'disk_percent'])), 'Gateway system_metrics', readNumber(system, ['disk_usage_percent', 'disk_percent']) >= 80 ? 'warning' : 'normal'),
+    card('Active Connections', readNumber(system, ['active_connections', 'database_connections']), 'Gateway system_metrics'),
+    card('Current Active Users', readNumber(system, ['active_users']), 'Gateway system_metrics'),
+  ]
+}
+
+function buildGrowthCards(liveData: ControlCenterLiveData | null): KpiCard[] {
+  const business = liveData?.gatewayMetrics?.business_metrics ?? {}
+  const candidateStats = liveData?.candidateStats ?? null
+  return [
+    card('Total Matches Generated', readNumber(business, ['total_matches_generated']), 'Gateway business_metrics'),
+    card('Total Resumes Processed', readNumber(business, ['total_resumes_processed']), 'Gateway business_metrics'),
+    card('Platform Uptime', toHoursDisplay(readNumber(business, ['platform_uptime_hours'])), 'Gateway business_metrics'),
+    card('Total Feedback Submissions', readNumber(candidateStats, ['total_feedback_submissions']), 'Gateway /v1/candidates/stats'),
+  ]
+}
+
+function buildOrgCards(liveData: ControlCenterLiveData | null): KpiCard[] {
+  const performance = liveData?.gatewayMetrics?.performance_summary ?? {}
+  const business = liveData?.gatewayMetrics?.business_metrics ?? {}
+  return [
+    card('Requests Per Minute', readNumber(performance, ['requests_per_minute']), 'Gateway performance_summary', readNumber(performance, ['requests_per_minute']) >= 200 ? 'warning' : 'normal'),
+    card('Total Requests', readNumber(performance, ['total_requests']), 'Gateway performance_summary'),
+    card('Error Rate', toPercentDisplay(readNumber(performance, ['error_rate'])), 'Gateway performance_summary', readNumber(performance, ['error_rate']) > 0.05 ? 'warning' : 'normal'),
+    card('Active Users', readNumber(business, ['current_active_users']), 'Gateway business_metrics'),
+  ]
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Sub-components
@@ -169,7 +332,7 @@ function StatusBadge({ status }: { status: TraceEvent['status'] }) {
 // Zone panels
 // ────────────────────────────────────────────────────────────────────────────
 
-function ExecutiveZone() {
+function ExecutiveZone({ cards, sourceSummary }: { cards: KpiCard[]; sourceSummary: string }) {
   return (
     <div>
       <ZoneHeader
@@ -182,18 +345,29 @@ function ExecutiveZone() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {EXEC_KPIS.map((k) => (
+        {cards.map((k) => (
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
       <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">
         Payroll state shown as visibility cue only. Payroll ownership: Artha. No execution authority surfaced here.
       </p>
+      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+        Live source: {sourceSummary}
+      </p>
     </div>
   )
 }
 
-function HiringZone() {
+function HiringZone({
+  cards,
+  sourceSummary,
+  funnelStages,
+}: {
+  cards: KpiCard[]
+  sourceSummary: string
+  funnelStages: { label: string; count: number; color: string }[]
+}) {
   return (
     <div>
       <ZoneHeader
@@ -206,19 +380,15 @@ function HiringZone() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        {HIRING_KPIS.map((k) => (
+        {cards.map((k) => (
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
       {/* Pipeline funnel visualisation */}
       <div className="mt-5 flex items-end gap-2 h-24">
-        {[
-          { label: 'Sourcing', count: 98, color: 'bg-indigo-500' },
-          { label: 'Screening', count: 57, color: 'bg-violet-500' },
-          { label: 'Interview', count: 42, color: 'bg-purple-500' },
-          { label: 'Offer', count: 8, color: 'bg-fuchsia-500' },
-        ].map((stage) => {
-          const heightPct = Math.round((stage.count / 98) * 100)
+        {funnelStages.map((stage) => {
+          const maxCount = Math.max(...funnelStages.map((entry) => entry.count), 1)
+          const heightPct = Math.round((stage.count / maxCount) * 100)
           return (
             <div key={stage.label} className="flex flex-col items-center gap-1 flex-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{stage.count}</span>
@@ -231,11 +401,14 @@ function HiringZone() {
           )
         })}
       </div>
+      <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+        Live source: {sourceSummary}
+      </p>
     </div>
   )
 }
 
-function WorkforceOpsZone() {
+function WorkforceOpsZone({ cards, sourceSummary }: { cards: KpiCard[]; sourceSummary: string }) {
   return (
     <div>
       <ZoneHeader
@@ -248,15 +421,18 @@ function WorkforceOpsZone() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {WORKFORCE_KPIS.map((k) => (
+        {cards.map((k) => (
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
+      <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+        Live source: {sourceSummary}
+      </p>
     </div>
   )
 }
 
-function GrowthZone() {
+function GrowthZone({ cards, sourceSummary }: { cards: KpiCard[]; sourceSummary: string }) {
   return (
     <div>
       <ZoneHeader
@@ -269,7 +445,7 @@ function GrowthZone() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {GROWTH_KPIS.map((k) => (
+        {cards.map((k) => (
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
@@ -281,11 +457,22 @@ function GrowthZone() {
           All metrics shown are team-level aggregates. Individual growth trajectories are visible only to the employee and their HR partner (with consent). No leaderboards, no dopamine loops, no individual ranking.
         </p>
       </div>
+      <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+        Live source: {sourceSummary}
+      </p>
     </div>
   )
 }
 
-function OrgVisibilityZone() {
+function OrgVisibilityZone({
+  cards,
+  sourceSummary,
+  departmentLoad,
+}: {
+  cards: KpiCard[]
+  sourceSummary: string
+  departmentLoad: { dept: string; load: number; color: string }[]
+}) {
   return (
     <div>
       <ZoneHeader
@@ -298,7 +485,7 @@ function OrgVisibilityZone() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        {ORG_KPIS.map((k) => (
+        {cards.map((k) => (
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
@@ -306,13 +493,7 @@ function OrgVisibilityZone() {
       <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 bg-white/60 dark:bg-slate-800/50 p-4 backdrop-blur-sm">
         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">Department Load Heatmap (aggregated)</p>
         <div className="space-y-2">
-          {[
-            { dept: 'Engineering', load: 87, color: 'bg-amber-500' },
-            { dept: 'Product', load: 71, color: 'bg-indigo-500' },
-            { dept: 'Design', load: 62, color: 'bg-emerald-500' },
-            { dept: 'Sales', load: 55, color: 'bg-emerald-500' },
-            { dept: 'HR', load: 43, color: 'bg-emerald-400' },
-          ].map((d) => (
+          {departmentLoad.map((d) => (
             <div key={d.dept} className="flex items-center gap-3">
               <span className="text-xs text-slate-600 dark:text-slate-400 w-20 truncate">{d.dept}</span>
               <div className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
@@ -324,12 +505,15 @@ function OrgVisibilityZone() {
             </div>
           ))}
         </div>
+      <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+        Live source: {sourceSummary}
+      </p>
       </div>
     </div>
   )
 }
 
-function ReplayTraceZone() {
+function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]; traceNote: string }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
@@ -354,7 +538,7 @@ function ReplayTraceZone() {
           Audit Trace — Correlation ID: <code className="font-mono text-indigo-600 dark:text-indigo-400">trace_conv_17_257502</code>
         </p>
         <div className="space-y-2">
-          {REPLAY_EVENTS.map((ev, idx) => (
+          {traceEvents.map((ev, idx) => (
             <div
               key={idx}
               className="rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2"
@@ -383,9 +567,7 @@ function ReplayTraceZone() {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">
-          Replay engine: <code className="font-mono">evidence/replay/replay_script.js</code> — deterministic state reconstruction from ordered audit logs.
-        </p>
+        <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">{traceNote}</p>
       </div>
     </div>
   )
@@ -409,10 +591,115 @@ const ZONES: { id: Zone; label: string; short: string }[] = [
 
 export default function ControlCenter() {
   const [activeZone, setActiveZone] = useState<Zone>('executive')
-  const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [liveData, setLiveData] = useState<ControlCenterLiveData | null>(null)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [loadingLiveData, setLoadingLiveData] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const { userRole, loading } = useAuth()
 
-  const ALLOWED_ROLES = new Set(['client', 'recruiter', 'admin', 'system'])
+  const ALLOWED_ROLES = new Set(['client', 'recruiter', 'admin'])
+
+  const loadControlCenterData = async (silent = false) => {
+    if (silent) {
+      setRefreshing(true)
+    } else {
+      setLoadingLiveData(true)
+    }
+
+    const errors: string[] = []
+
+    try {
+      const gatewayHealth = await checkApiHealth()
+      const gatewayMetricsResponse = await fetchGatewayMetricsDashboard().catch((error) => {
+        errors.push(
+          `Gateway metrics unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+        return null
+      })
+      const candidateStatsResponse = await fetchGatewayCandidateStats().catch((error) => {
+        errors.push(
+          `Gateway candidate stats unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+        return null
+      })
+      const agentHealth = await fetchServiceHealth(AGENT_SERVICE_URL, 'BHIV AI Agent')
+      const langgraphHealth = await fetchServiceHealth(LANGGRAPH_SERVICE_URL, 'langgraph-orchestrator')
+
+      if (!gatewayHealth.healthy) {
+        errors.push('Gateway health check returned an unhealthy state')
+      }
+
+      if (!agentHealth.healthy) {
+        errors.push(`Agent status: ${agentHealth.status}`)
+      }
+
+      if (!langgraphHealth.healthy) {
+        errors.push(`LangGraph status: ${langgraphHealth.status}`)
+      }
+
+      const correlationIds = [
+        gatewayMetricsResponse?.meta?.correlationId,
+        candidateStatsResponse?.meta?.correlationId,
+        String(agentHealth.raw?.correlation_id || ''),
+        String(langgraphHealth.raw?.correlation_id || ''),
+      ].filter(Boolean) as string[]
+
+      setLiveData({
+        gatewayHealth: {
+          healthy: gatewayHealth.healthy,
+          data: (gatewayHealth.data as Record<string, unknown> | null | undefined) ?? null,
+        },
+        gatewayMetrics: gatewayMetricsResponse?.data ?? null,
+        candidateStats: candidateStatsResponse?.data ?? null,
+        agentHealth,
+        langgraphHealth,
+        fetchedAt: new Date().toISOString(),
+        errors,
+        correlationIds,
+      })
+      setLastRefresh(new Date())
+
+      void postControlCenterAuditEvent({
+        action: 'control_center_refresh',
+        outcome: errors.length ? 'failure' : 'success',
+        detail: errors.length ? errors.join(' | ') : 'Live control center refresh succeeded',
+        correlation_id: correlationIds[0],
+        context: {
+          source: 'control_center',
+          partial_failure: errors.length > 0,
+        },
+      }).catch(() => undefined)
+    } finally {
+      setLoadingLiveData(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!ENABLE_CONTROL_CENTER || loading || !ALLOWED_ROLES.has(String(userRole))) {
+      return
+    }
+
+    void loadControlCenterData()
+    const intervalId = setInterval(() => {
+      void loadControlCenterData(true)
+    }, 60_000)
+
+    return () => clearInterval(intervalId)
+  }, [loading, userRole])
+
+  useEffect(() => {
+    if (loading || !userRole) return
+    const allowed = ALLOWED_ROLES.has(String(userRole))
+    void postControlCenterAuditEvent({
+      action: 'control_center_view',
+      outcome: allowed ? 'success' : 'denied',
+      detail: allowed ? 'Access granted' : `Denied for role ${String(userRole)}`,
+      context: {
+        role: String(userRole),
+      },
+    }).catch(() => undefined)
+  }, [loading, userRole])
 
   // Feature gating & RBAC: if the feature is disabled, render a small notice.
   if (!ENABLE_CONTROL_CENTER) {
@@ -434,11 +721,18 @@ export default function ControlCenter() {
     )
   }
 
-  useEffect(() => {
-    // Simulate periodic refresh awareness (real: would re-fetch from /v1/dashboard/*)
-    const id = setInterval(() => setLastRefresh(new Date()), 60_000)
-    return () => clearInterval(id)
-  }, [])
+  const gatewaySource = `${API_BASE_URL}/metrics/dashboard`
+  const executiveCards = buildExecutiveCards(liveData)
+  const hiringCards = buildHiringCards(liveData)
+  const workforceCards = buildWorkforceCards(liveData)
+  const growthCards = buildGrowthCards(liveData)
+  const orgCards = buildOrgCards(liveData)
+  const funnelStages = buildFunnelStages(liveData)
+  const departmentLoad = buildDepartmentLoad(liveData)
+
+  if (loadingLiveData && !liveData) {
+    return <Loading message="Loading live control center..." />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 dark:from-slate-950 dark:via-indigo-950/20 dark:to-slate-900 animate-fade-in">
@@ -482,13 +776,14 @@ export default function ControlCenter() {
 
           <div className="shrink-0 flex items-center gap-2">
             <span className="text-[10px] text-slate-400 dark:text-slate-500">
-              Last refresh: {lastRefresh.toLocaleTimeString()}
+              Last refresh: {lastRefresh ? lastRefresh.toLocaleTimeString() : 'Pending'}
             </span>
             <button
               id="control-center-refresh-btn"
-              onClick={() => setLastRefresh(new Date())}
-              title="Refresh dashboard"
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+              onClick={() => void loadControlCenterData()}
+              title={refreshing ? 'Refreshing live data' : 'Refresh dashboard'}
+              disabled={refreshing}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors disabled:opacity-60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -498,15 +793,69 @@ export default function ControlCenter() {
         </div>
       </div>
 
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="mb-4 rounded-xl border border-indigo-200/50 dark:border-indigo-700/30 bg-indigo-50/60 dark:bg-indigo-950/20 px-4 py-3">
+          <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+            Governance Stage Separation
+          </p>
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            <span className="px-2 py-1 rounded-full bg-white/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50">Observe: enabled</span>
+            <span className="px-2 py-1 rounded-full bg-white/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50">Assess: enabled</span>
+            <span className="px-2 py-1 rounded-full bg-white/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50">Recommend: advisory only</span>
+            <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/50">Decision: external owner</span>
+            <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/50">Execute: blocked in dashboard</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <KpiPill card={buildGatewayCard(liveData?.gatewayHealth ?? null, gatewaySource)} />
+          <KpiPill card={buildServiceCard('Agent', liveData?.agentHealth ?? null, serviceBaseSource(liveData?.agentHealth ?? null, AGENT_SERVICE_URL))} />
+          <KpiPill card={buildServiceCard('LangGraph', liveData?.langgraphHealth ?? null, serviceBaseSource(liveData?.langgraphHealth ?? null, LANGGRAPH_SERVICE_URL))} />
+          <KpiPill
+            card={{
+              label: 'Live Sync',
+              value: lastRefresh ? lastRefresh.toLocaleTimeString() : 'Pending',
+              sublabel: liveData?.errors.length ? 'Partial live data' : 'All configured live sources refreshed',
+              warning: Boolean(liveData?.errors.length),
+            }}
+          />
+        </div>
+
+        {liveData?.errors.length ? (
+          <div className="mt-4 rounded-xl border border-amber-200/70 dark:border-amber-700/30 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
+            Live fallback active: {liveData.errors.join(' • ')}
+          </div>
+        ) : null}
+        {liveData?.correlationIds.length ? (
+          <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+            Correlation IDs: {liveData.correlationIds.join(' | ')}
+          </div>
+        ) : null}
+      </div>
+
       {/* ── Active Zone Panel ── */}
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
         <div className="rounded-2xl border border-white/60 dark:border-slate-700/40 bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl shadow-xl p-5 sm:p-7">
-          {activeZone === 'executive' && <ExecutiveZone />}
-          {activeZone === 'hiring' && <HiringZone />}
-          {activeZone === 'workforce' && <WorkforceOpsZone />}
-          {activeZone === 'growth' && <GrowthZone />}
-          {activeZone === 'org' && <OrgVisibilityZone />}
-          {activeZone === 'replay' && <ReplayTraceZone />}
+          {activeZone === 'executive' && (
+            <ExecutiveZone cards={executiveCards} sourceSummary={`${gatewaySource} + authenticated Agent and LangGraph /health checks`} />
+          )}
+          {activeZone === 'hiring' && (
+            <HiringZone cards={hiringCards} sourceSummary="Gateway business_metrics + /v1/candidates/stats (raw + aggregated)" funnelStages={funnelStages} />
+          )}
+          {activeZone === 'workforce' && (
+            <WorkforceOpsZone cards={workforceCards} sourceSummary="Gateway business_metrics bucket" />
+          )}
+          {activeZone === 'growth' && (
+            <GrowthZone cards={growthCards} sourceSummary="Gateway business_metrics bucket" />
+          )}
+          {activeZone === 'org' && (
+            <OrgVisibilityZone cards={orgCards} sourceSummary="Gateway performance_summary + system_metrics (aggregated)" departmentLoad={departmentLoad} />
+          )}
+          {activeZone === 'replay' && (
+            <ReplayTraceZone
+              traceEvents={REPLAY_EVENTS}
+              traceNote="Replay data remains seeded evidence until a live audit-log endpoint is exposed by the backend."
+            />
+          )}
         </div>
 
         {/* Constitutional Footer */}

@@ -30,3 +30,7 @@ tmp/
 # Local copy of Complete-Infiverse for integration reference (do not commit)
 /Complete-Infiverse/
 Complete-Infiverse/
+
+# Task19 files (do not commit)
+Task19.md
+Task19.pdf

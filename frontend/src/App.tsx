@@ -73,7 +73,14 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
-              <Route path="/control" element={<ControlCenter />} />
+              <Route
+                path="/control"
+                element={
+                  <ProtectedRoute allowedRoles={['client', 'recruiter', 'admin']}>
+                    <ControlCenter />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Candidate Routes - Protected for 'candidate' role only */}
               <Route path="/candidate" element={
