@@ -1,6 +1,6 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-06-02 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Active Convergence Sprint · Task19 Constitutional Hardening
+**Last Updated**: 2026-06-03 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Task19 constitutional hardening + live control center on Render/Vercel
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -261,20 +261,30 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Tenant Isolation | PASSED (Client B blocked from Client A) |
 | Replay Reconstruction | SUCCESS |
 
-### Task19 Runtime Hardening (2026-06-02)
+### Task19 Runtime Hardening (2026-06-03)
 - **Policy scope module**: `backend/services/gateway/app/control_center_governance.py`
 - **Live APIs**: `GET /v1/control-center/audit-events`, `audit-replay`, `dashboard-aggregates`; scoped stats/metrics
-- **Control center UI**: Live replay + backend funnel/dept aggregates (`frontend/src/pages/control/ControlCenter.tsx`)
-- **Acceptance**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md` (6/6 unit tests passing)
+- **Control center UI**: `frontend/src/pages/control/ControlCenter.tsx` — parallel `Promise.all` load, 30s silent background refresh, policy scope strip, live replay + funnel/dept aggregates (no seeded replay default)
+- **Acceptance**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`; `test_task19_control_center_governance.py` + `backend/tests/e2e/control_center/` (localhost 8 pass / 2 skip without JWT)
+- **Contract / checklist**: `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md`, `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md`
+
+### Production deployment (Render + Vercel)
+| Layer | Status (2026-06-03) | Notes |
+|-------|---------------------|-------|
+| Backend (Render) | Health verified | Gateway, agent, langgraph `/health` → 200 |
+| Frontend (Vercel) | Deployed | See `frontend/VERCEL_DEPLOYMENT.md` |
+| Control center flag | `VITE_ENABLE_CONTROL_CENTER=true` | Roles: client, recruiter, admin |
+| Service URLs | Required env vars | `VITE_API_BASE_URL`, `VITE_AGENT_SERVICE_URL`, **`VITE_LANGGRAPH_SERVICE_URL`** (not `VITE_LANGGRAPH_URL`), `VITE_API_KEY` |
 
 ### Known Gaps
 | Gap | Risk | Mitigation |
 |-----|------|------------|
 | Internal HR user authentication not implemented | Medium | API keys used as workaround |
 | Tenant isolation outside control-center endpoints | Medium | Extend `control_center_governance` patterns platform-wide |
+| Ministry→office hierarchy / policy engine | Medium | Documented in Task19 architecture docs; not runtime-enforced platform-wide |
 | RL model training is mocked | Low | Documented accepted limitation; retrain endpoint API-key gated |
 | Tenant-specific encryption missing | Medium | Shared keys — security consideration |
-| Staging/prod canary validation | Medium | `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F |
+| Production UI smoke + prod JWT matrix | Medium | `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F open items |
 
 ### Task19 Document Status
 | Document | Path | Status |
@@ -331,7 +341,11 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Task18 | Control Center Blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` |
 | Task18 | Human Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` |
 | General | Review Packet | `REVIEW_PACKET.md` |
-| General | Contribution Log | `CONTRIBUTION_LOG` |
+| Task19 | Requirement evidence matrix | `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md` |
+| Task19 | Acceptance test pack | `docs/TASK19_ACCEPTANCE_TEST_PACK.md` |
+| Task19 | Control Center E2E framework | `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md` |
+| Task19 | Central control checklist | `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` |
+| General | Contribution Log | `CONTRIBUTION_LOG.md` |
 
 ### Before Writing Code
 1. Read this entire document

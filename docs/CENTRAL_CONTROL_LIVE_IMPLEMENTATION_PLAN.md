@@ -1,9 +1,11 @@
 # Central Control Live Implementation Plan
 
+> **Archive note (2026-06-03):** Implementation is **complete** per [CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md](CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md). This document is retained as historical scope and design rationale. For current API surfaces and verification, use [CENTRAL_CONTROL_API_CONTRACT_FREEZE.md](CENTRAL_CONTROL_API_CONTRACT_FREEZE.md) and [CONTROL_CENTER_E2E_TEST_FRAMEWORK.md](CONTROL_CENTER_E2E_TEST_FRAMEWORK.md).
+
 **Owner**: Rishabh Yadav
 **Support Builder**: Shashank
 **Scope**: Task19 live central control wiring
-**Status**: Draft implementation plan + execution checklist
+**Status**: Complete — see execution checklist (production health verified; prod UI smoke open)
 
 ## 1. Goal
 
@@ -35,7 +37,7 @@ The frontend must not bypass the gateway for business data when a gateway route 
 - Map gateway performance fields to fixed cards such as Avg Response Time, P95 Response Time, Error Rate, Total Requests, and Requests Per Minute.
 - Map gateway candidate-stats fields to fixed cards such as Total Candidates, Active Jobs, Pending Interviews, Recent Matches, Applications Today, and New Candidates This Week.
 - Map system metrics to fixed cards such as CPU Usage, Memory Usage, Disk Usage, Active Connections, and Current Active Users.
-- Keep the replay zone separate from live metrics and label it as seeded evidence until audit data is available.
+- Replay zone uses live `GET /v1/control-center/audit-replay` (Mongo `audit_logs`, scoped); advisory-only semantics retained.
 
 ### Phase B - Protection and gating
 
@@ -50,11 +52,10 @@ The frontend must not bypass the gateway for business data when a gateway route 
 - Surface last refresh time and partial-failure state.
 - Keep replay and audit material visibly separated from live service metrics.
 
-### Phase D - Audit and trace readiness
+### Phase D - Audit and trace readiness (complete)
 
-- Preserve the trace/replay panel as seeded evidence until a live audit endpoint is confirmed.
-- Add an explicit backlog item for backend audit-trace integration.
-- Do not invent trace data that the backend does not expose.
+- Live audit write/read/replay: `POST/GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay`.
+- Frontend emits `control_center_view` / `control_center_refresh`; replay panel reads scoped audit logs only.
 
 ## 4. Technical Requirements
 
@@ -119,49 +120,50 @@ The frontend must not bypass the gateway for business data when a gateway route 
 
 ### API protection
 
-- [ ] Verify the control center is accessible only after auth loads.
-- [ ] Verify bearer tokens are attached to gateway requests.
-- [ ] Verify direct service calls are limited to health checks.
-- [ ] Verify 401 and 403 conditions fail closed.
+- [x] Verify the control center is accessible only after auth loads.
+- [x] Verify bearer tokens are attached to gateway requests.
+- [x] Verify direct service calls are limited to health checks.
+- [x] Verify 401 and 403 conditions fail closed (E2E + manual).
 
 ### Live data integration
 
-- [ ] Replace static KPI arrays with gateway metrics data.
-- [ ] Add live Agent status cards.
-- [ ] Add live LangGraph status cards.
-- [ ] Show last refresh time.
-- [ ] Surface partial-failure fallback states.
+- [x] Replace static KPI arrays with gateway metrics data.
+- [x] Add live Agent status cards.
+- [x] Add live LangGraph status cards.
+- [x] Show last refresh time; 30s silent background refresh.
+- [x] Surface partial-failure fallback states.
 - [x] Replace the generic bucket extraction with explicit named cards for performance, hiring, workforce, growth, and org visibility.
 
 ### Governance compliance
 
-- [ ] Keep observation, assessment, recommendation, decision, and execution separated.
-- [ ] Show source labels for every live metric bucket.
-- [ ] Keep the replay panel clearly bounded as evidence, not authority.
-- [ ] Avoid any control action that mutates backend state.
+- [x] Keep observation, assessment, recommendation, decision, and execution separated.
+- [x] Show source labels for every live metric bucket.
+- [x] Keep the replay panel clearly bounded as evidence, not authority.
+- [x] Avoid any control action that mutates backend state.
 
 ### Audit and traceability
 
-- [ ] Preserve correlation-aware labels where the backend already provides them.
-- [ ] Record refresh and fallback states visibly.
-- [ ] Add a follow-up task for a real audit-log endpoint if one is introduced.
+- [x] Preserve correlation-aware labels where the backend already provides them.
+- [x] Record refresh and fallback states visibly.
+- [x] Live audit-log endpoints integrated (see contract freeze).
 
 ## 9. Testing Plan
 
-- [ ] Typecheck the frontend after the API helper changes.
-- [ ] Validate the control center renders with a valid token.
-- [ ] Validate the control center shows fallback states when Agent or LangGraph are unavailable.
-- [ ] Validate unauthorized users are blocked.
-- [ ] Validate the gateway metrics endpoint populates live values.
-- [ ] Validate the dashboard refresh button re-fetches live data.
+- [x] Typecheck the frontend after the API helper changes.
+- [x] Validate the control center renders with a valid token.
+- [x] Validate the control center shows fallback states when Agent or LangGraph are unavailable.
+- [x] Validate unauthorized users are blocked (governance pytest + E2E when JWT set).
+- [x] Validate the gateway metrics endpoint populates live values.
+- [x] Validate the dashboard refresh re-fetches live data (manual + E2E pipeline).
+- [ ] Production UI smoke on Vercel (checklist §F).
 
 ## 10. Deployment Steps
 
-1. Add the new environment variable for LangGraph service URL in local and deployed frontend environments.
-2. Deploy the API helper update first so the control center can call the live endpoints safely.
-3. Deploy the control center wiring behind the existing feature flag.
-4. Verify the dashboard in a staging-like environment before widening access.
-5. Confirm logs show only the expected read-only traffic.
+1. [x] Set `VITE_LANGGRAPH_SERVICE_URL` (and agent/gateway URLs) in local and Vercel — **not** `VITE_LANGGRAPH_URL`.
+2. [x] Deploy API helpers and control center behind `VITE_ENABLE_CONTROL_CENTER=true`.
+3. [x] Render backend health verified (2026-06-03).
+4. [ ] Complete production UI smoke and prod JWT matrix (checklist §F).
+5. [x] Localhost/E2E confirms read-only traffic patterns on control-center routes.
 
 ## 11. Exit Criteria
 
@@ -170,11 +172,12 @@ The central control implementation is complete when:
 - The control center reads live data from the backend instead of static mock arrays.
 - Gateway, Agent, and LangGraph are represented with live status.
 - The dashboard remains read-only and role-gated.
-- Live and seeded evidence are clearly separated.
+- Live metrics and live audit replay are clearly separated (replay is advisory, from `audit_logs`).
 - The control center can be refreshed without reintroducing mock data.
 
 ## 12. Known Follow-Up
 
-- A real audit-trace endpoint is still required if the replay panel is to become live.
-- If gateway metrics response shapes change, the frontend mapping layer must be kept tolerant.
+- Production UI smoke and prod JWT role matrix on Render gateway.
+- Extend policy-scope patterns beyond control-center routes platform-wide.
+- If gateway metrics response shapes change, keep the frontend mapping layer tolerant.
 - Any new privileged action surface must be reviewed against the ownership matrix before release.

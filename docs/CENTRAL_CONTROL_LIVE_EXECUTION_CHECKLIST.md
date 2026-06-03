@@ -1,7 +1,7 @@
 # Central Control Live Execution Checklist
 
-Status: implementation completed, rollout pending environment validation
-Date: 2026-06-02
+Status: live on Render + Vercel; automated production API smoke complete (2026-06-03); manual UI login sign-off pending
+Date: 2026-06-03
 
 ## A) Technical Requirements
 
@@ -50,8 +50,12 @@ Date: 2026-06-02
 - [x] Localhost live wiring (2026-06-03): all Control Center UI paths return 200 with platform API key; health on `:8000`, `:9000`, `:9001`.
 - [x] E2E runner: `cd backend && set API_KEY_SECRET=... && python tests/e2e/control_center/run_control_center_e2e.py` — 8 passed, 2 skipped (JWT secrets unset).
 - [x] Offline + governance unit tests: `test_control_center_offline.py`, `test_task19_control_center_governance.py` — 10 passed.
-- [ ] Staging integration test with real service URLs and real role tokens (JWT role matrix).
-- [ ] Production canary rollout validation with monitored logs.
+- [x] Render production health (2026-06-03): gateway, agent, langgraph `/health` → 200.
+- [x] Production API smoke (2026-06-03): `python tests/e2e/control_center/run_production_smoke.py` — 15/15 with explicit `GATEWAY_URL` (health, metrics, stats, aggregates, audit read/write, 401 unauthenticated).
+- [x] Vercel deploy fetch: `infiverse-hr.vercel.app` + `sampada.blackholeinfiverse.com` → 200; JS bundles contain Render gateway/agent hosts.
+- [ ] Production UI smoke (manual): log in on Vercel → `/control` → confirm service cards show Render URLs (automated bundle check passed).
+- [ ] JWT role matrix on production (manual): use real client/recruiter/admin accounts — archived `TECH001`/`demo123`).
+- [x] Production audit write canary: `POST /v1/control-center/audit-events` with `production_smoke_test` → 200.
 
 ### Live wiring verification (2026-06-03)
 
@@ -61,12 +65,12 @@ Frontend env names (must match `frontend/src/services/api.ts` / `vite-env.d.ts`)
 
 - `VITE_API_BASE_URL`, `VITE_AGENT_SERVICE_URL`, `VITE_LANGGRAPH_SERVICE_URL`, `VITE_ENABLE_CONTROL_CENTER=true`
 
-## G) Rollout Steps (Pending)
+## G) Rollout Steps
 
-1. Configure environment URLs and auth secrets in staging.
-2. Start Gateway/Agent/LangGraph and verify health endpoints.
-3. Validate role matrix: candidate denied, recruiter/client/admin allowed.
-4. Validate `X-Correlation-ID` in metrics and stats responses.
-5. Validate `audit_logs` writes for access/refresh events.
-6. Run scoped canary before broad rollout.
+- [x] Production backend on Render — health endpoints verified (2026-06-03).
+- [x] Production frontend on Vercel — env vars documented (`VITE_LANGGRAPH_SERVICE_URL`, not `VITE_LANGGRAPH_URL`).
+- [x] Localhost role matrix + E2E (API key path; JWT tests when secrets set).
+- [x] Production API + Vercel bundle smoke (script + report JSON).
+- [ ] Production UI login walkthrough (manual sign-off).
+- [ ] Production JWT matrix with real tenant accounts.
 

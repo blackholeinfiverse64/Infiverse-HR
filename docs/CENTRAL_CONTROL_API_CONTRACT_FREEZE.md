@@ -1,8 +1,9 @@
 # Central Control API Contract Freeze
 
-Status: active
+Status: active (verified localhost 2026-06-03; Render `/health` 200)
 Owner: Rishabh Yadav
 Support Builder: Shashank
+**Updated:** 2026-06-03
 
 ## Scope
 
@@ -72,6 +73,10 @@ Verified on localhost: Gateway `:8000`, Agent `:9000`, LangGraph `:9001` up; E2E
 | `fetchServiceHealth` | GET | LangGraph `/health` (`VITE_LANGGRAPH_SERVICE_URL`, default `:9001`) | Y | Direct axios; optional Bearer |
 
 UI gate: `VITE_ENABLE_CONTROL_CENTER=true` and roles `client` \| `recruiter` \| `admin` (`ControlCenter.tsx`). Gateway base: `VITE_API_BASE_URL` (default `http://localhost:8000`).
+
+**Production (Vercel):** `VITE_API_BASE_URL`, `VITE_AGENT_SERVICE_URL`, `VITE_LANGGRAPH_SERVICE_URL` (not `VITE_LANGGRAPH_URL`), `VITE_ENABLE_CONTROL_CENTER=true`, `VITE_API_KEY`. See `frontend/VERCEL_DEPLOYMENT.md`.
+
+**UI behavior:** parallel fetch on load/refresh; 30s silent background refresh (`CONTROL_CENTER_REFRESH_MS`).
 
 Not called from UI (E2E only): `GET /v1/control-center/audit-events`.
 

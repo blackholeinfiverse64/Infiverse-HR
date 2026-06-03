@@ -11,10 +11,25 @@ If this is your first day on the project, follow this exact sequence:
 1. **Read** [QUICK_START.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/QUICK_START.md) to set up your local database and run the system.
 2. **Review** the [REVIEW_PACKET.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/REVIEW_PACKET.md) to see the verified proofs, traces, and isolation verifications for the active sprint.
 3. **Examine** documentation folders:
-   - [SHASHANK_REENTRY_ALIGNMENT.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SHASHANK_REENTRY_ALIGNMENT.md) — System boundaries and constitutional separation model.
-   - [EXECUTION_UNDERSTANDING_SUMMARY.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/EXECUTION_UNDERSTANDING_SUMMARY.md) — Active convergence sprint goals and effort layout.
-   - [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md) — Developer Handover and current state documentation.
-   - [ALIGNMENT_SYNC_NOTES.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/ALIGNMENT_SYNC_NOTES.md) — Core sync decisions with System Owner Rishabh Yadav.
+   - [SHASHANK_REENTRY_ALIGNMENT.md](docs/SHASHANK_REENTRY_ALIGNMENT.md) — System boundaries and constitutional separation model.
+   - [EXECUTION_UNDERSTANDING_SUMMARY.md](docs/EXECUTION_UNDERSTANDING_SUMMARY.md) — Active convergence sprint goals and effort layout.
+   - [SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md) — Developer Handover and current state documentation.
+   - [ALIGNMENT_SYNC_NOTES.md](docs/ALIGNMENT_SYNC_NOTES.md) — Core sync decisions with System Owner Rishabh Yadav.
+
+### Task19 (government-scale governance + live control center)
+
+| Document | Purpose |
+|----------|---------|
+| [Task19.md](Task19.md) | Phase requirements and implementation status |
+| [REVIEW_PACKET.md](REVIEW_PACKET.md) | Acceptance index for Rishabh review |
+| [docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md](docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md) | Requirement → evidence mapping |
+| [docs/TASK19_ACCEPTANCE_TEST_PACK.md](docs/TASK19_ACCEPTANCE_TEST_PACK.md) | pytest, E2E, and production smoke steps |
+| [docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md](docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md) | `backend/tests/e2e/control_center/` runner |
+| [docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md](docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md) | Live wiring + rollout verification |
+| [docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md](docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md) | Frozen API surfaces for UI |
+| [frontend/VERCEL_DEPLOYMENT.md](frontend/VERCEL_DEPLOYMENT.md) | Vercel env vars (`VITE_LANGGRAPH_SERVICE_URL`) |
+
+Five governance boundary docs: `docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md`, `SAMPADA_POLICY_GOVERNANCE_MODEL.md`, `SAMPADA_FEDERATED_WORKFORCE_MODEL.md`, `SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md`, `SAMPADA_HUMAN_SAFETY_MODEL.md`.
 
 ---
 

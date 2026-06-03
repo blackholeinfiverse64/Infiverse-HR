@@ -2,6 +2,8 @@
 
 Executable checks for runtime governance hardening. Run from repository root.
 
+**Last verified:** 2026-06-03 (localhost E2E: 8 passed, 2 skipped without JWT env; Render `/health` 200)
+
 ## 0. Control Center E2E suite (localhost pipeline)
 
 Full data-flow validation (baseline → pipeline → final → compare) with JSON report:
@@ -18,7 +20,7 @@ Offline helpers only:
 
 ```bash
 cd backend
-python -m pytest tests/e2e/control_center/test_control_center_offline.py -v
+python -m pytest tests/e2e/control_center/test_control_center_offline.py tests/gateway/test_task19_control_center_governance.py -v
 ```
 
 ## 1. Unit tests (policy scope + audit mapping)
@@ -36,9 +38,9 @@ python -m pytest tests/gateway/test_task19_control_center_governance.py -v
 python -m py_compile services/gateway/app/main.py services/gateway/app/control_center_governance.py
 ```
 
-## 3. Authz — control center endpoints (manual, staging)
+## 3. Authz — control center endpoints (manual, staging or production)
 
-Use a JWT for `client`, `recruiter`, or `admin` and `VITE_API_BASE_URL` / Gateway URL.
+Use a JWT for `client`, `recruiter`, or `admin` and gateway URL (`VITE_API_BASE_URL` / Render gateway).
 
 | Check | Command | Expected |
 |-------|---------|----------|
@@ -50,15 +52,16 @@ Use a JWT for `client`, `recruiter`, or `admin` and `VITE_API_BASE_URL` / Gatewa
 
 ## 4. Scope isolation
 
-1. Log in as **client A**, open Command Center, note scoped stats.
+1. Log in as **client A**, open Command Center (`/control`), note scoped stats and **Data scope** label.
 2. Log in as **client B**, confirm different `policy_scope.scope_label` and stats (when data exists).
 3. Admin sees `scope: platform` in `policy_scope`.
 
 ## 5. Governance separation (UI)
 
-1. Set `VITE_ENABLE_CONTROL_CENTER=true` on frontend.
+1. Set `VITE_ENABLE_CONTROL_CENTER=true` on frontend (Vercel).
 2. Open `/control` as client/recruiter/admin — governance stage strip visible; no execute actions.
-3. Replay zone shows advisory note; events from `audit_logs` only.
+3. Replay zone shows advisory note; events from `audit_logs` only (not seeded defaults).
+4. Confirm **Auto-refresh every 30s** (background) after initial load.
 
 ## 6. Traceability
 
@@ -80,8 +83,40 @@ curl -X POST -H "Authorization: Bearer $API_KEY" $LANGGRAPH/rl/retrain
 cd frontend && npm run lint
 ```
 
+## 9. Production smoke (Render + Vercel)
+
+**Frontend env (Vercel)** — names must match `frontend/src/services/api.ts` / `vite-env.d.ts`:
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_API_BASE_URL` | Render gateway |
+| `VITE_AGENT_SERVICE_URL` | Render agent |
+| `VITE_LANGGRAPH_SERVICE_URL` | Render langgraph (**not** `VITE_LANGGRAPH_URL`) |
+| `VITE_ENABLE_CONTROL_CENTER` | `true` |
+| `VITE_API_KEY` | Service API key for health probes |
+
+**Checks:**
+
+1. `curl $GATEWAY/health` and agent/langgraph `/health` → 200.
+2. Log in on Vercel app → `/control` → service cards show Render URLs (not localhost).
+3. Optional: JWT role matrix on production gateway (candidate 403) — requires real prod accounts; legacy `TECH001`/`demo123` is **archived**.
+
+**Automated (from `backend/`):**
+
+```bash
+set GATEWAY_URL=https://bhiv-hr-gateway-l0xp.onrender.com
+set API_KEY_SECRET=<your-render-gateway-key>
+python tests/e2e/control_center/run_production_smoke.py
+```
+
+Report: `backend/tests/e2e/control_center/results/control_center_production_smoke_report.json`
+
+See `frontend/VERCEL_DEPLOYMENT.md` and `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F.
+
 ## Evidence artifacts
 
 - `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md`
 - `REVIEW_PACKET.md` (runtime section)
-- `CONTRIBUTION_LOG.md` (Task19 runtime closure entry)
+- `CONTRIBUTION_LOG.md` (Task19 entries)
+- `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md`
+- `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md`

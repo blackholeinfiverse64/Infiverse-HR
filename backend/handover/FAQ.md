@@ -6,6 +6,8 @@
 **Platform**: Windows + Docker + Render Cloud  
 **Status**: ✅ Production Ready
 
+> **2026-06-03 — Demo login archived:** Client ID `TECH001` / password `demo123` is **not** valid on the current production database. Use real accounts on Vercel/Render or local seed (`backend/seed_mongodb.py`). Canonical doc: `docs/DEMO_CREDENTIALS_STATUS.md`.
+
 ---
 
 ## 📋 Table of Contents
@@ -107,7 +109,7 @@ Access URLs:
   LangGraph: https://bhiv-hr-langgraph.onrender.com/docs
 
 Demo Credentials:
-  Client Portal: TECH001 / demo123
+  Client Portal: ARCHIVED — see docs/DEMO_CREDENTIALS_STATUS.md (was TECH001 / demo123)
   API Key: Check .env file or contact admin
 
 Status: ✅ All services operational 24/7
@@ -221,14 +223,19 @@ kill -9 <PID>
 
 ### Q3: What are the demo credentials?
 
-**Answer**: Demo credentials for testing and development:
+**Answer**: **Archived (2026-06-03).** The legacy client demo `TECH001` / `demo123` is **not** in the live MongoDB used by Render/Vercel. Do not use it for production or acceptance testing.
 
-#### **Client Portal Login**
+- **Production:** Owner-provisioned or registered client/recruiter/admin accounts.
+- **Local dev:** Run `backend/seed_mongodb.py` against your dev database, or set `E2E_CLIENT_ID` / `E2E_CLIENT_PASSWORD` for tests.
+- **Details:** `docs/DEMO_CREDENTIALS_STATUS.md`
+
+#### **Client Portal Login (historical reference only)**
 ```yaml
+# ARCHIVED — invalid on current production DB
 URL: https://bhiv-hr-client-portal-3iod.onrender.com
-Username: TECH001
-Password: demo123
-Access Level: Full client access
+Username: TECH001   # archived
+Password: demo123   # archived
+Access Level: Full client access (when seeded locally)
 Features: Job posting, candidate review, interview scheduling
 ```
 

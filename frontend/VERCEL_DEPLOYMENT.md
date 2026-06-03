@@ -53,7 +53,8 @@ If the build succeeds, you're ready to deploy!
    ```
    VITE_API_BASE_URL=https://bhiv-hr-gateway-l0xp.onrender.com
    VITE_AGENT_SERVICE_URL=https://bhiv-hr-agent-cato.onrender.com
-   VITE_LANGGRAPH_URL=https://bhiv-hr-langgraph-luy9.onrender.com
+   VITE_LANGGRAPH_SERVICE_URL=https://bhiv-hr-langgraph-luy9.onrender.com
+   VITE_ENABLE_CONTROL_CENTER=true
    VITE_API_KEY=prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o
    ```
 
@@ -100,8 +101,11 @@ If the build succeeds, you're ready to deploy!
    vercel env add VITE_AGENT_SERVICE_URL
    # Enter: https://bhiv-hr-agent-cato.onrender.com
    
-   vercel env add VITE_LANGGRAPH_URL
+   vercel env add VITE_LANGGRAPH_SERVICE_URL
    # Enter: https://bhiv-hr-langgraph-luy9.onrender.com
+
+   vercel env add VITE_ENABLE_CONTROL_CENTER
+   # Enter: true
    
    vercel env add VITE_API_KEY
    # Enter: prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o
@@ -197,7 +201,8 @@ The `vercel.json` file should handle this, but if you see 404 errors:
 |----------|-------------|---------|
 | `VITE_API_BASE_URL` | Main Gateway API URL | `https://bhiv-hr-gateway-l0xp.onrender.com` |
 | `VITE_AGENT_SERVICE_URL` | AI Agent Service URL | `https://bhiv-hr-agent-cato.onrender.com` |
-| `VITE_LANGGRAPH_URL` | LangGraph Service URL | `https://bhiv-hr-langgraph-luy9.onrender.com` |
+| `VITE_LANGGRAPH_SERVICE_URL` | LangGraph Service URL | `https://bhiv-hr-langgraph-luy9.onrender.com` |
+| `VITE_ENABLE_CONTROL_CENTER` | Show Command Center nav + `/control` | `true` |
 | `VITE_API_KEY` | Backend API Authentication Key | `prod_api_key_...` |
 
 ## Support

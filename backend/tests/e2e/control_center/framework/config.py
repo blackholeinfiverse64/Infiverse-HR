@@ -31,8 +31,9 @@ class E2EConfig:
             jwt_secret_key=os.getenv("JWT_SECRET_KEY", "").strip(),
             candidate_jwt_secret_key=os.getenv("CANDIDATE_JWT_SECRET_KEY", "").strip(),
             mongodb_uri=os.getenv("MONGODB_URI", os.getenv("MONGO_URI", "")).strip(),
-            client_login_id=os.getenv("E2E_CLIENT_ID", "TECH001").strip(),
-            client_login_password=os.getenv("E2E_CLIENT_PASSWORD", "demo123").strip(),
+            # Archived demo TECH001/demo123 is NOT valid on production; set explicitly for local seed DB only.
+            client_login_id=os.getenv("E2E_CLIENT_ID", "").strip(),
+            client_login_password=os.getenv("E2E_CLIENT_PASSWORD", "").strip(),
             request_timeout_s=float(os.getenv("E2E_HTTP_TIMEOUT", "30")),
             results_dir=os.getenv(
                 "E2E_RESULTS_DIR",

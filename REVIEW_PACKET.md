@@ -1,10 +1,10 @@
 # BHIV Sampada — Task19 Review Packet
 
-**Status**: Task19 boundary documents complete; runtime governance hardening complete (2026-06-02)  
-**Task19 Deliverables**: 5/5 primary docs created, current-state and contribution log updated  
+**Status**: Task19 boundary documents complete; runtime governance hardening complete; production health verified on Render (2026-06-03)  
+**Task19 Deliverables**: 5/5 primary docs + live control center + E2E acceptance framework  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
-**Updated**: 2026-06-02
+**Updated**: 2026-06-03
 
 > **Operational Role**: Support Builder under Rishabh Yadav's leadership. Sampada remains an intelligence and visibility layer only. No execution authority is claimed here.
 
@@ -162,34 +162,48 @@ The safety model is defined in [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA
 
 ## 9. Roadmap
 
-### Immediate
-- Rishabh review of the five Task19 boundary docs
-- Phase 6 direction setting for any live implementation support
-- Final sign-off on this review packet
+### Complete (2026-06-03)
+- Five Task19 boundary documents
+- Live control center wiring (gateway governance module, audit replay, aggregates, scoped stats)
+- Frontend `ControlCenter.tsx`: parallel `Promise.all` load, 30s silent refresh, policy scope UI
+- Acceptance: `test_task19_control_center_governance.py`, `backend/tests/e2e/control_center/`
+- Render production `/health` verified; Vercel deployment documented (`VITE_LANGGRAPH_SERVICE_URL`)
+- Production API smoke script: 15/15 (`run_production_smoke.py`); prod audit write canary OK
 
-### Next
-- If directed, perform implementation hardening support on schemas, API contracts, dashboard wiring, replay readiness, trace lineage, and ownership metadata
-- Capture any new evidence or diagrams in the contribution log and supporting artifacts
+### Immediate (acceptance)
+- Rishabh review and sign-off on this review packet
+- Manual: log in on Vercel → `/control` (bundle already contains Render URLs; confirm live cards in browser)
+- Manual: JWT role matrix on prod with real client/recruiter/admin accounts (demo `TECH001` not in prod DB)
+
+### Next (lead-directed)
+- Extend `control_center_governance` patterns platform-wide (tenant isolation beyond control center)
+- Runtime ministry→office hierarchy and policy engine only if approved
+- Owner API integration (Niyantran/Artha) per SETU convergence map
 
 ### Later
-- Extend the government-scale model into runtime enforcement where the lead approves it
-- Reconcile any live implementation details back into the current-state handover
+- Staging/preview environment parity for control center
+- Diagrams and additional replay evidence when directed
 
 ---
 
 ## 10. Proof / Evidence
 
-### Task19 runtime evidence (2026-06-02)
+### Task19 runtime evidence (2026-06-03)
 
 | Requirement | Proof |
 |-------------|-------|
 | Policy-scope enforcement | `backend/services/gateway/app/control_center_governance.py`; scoped `/v1/candidates/stats`, `/metrics/dashboard` |
 | Live audit read/replay | `GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay` |
 | Backend aggregates (funnel/dept) | `GET /v1/control-center/dashboard-aggregates` |
-| Control center UI (live replay) | `frontend/src/pages/control/ControlCenter.tsx` — no seeded replay default |
+| Control center UI | `frontend/src/pages/control/ControlCenter.tsx` — live replay, parallel load, 30s silent refresh, policy scope strip |
 | Correlation propagation | Gateway, Agent, LangGraph `X-Correlation-ID` middleware |
 | LangGraph RL guard | `POST /rl/retrain` requires API key |
-| Executable acceptance | `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, `backend/tests/gateway/test_task19_control_center_governance.py` |
+| E2E framework | `backend/tests/e2e/control_center/`, `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md` (8 pass / 2 skip localhost) |
+| API contract + checklist | `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md`, `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` |
+| Production health | Render gateway/agent/langgraph `/health` → 200 (2026-06-03) |
+| Production API smoke | `run_production_smoke.py` — 15/15 (control-center APIs + Vercel bundles include Render hosts) |
+| Vercel env contract | `VITE_LANGGRAPH_SERVICE_URL` (not `VITE_LANGGRAPH_URL`) — `frontend/VERCEL_DEPLOYMENT.md` |
+| Executable acceptance | `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, governance + E2E pytest |
 | Requirement matrix | `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md` |
 
 ### Created Task19 artifacts
@@ -214,8 +228,10 @@ The safety model is defined in [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA
 - `evidence/general/`
 - `evidence/tests/`
 
-### Diagram note
-- Task19 boundary documents are textual controls; any runtime diagramming or replay evidence should be added only when Rishabh directs a live implementation support slice.
+### Open runtime evidence (not blocking doc acceptance)
+- Production UI smoke on Vercel `/control` (JWT matrix, scoped stats on prod data)
+- Full government org hierarchy and policy engine in runtime (constitutional docs only today)
+- Platform-wide tenant isolation beyond control-center endpoints
 
 ### Task19 boundary stack
 ```mermaid

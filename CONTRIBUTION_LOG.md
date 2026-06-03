@@ -2,13 +2,32 @@
 
 **Owner**: Rishabh Yadav (system owner; all architectural decisions require his sign-off)  
 **Maintained by**: Shashank (Sampada, Support Builder)  
-**Last Updated**: 2026-06-02  
+**Last Updated**: 2026-06-03  
 
 This log tracks work completed, implementation support provided, commits, architectural contributions, blockers, and convergence impact under Task19.
 
 Entries (newest first):
 
 ---
+
+## Task19 — Demo credentials & URL clarity (2026-06-03)
+
+- [x] **ARCHIVED DEMO LOGIN**: Documented `TECH001`/`demo123` as archived (not in production DB) in `docs/DEMO_CREDENTIALS_STATUS.md`; E2E/smoke no longer default to those values.
+- [x] **CONTROL CENTER URLS**: Confirmed localhost shows local service URLs; Vercel/production shows Render URLs (`api.ts` dev guard + Vercel `VITE_*`).
+
+## Task19 — Documentation & Production Sync (2026-06-03)
+
+- [x] **DOC SYNC**: Updated Task19 evidence matrix, acceptance pack, review packet, current state, central control checklist/contract/plan, and README Task19 index to 2026-06-03 implementation state.
+- [x] **PRODUCTION**: Render gateway/agent/langgraph `/health` verified; Vercel env documented with `VITE_LANGGRAPH_SERVICE_URL` (not `VITE_LANGGRAPH_URL`).
+- [x] **E2E EVIDENCE**: Localhost `run_control_center_e2e.py` — 8 passed, 2 skipped (JWT env); offline + governance unit tests 10 passed.
+- [x] **STALE REMOVAL**: Removed seeded-replay and rollout-pending-only claims from active docs; archived historical plan language in `CENTRAL_CONTROL_LIVE_IMPLEMENTATION_PLAN.md`.
+- [ ] **OPEN**: Production UI smoke on Vercel `/control` and prod JWT role matrix (checklist §F).
+
+## Task19 — Production smoke (2026-06-03)
+
+- [x] **PRODUCTION SMOKE SCRIPT**: Added `backend/tests/e2e/control_center/run_production_smoke.py` — Render control-center APIs, audit write, Vercel bundle Render URL check.
+- [x] **PRODUCTION RUN**: 15/15 passed against live Render + Vercel (`control_center_production_smoke_report.json`).
+- [x] **CHECKLIST**: Updated `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F/§G; manual UI login + prod JWT matrix remain for real tenant credentials.
 
 ## Task19 — Runtime Governance Hardening (2026-06-02)
 
@@ -25,7 +44,7 @@ Entries (newest first):
 - [x] **API HELPER UPDATE**: Added live gateway metrics and service health helpers in `frontend/src/services/api.ts` plus LangGraph environment support in `frontend/src/vite-env.d.ts`.
 - [x] **CONTROL CENTER LIVE WIRED**: Replaced the central control page's static mock KPI arrays with authenticated live reads from the gateway metrics endpoint and direct Agent/LangGraph health checks in `frontend/src/pages/control/ControlCenter.tsx`.
 - [x] **EXPLICIT CARD MAPPING**: Replaced the generic bucket-flattening approach with named dashboard cards mapped to explicit backend fields for performance, candidate stats, system metrics, and service health.
-- [x] **TRACEABILITY BOUNDARY KEPT**: Preserved the replay zone as seeded evidence and labeled it explicitly until a live audit-log endpoint is available.
+- [x] **TRACEABILITY (SUPERSEDED 2026-06-02)**: Initial wiring kept replay as seeded placeholder; same day replaced by live `GET /v1/control-center/audit-replay` + UI (`fetchControlCenterAuditReplay`).
 - [x] **VALIDATION**: Ran `npm run lint` in `frontend/` (`tsc --noEmit`) and the updated frontend typechecked successfully after the live wiring changes.
 
 ## Task19 — Current State Reconstruction (2026-05-30)

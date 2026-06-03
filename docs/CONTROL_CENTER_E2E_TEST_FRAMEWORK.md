@@ -1,6 +1,10 @@
 # Control Center E2E Test Framework
 
+**Updated:** 2026-06-03
+
 End-to-end validation of the Control Center data-flow pipeline on **localhost**: environment preflight → baseline capture → pipeline actions (audit + stats refresh) → final capture → state comparison → role matrix and routing checks.
+
+Production deployment (Render + Vercel) is documented in `frontend/VERCEL_DEPLOYMENT.md` and `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F; this suite does not replace production UI smoke.
 
 ## Prerequisites
 
@@ -34,7 +38,7 @@ cd backend/services/gateway && uvicorn app.main:app --port 8000
 | `MONGODB_URI` / `MONGO_URI` | Direct `audit_logs` count for integrity |
 | `AGENT_URL` | Default `http://localhost:9000` |
 | `LANGGRAPH_URL` | Default `http://localhost:9001` |
-| `E2E_CLIENT_ID` / `E2E_CLIENT_PASSWORD` | Client login fallback (`TECH001` / `demo123`) |
+| `E2E_CLIENT_ID` / `E2E_CLIENT_PASSWORD` | Optional client JWT tests — **no default**; archived `TECH001`/`demo123` is not valid on production |
 | `E2E_HTTP_TIMEOUT` | Request timeout seconds (default 30) |
 | `E2E_RESULTS_DIR` | JSON report directory |
 
