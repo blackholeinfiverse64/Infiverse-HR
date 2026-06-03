@@ -1,6 +1,6 @@
 # BHIV Sampada — Task19 Review Packet
 
-**Status**: Task19 boundary documents complete; Phase 6 support packaging in progress  
+**Status**: Task19 boundary documents complete; runtime governance hardening complete (2026-06-02)  
 **Task19 Deliverables**: 5/5 primary docs created, current-state and contribution log updated  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
@@ -178,6 +178,19 @@ The safety model is defined in [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA
 ---
 
 ## 10. Proof / Evidence
+
+### Task19 runtime evidence (2026-06-02)
+
+| Requirement | Proof |
+|-------------|-------|
+| Policy-scope enforcement | `backend/services/gateway/app/control_center_governance.py`; scoped `/v1/candidates/stats`, `/metrics/dashboard` |
+| Live audit read/replay | `GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay` |
+| Backend aggregates (funnel/dept) | `GET /v1/control-center/dashboard-aggregates` |
+| Control center UI (live replay) | `frontend/src/pages/control/ControlCenter.tsx` — no seeded replay default |
+| Correlation propagation | Gateway, Agent, LangGraph `X-Correlation-ID` middleware |
+| LangGraph RL guard | `POST /rl/retrain` requires API key |
+| Executable acceptance | `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, `backend/tests/gateway/test_task19_control_center_governance.py` |
+| Requirement matrix | `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md` |
 
 ### Created Task19 artifacts
 - [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md)

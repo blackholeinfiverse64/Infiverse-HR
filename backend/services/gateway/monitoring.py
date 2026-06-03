@@ -156,7 +156,8 @@ class AdvancedMonitor:
     def collect_system_metrics(self):
         """Collect system-level performance metrics"""
         # CPU and Memory
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # Non-blocking sample (interval=1 added ~1s latency to every /metrics/dashboard call)
+        cpu_percent = psutil.cpu_percent(interval=0)
         memory = psutil.virtual_memory()
         try:
             disk = psutil.disk_usage('/')

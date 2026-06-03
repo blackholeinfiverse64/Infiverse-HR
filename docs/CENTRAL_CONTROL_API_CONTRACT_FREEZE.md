@@ -44,18 +44,46 @@ This contract freeze defines the live API surfaces used by central control so fr
   - Allowed roles: `client`, `recruiter`, `admin`
   - Stores control-center access, refresh, and fallback audit records
 
+- `GET /v1/control-center/audit-replay` (Gateway `:8000`)
+  - Auth required (`Bearer` token or service API key)
+  - Query: optional `correlation_id`, `limit` (default 20)
+  - Response: `events[]` (`ts`, `service`, `op`, `correlation_id`, `status`), `count`, `source`, `replay_mode`, `policy_scope`
+
+- `GET /v1/control-center/dashboard-aggregates` (Gateway `:8000`)
+  - Auth required (`Bearer` token or service API key)
+  - Response: `hiring_funnel[]`, `department_load[]`, `policy_scope`, `generated_at`, `data_source`
+
+- `GET /health` (Gateway `:8000`)
+  - No auth required (used by `checkApiHealth` on load/refresh)
+
+## Live wiring verification (2026-06-03)
+
+Verified on localhost: Gateway `:8000`, Agent `:9000`, LangGraph `:9001` up; E2E suite `backend/tests/e2e/control_center/run_control_center_e2e.py` — **8 passed, 2 skipped** (JWT role-matrix tests skipped without `JWT_SECRET_KEY` / `CANDIDATE_JWT_SECRET_KEY`).
+
+| Frontend (`api.ts`) | HTTP | Gateway path | Verified | Notes |
+|---------------------|------|--------------|----------|-------|
+| `checkApiHealth` | GET | `/health` | Y | No Bearer required; `ControlCenter` load step 1 |
+| `fetchGatewayMetricsDashboard` | GET | `/metrics/dashboard` | Y | Bearer via axios interceptor; 401 without auth |
+| `fetchGatewayCandidateStats` | GET | `/v1/candidates/stats` | Y | Scoped stats; `assert_control_center_access` |
+| `fetchControlCenterDashboardAggregates` | GET | `/v1/control-center/dashboard-aggregates` | Y | Funnel + department load in UI |
+| `fetchControlCenterAuditReplay` | GET | `/v1/control-center/audit-replay` | Y | Replay zone; optional `correlation_id` query |
+| `postControlCenterAuditEvent` | POST | `/v1/control-center/audit-events` | Y | `control_center_view` + `control_center_refresh` |
+| `fetchServiceHealth` | GET | Agent `/health` (`VITE_AGENT_SERVICE_URL`, default `:9000`) | Y | Direct axios; optional Bearer |
+| `fetchServiceHealth` | GET | LangGraph `/health` (`VITE_LANGGRAPH_SERVICE_URL`, default `:9001`) | Y | Direct axios; optional Bearer |
+
+UI gate: `VITE_ENABLE_CONTROL_CENTER=true` and roles `client` \| `recruiter` \| `admin` (`ControlCenter.tsx`). Gateway base: `VITE_API_BASE_URL` (default `http://localhost:8000`).
+
+Not called from UI (E2E only): `GET /v1/control-center/audit-events`.
+
 ## Mock Surface Replacement Inventory
 
 Replaced or bounded in central control:
 
 - Static KPI cards -> live Gateway metrics and candidate stats mapping
 - Service status badges -> live Agent/LangGraph health checks
-- Funnel visualization -> live-derived counts from candidate stats
-- Department load bars -> live-derived values from performance metrics
-
-Still intentionally seeded:
-
-- Replay/trace evidence panel remains seeded until a dedicated live replay endpoint is exposed.
+- Funnel visualization -> `GET /v1/control-center/dashboard-aggregates` (`hiring_funnel`)
+- Department load bars -> same aggregates endpoint (`department_load`)
+- Replay/trace panel -> `GET /v1/control-center/audit-replay` (Mongo `audit_logs`, scoped)
 
 ## Security and Governance Notes
 

@@ -211,8 +211,8 @@ async def get_candidate_rl_history(candidate_id: int, api_key: str = Depends(get
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/retrain")
-async def trigger_rl_retrain():
-    """Trigger RL Model Retraining"""
+async def trigger_rl_retrain(api_key: str = Depends(get_api_key)):
+    """Trigger RL Model Retraining (API key required — governance-aligned)"""
     try:
         # Get recent feedback for retraining
         feedback_history = db_adapter.get_feedback_history(limit=1000)

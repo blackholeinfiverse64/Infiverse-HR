@@ -140,11 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update user object with role
         const userWithRole = { ...result.user, role };
         setUser(userWithRole);
-        
-        // Set the auth token in axios defaults
-        const axios = (await import('axios')).default;
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         console.log('✅ AuthContext: Login successful for role:', role);
         return { error: null };
       } else {
@@ -229,8 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             authStorage.setItem('backend_candidate_id', loginResult.user.id);
           }
           const userWithRole = { ...loginResult.user, role: extractedRole };
-          const axios = (await import('axios')).default;
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          authService.setAuthToken(token);
           const verifyToken = () => authStorage.getItem('auth_token') === token;
           if (!verifyToken()) {
             clearAuthStorage();
@@ -262,8 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     clearAuthStorage();
-    const axios = (await import('axios')).default;
-    delete axios.defaults.headers.common['Authorization'];
+    const authService = (await import('../services/authService')).default;
+    authService.removeAuthToken();
     setUser(null);
   };
 

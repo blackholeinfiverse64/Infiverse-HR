@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi import FastAPI, HTTPException, Depends, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ from bson import ObjectId
 import os
 import json
 import sys
+import uuid
 import logging
 import jwt
 import threading
@@ -109,6 +110,15 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    request.state.correlation_id = correlation_id
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
 
 # Custom OpenAPI schema with organized tags and security
 def custom_openapi():
@@ -245,12 +255,18 @@ def read_root():
     }
 
 @app.get("/health", tags=["Core API Endpoints"], summary="Health Check")
-def health_check():
+def health_check(request: Request):
     return {
         "status": "healthy",
         "service": "BHIV AI Agent",
         "version": "3.0.0",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "correlation_id": getattr(request.state, "correlation_id", None),
+        "governance": {
+            "policy_visibility": "service_health",
+            "execution_authority": False,
+            "advisory_only": True,
+        },
     }
 
 @app.get("/test-db", tags=["System Diagnostics"], summary="Database Connectivity Test")

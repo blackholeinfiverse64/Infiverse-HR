@@ -6,9 +6,46 @@ import { authStorage } from '../utils/authStorage'
 // Default to localhost for local development, use env var or Render URL for production
 // All production URLs must be set via Vercel environment variables (dashboard → Settings → Environment Variables).
 // Localhost fallbacks are only for local development.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-export const AGENT_SERVICE_URL = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:9000'
-export const LANGGRAPH_SERVICE_URL = import.meta.env.VITE_LANGGRAPH_SERVICE_URL || 'http://localhost:9001'
+
+const LOCAL_SERVICE_URLS = {
+  gateway: 'http://localhost:8000',
+  agent: 'http://localhost:9000',
+  langgraph: 'http://localhost:9001',
+} as const
+
+const stripTrailingSlash = (url: string) => url.replace(/\/+$/, '')
+
+function isLocalBrowserHost(): boolean {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1'
+}
+
+/** In Vite dev on localhost, use local service ports even if .env still has Render URLs. */
+function resolveServiceBaseUrl(configured: string | undefined, localDefault: string): string {
+  const trimmed = configured?.trim()
+  const candidate = stripTrailingSlash(trimmed || localDefault)
+  if (!import.meta.env.DEV || !isLocalBrowserHost()) {
+    return candidate
+  }
+  if (/onrender\.com/i.test(candidate)) {
+    return stripTrailingSlash(localDefault)
+  }
+  return candidate
+}
+
+export const API_BASE_URL = resolveServiceBaseUrl(
+  import.meta.env.VITE_API_BASE_URL,
+  LOCAL_SERVICE_URLS.gateway,
+)
+export const AGENT_SERVICE_URL = resolveServiceBaseUrl(
+  import.meta.env.VITE_AGENT_SERVICE_URL,
+  LOCAL_SERVICE_URLS.agent,
+)
+export const LANGGRAPH_SERVICE_URL = resolveServiceBaseUrl(
+  import.meta.env.VITE_LANGGRAPH_SERVICE_URL,
+  LOCAL_SERVICE_URLS.langgraph,
+)
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,8 +59,6 @@ const NOTIFICATION_REQUEST_TIMEOUT_MS = 150000
 const NOTIFICATION_TRANSIENT_RETRIES = 1
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-const stripTrailingSlash = (url: string) => url.replace(/\/+$/, '')
 
 const getAuthHeaders = () => {
   const token = authStorage.getItem('auth_token')
@@ -167,6 +202,86 @@ export const fetchServiceHealth = async (
 
 export const postControlCenterAuditEvent = async (event: ControlCenterAuditEvent): Promise<void> => {
   await api.post('/v1/control-center/audit-events', event)
+}
+
+export interface ControlCenterTraceEvent {
+  ts: string
+  service: string
+  op: string
+  correlation_id: string
+  status: 'success' | 'failure' | 'in_progress'
+  source_system?: string
+  derived_flag?: boolean
+}
+
+export interface ControlCenterDashboardAggregates {
+  hiring_funnel: { label: string; count: number; color: string }[]
+  department_load: { dept: string; load: number; color: string; applications?: number }[]
+  policy_scope?: Record<string, unknown>
+  generated_at?: string
+  data_source?: string
+}
+
+export interface ControlCenterAuditReplay {
+  events: ControlCenterTraceEvent[]
+  count: number
+  correlation_id?: string | null
+  source: string
+  replay_mode?: string
+  policy_scope?: Record<string, unknown>
+}
+
+export const fetchControlCenterAuditReplay = async (
+  correlationId?: string,
+): Promise<{ data: ControlCenterAuditReplay; meta: ControlCenterApiMeta }> => {
+  const response = await api.get('/v1/control-center/audit-replay', {
+    params: correlationId ? { correlation_id: correlationId } : undefined,
+  })
+  const data = (response.data || {}) as Record<string, unknown>
+  const events = Array.isArray(data.events) ? (data.events as ControlCenterTraceEvent[]) : []
+
+  return {
+    data: {
+      events,
+      count: toNumber(data.count, events.length),
+      correlation_id: typeof data.correlation_id === 'string' ? data.correlation_id : null,
+      source: typeof data.source === 'string' ? data.source : 'audit_logs',
+      replay_mode: typeof data.replay_mode === 'string' ? data.replay_mode : undefined,
+      policy_scope: typeof data.policy_scope === 'object' ? (data.policy_scope as Record<string, unknown>) : undefined,
+    },
+    meta: {
+      correlationId:
+        String(response.headers?.['x-correlation-id'] || response.headers?.['X-Correlation-ID'] || '').trim() ||
+        undefined,
+    },
+  }
+}
+
+export const fetchControlCenterDashboardAggregates = async (): Promise<{
+  data: ControlCenterDashboardAggregates
+  meta: ControlCenterApiMeta
+}> => {
+  const response = await api.get('/v1/control-center/dashboard-aggregates')
+  const data = (response.data || {}) as Record<string, unknown>
+
+  return {
+    data: {
+      hiring_funnel: Array.isArray(data.hiring_funnel)
+        ? (data.hiring_funnel as ControlCenterDashboardAggregates['hiring_funnel'])
+        : [],
+      department_load: Array.isArray(data.department_load)
+        ? (data.department_load as ControlCenterDashboardAggregates['department_load'])
+        : [],
+      policy_scope: typeof data.policy_scope === 'object' ? (data.policy_scope as Record<string, unknown>) : undefined,
+      generated_at: typeof data.generated_at === 'string' ? data.generated_at : undefined,
+      data_source: typeof data.data_source === 'string' ? data.data_source : undefined,
+    },
+    meta: {
+      correlationId:
+        String(response.headers?.['x-correlation-id'] || response.headers?.['X-Correlation-ID'] || '').trim() ||
+        undefined,
+    },
+  }
 }
 
 const shouldRetryNotificationRequest = (error: unknown): boolean => {

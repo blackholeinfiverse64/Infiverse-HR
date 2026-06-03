@@ -10,6 +10,15 @@ Entries (newest first):
 
 ---
 
+## Task19 — Runtime Governance Hardening (2026-06-02)
+
+- [x] **POLICY SCOPE MODULE**: Added `backend/services/gateway/app/control_center_governance.py` with centralized role/tenant/org scope resolution and scoped stats/aggregates/audit queries.
+- [x] **GATEWAY APIs**: Added `GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay`, `GET /v1/control-center/dashboard-aggregates`; hardened audit write taxonomy; scoped `/v1/candidates/stats` and `/metrics/dashboard`.
+- [x] **SERVICE AUTHZ ALIGNMENT**: Agent and LangGraph correlation middleware + health governance metadata; LangGraph `POST /rl/retrain` requires API key.
+- [x] **FRONTEND LIVE REPLAY**: Control center uses live audit replay and backend funnel/dept aggregates; Command Center nav in client/recruiter sidebars when `VITE_ENABLE_CONTROL_CENTER=true`.
+- [x] **ACCEPTANCE PACK**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md`, `backend/tests/gateway/test_task19_control_center_governance.py`.
+- [x] **EVIDENCE CLOSURE**: Updated `REVIEW_PACKET.md` runtime proof table.
+
 ## Task19 — Central Control Live Wiring (2026-06-02)
 
 - [x] **IMPLEMENTATION PLAN ADDED**: Created `docs/CENTRAL_CONTROL_LIVE_IMPLEMENTATION_PLAN.md` with the live central control scope, security requirements, governance alignment, integration points, test plan, deployment steps, and exit criteria.

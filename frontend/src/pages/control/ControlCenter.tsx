@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Loading from '../../components/Loading'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -10,9 +10,14 @@ import {
   fetchGatewayMetricsDashboard,
   fetchServiceHealth,
   postControlCenterAuditEvent,
+  fetchControlCenterAuditReplay,
+  fetchControlCenterDashboardAggregates,
   type GatewayMetricsDashboard,
   type GatewayCandidateStats,
   type ServiceHealthSnapshot,
+  type ControlCenterTraceEvent,
+  type ControlCenterDashboardAggregates,
+  type ControlCenterAuditReplay,
 } from '../../services/api'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -31,34 +36,20 @@ interface KpiCard {
   warning?: boolean
 }
 
-interface TraceEvent {
-  ts: string
-  service: string
-  op: string
-  correlation_id: string
-  status: 'success' | 'failure' | 'in_progress'
-}
+type TraceEvent = ControlCenterTraceEvent
 
 interface ControlCenterLiveData {
   gatewayHealth: { healthy: boolean; data?: Record<string, unknown> | null } | null
   gatewayMetrics: GatewayMetricsDashboard | null
   candidateStats: GatewayCandidateStats | null
+  dashboardAggregates: ControlCenterDashboardAggregates | null
+  auditReplay: ControlCenterAuditReplay | null
   agentHealth: ServiceHealthSnapshot | null
   langgraphHealth: ServiceHealthSnapshot | null
   fetchedAt: string | null
   errors: string[]
   correlationIds: string[]
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// Seeded replay evidence. This remains bounded until a live audit endpoint is exposed.
-const REPLAY_EVENTS: TraceEvent[] = [
-  { ts: '2026-05-26T13:33:51Z', service: 'Gateway', op: 'POST /v1/jobs', correlation_id: 'trace_conv_17_257502', status: 'success' },
-  { ts: '2026-05-26T13:35:21Z', service: 'Agent', op: 'GET /v1/match/6a15.../top', correlation_id: 'trace_conv_17_257502', status: 'success' },
-  { ts: '2026-05-26T13:35:21Z', service: 'Gateway', op: 'POST /v1/candidate/apply', correlation_id: 'trace_conv_17_257502', status: 'success' },
-  { ts: '2026-05-26T13:35:21Z', service: 'LangGraph', op: 'POST /api/v1/webhooks/candidate-applied', correlation_id: 'trace_conv_17_257502', status: 'success' },
-  { ts: '2026-05-26T13:35:22Z', service: 'Gateway', op: 'GET /api/v1/workflow/status/{id}', correlation_id: 'trace_conv_17_257502', status: 'success' },
-]
 
 function buildServiceCard(label: string, service: ServiceHealthSnapshot | null, fallbackSource: string): KpiCard {
   if (!service) {
@@ -177,11 +168,15 @@ function buildHiringCards(liveData: ControlCenterLiveData | null): KpiCard[] {
 }
 
 function buildFunnelStages(liveData: ControlCenterLiveData | null): { label: string; count: number; color: string }[] {
+  const funnel = liveData?.dashboardAggregates?.hiring_funnel
+  if (funnel && funnel.length > 0) {
+    return funnel
+  }
   const stats = liveData?.candidateStats
   const sourcing = readNumber(stats, ['total_candidates'])
   const screening = Math.max(readNumber(stats, ['recent_matches']), 0)
   const interview = Math.max(readNumber(stats, ['pending_interviews']), 0)
-  const offer = Math.max(Math.round(interview * 0.2), 0)
+  const offer = 0
   return [
     { label: 'Sourcing', count: sourcing, color: 'bg-indigo-500' },
     { label: 'Screening', count: screening, color: 'bg-violet-500' },
@@ -191,20 +186,11 @@ function buildFunnelStages(liveData: ControlCenterLiveData | null): { label: str
 }
 
 function buildDepartmentLoad(liveData: ControlCenterLiveData | null): { dept: string; load: number; color: string }[] {
-  const perf = liveData?.gatewayMetrics?.performance_summary ?? {}
-  const totalRpm = Math.max(readNumber(perf, ['requests_per_minute']), 1)
-  const base = [
-    { dept: 'Engineering', ratio: 0.32 },
-    { dept: 'Product', ratio: 0.24 },
-    { dept: 'Design', ratio: 0.16 },
-    { dept: 'Sales', ratio: 0.18 },
-    { dept: 'HR', ratio: 0.1 },
-  ]
-  return base.map((item) => {
-    const load = Math.min(Math.round((totalRpm * item.ratio) / 2), 100)
-    const color = load >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
-    return { dept: item.dept, load, color }
-  })
+  const deptLoad = liveData?.dashboardAggregates?.department_load
+  if (deptLoad && deptLoad.length > 0) {
+    return deptLoad.map(({ dept, load, color }) => ({ dept, load, color }))
+  }
+  return []
 }
 
 function buildWorkforceCards(liveData: ControlCenterLiveData | null): KpiCard[] {
@@ -579,6 +565,7 @@ function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]
 
 // Feature flag (Vite env): set VITE_ENABLE_CONTROL_CENTER=true to enable
 const ENABLE_CONTROL_CENTER = import.meta.env.VITE_ENABLE_CONTROL_CENTER === 'true'
+const CONTROL_CENTER_REFRESH_MS = 30_000
 
 const ZONES: { id: Zone; label: string; short: string }[] = [
   { id: 'executive', label: 'Executive', short: 'Exec' },
@@ -589,41 +576,75 @@ const ZONES: { id: Zone; label: string; short: string }[] = [
   { id: 'replay', label: 'Replay / Trace', short: 'Trace' },
 ]
 
+function readPolicyScopeLabel(liveData: ControlCenterLiveData | null): string | null {
+  const fromStats = liveData?.candidateStats as { policy_scope?: { scope_label?: string } } | null
+  const fromMetrics = liveData?.gatewayMetrics as { policy_scope?: { scope_label?: string } } | null
+  return fromStats?.policy_scope?.scope_label || fromMetrics?.policy_scope?.scope_label || null
+}
+
 export default function ControlCenter() {
   const [activeZone, setActiveZone] = useState<Zone>('executive')
   const [liveData, setLiveData] = useState<ControlCenterLiveData | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [loadingLiveData, setLoadingLiveData] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const loadingRef = useRef(false)
+  const hasLiveDataRef = useRef(false)
   const { userRole, loading } = useAuth()
 
   const ALLOWED_ROLES = new Set(['client', 'recruiter', 'admin'])
 
-  const loadControlCenterData = async (silent = false) => {
-    if (silent) {
+  const loadControlCenterData = useCallback(async (silent = false) => {
+    if (loadingRef.current) return
+    loadingRef.current = true
+
+    if (!silent) {
       setRefreshing(true)
-    } else {
-      setLoadingLiveData(true)
+      if (!hasLiveDataRef.current) {
+        setLoadingLiveData(true)
+      }
     }
 
     const errors: string[] = []
 
     try {
-      const gatewayHealth = await checkApiHealth()
-      const gatewayMetricsResponse = await fetchGatewayMetricsDashboard().catch((error) => {
-        errors.push(
-          `Gateway metrics unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
-        return null
-      })
-      const candidateStatsResponse = await fetchGatewayCandidateStats().catch((error) => {
-        errors.push(
-          `Gateway candidate stats unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
-        return null
-      })
-      const agentHealth = await fetchServiceHealth(AGENT_SERVICE_URL, 'BHIV AI Agent')
-      const langgraphHealth = await fetchServiceHealth(LANGGRAPH_SERVICE_URL, 'langgraph-orchestrator')
+      const [
+        gatewayHealth,
+        gatewayMetricsResponse,
+        candidateStatsResponse,
+        aggregatesResponse,
+        auditReplayResponse,
+        agentHealth,
+        langgraphHealth,
+      ] = await Promise.all([
+        checkApiHealth(),
+        fetchGatewayMetricsDashboard().catch((error) => {
+          errors.push(
+            `Gateway metrics unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          )
+          return null
+        }),
+        fetchGatewayCandidateStats().catch((error) => {
+          errors.push(
+            `Gateway candidate stats unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          )
+          return null
+        }),
+        fetchControlCenterDashboardAggregates().catch((error) => {
+          errors.push(
+            `Dashboard aggregates unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          )
+          return null
+        }),
+        fetchControlCenterAuditReplay().catch((error) => {
+          errors.push(
+            `Audit replay unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          )
+          return null
+        }),
+        fetchServiceHealth(AGENT_SERVICE_URL, 'BHIV AI Agent'),
+        fetchServiceHealth(LANGGRAPH_SERVICE_URL, 'langgraph-orchestrator'),
+      ])
 
       if (!gatewayHealth.healthy) {
         errors.push('Gateway health check returned an unhealthy state')
@@ -640,6 +661,9 @@ export default function ControlCenter() {
       const correlationIds = [
         gatewayMetricsResponse?.meta?.correlationId,
         candidateStatsResponse?.meta?.correlationId,
+        aggregatesResponse?.meta?.correlationId,
+        auditReplayResponse?.meta?.correlationId,
+        auditReplayResponse?.data?.correlation_id,
         String(agentHealth.raw?.correlation_id || ''),
         String(langgraphHealth.raw?.correlation_id || ''),
       ].filter(Boolean) as string[]
@@ -651,29 +675,37 @@ export default function ControlCenter() {
         },
         gatewayMetrics: gatewayMetricsResponse?.data ?? null,
         candidateStats: candidateStatsResponse?.data ?? null,
+        dashboardAggregates: aggregatesResponse?.data ?? null,
+        auditReplay: auditReplayResponse?.data ?? null,
         agentHealth,
         langgraphHealth,
         fetchedAt: new Date().toISOString(),
         errors,
         correlationIds,
       })
+      hasLiveDataRef.current = true
       setLastRefresh(new Date())
 
-      void postControlCenterAuditEvent({
-        action: 'control_center_refresh',
-        outcome: errors.length ? 'failure' : 'success',
-        detail: errors.length ? errors.join(' | ') : 'Live control center refresh succeeded',
-        correlation_id: correlationIds[0],
-        context: {
-          source: 'control_center',
-          partial_failure: errors.length > 0,
-        },
-      }).catch(() => undefined)
+      if (!silent) {
+        void postControlCenterAuditEvent({
+          action: 'control_center_refresh',
+          outcome: errors.length ? 'failure' : 'success',
+          detail: errors.length ? errors.join(' | ') : 'Live control center refresh succeeded',
+          correlation_id: correlationIds[0],
+          context: {
+            source: 'control_center',
+            partial_failure: errors.length > 0,
+          },
+        }).catch(() => undefined)
+      }
     } finally {
-      setLoadingLiveData(false)
-      setRefreshing(false)
+      loadingRef.current = false
+      if (!silent) {
+        setLoadingLiveData(false)
+        setRefreshing(false)
+      }
     }
-  }
+  }, [])
 
   useEffect(() => {
     if (!ENABLE_CONTROL_CENTER || loading || !ALLOWED_ROLES.has(String(userRole))) {
@@ -681,12 +713,12 @@ export default function ControlCenter() {
     }
 
     void loadControlCenterData()
-    const intervalId = setInterval(() => {
+    const intervalId = window.setInterval(() => {
       void loadControlCenterData(true)
-    }, 60_000)
+    }, CONTROL_CENTER_REFRESH_MS)
 
-    return () => clearInterval(intervalId)
-  }, [loading, userRole])
+    return () => window.clearInterval(intervalId)
+  }, [loading, userRole, loadControlCenterData])
 
   useEffect(() => {
     if (loading || !userRole) return
@@ -729,6 +761,7 @@ export default function ControlCenter() {
   const orgCards = buildOrgCards(liveData)
   const funnelStages = buildFunnelStages(liveData)
   const departmentLoad = buildDepartmentLoad(liveData)
+  const policyScopeLabel = readPolicyScopeLabel(liveData)
 
   if (loadingLiveData && !liveData) {
     return <Loading message="Loading live control center..." />
@@ -780,9 +813,9 @@ export default function ControlCenter() {
             </span>
             <button
               id="control-center-refresh-btn"
-              onClick={() => void loadControlCenterData()}
+              onClick={() => void loadControlCenterData(false)}
               title={refreshing ? 'Refreshing live data' : 'Refresh dashboard'}
-              disabled={refreshing}
+              disabled={refreshing || loadingRef.current}
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors disabled:opacity-60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -794,6 +827,16 @@ export default function ControlCenter() {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-6">
+        {policyScopeLabel ? (
+          <div className="mb-3 rounded-lg border border-slate-200/70 dark:border-slate-700/50 bg-white/70 dark:bg-slate-900/50 px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Data scope:</span>{' '}
+            {policyScopeLabel}
+            <span className="text-slate-500 dark:text-slate-500">
+              {' '}
+              — metrics and hiring counts are limited to your role boundary (JWT on gateway).
+            </span>
+          </div>
+        ) : null}
         <div className="mb-4 rounded-xl border border-indigo-200/50 dark:border-indigo-700/30 bg-indigo-50/60 dark:bg-indigo-950/20 px-4 py-3">
           <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
             Governance Stage Separation
@@ -814,7 +857,9 @@ export default function ControlCenter() {
             card={{
               label: 'Live Sync',
               value: lastRefresh ? lastRefresh.toLocaleTimeString() : 'Pending',
-              sublabel: liveData?.errors.length ? 'Partial live data' : 'All configured live sources refreshed',
+              sublabel: liveData?.errors.length
+                ? 'Partial live data'
+                : 'Auto-refresh every 30s in background',
               warning: Boolean(liveData?.errors.length),
             }}
           />
@@ -852,8 +897,12 @@ export default function ControlCenter() {
           )}
           {activeZone === 'replay' && (
             <ReplayTraceZone
-              traceEvents={REPLAY_EVENTS}
-              traceNote="Replay data remains seeded evidence until a live audit-log endpoint is exposed by the backend."
+              traceEvents={liveData?.auditReplay?.events ?? []}
+              traceNote={
+                liveData?.auditReplay?.events?.length
+                  ? `Live audit replay (${liveData.auditReplay.source}, correlation: ${liveData.auditReplay.correlation_id || 'n/a'}). Advisory trace only — not execution authority.`
+                  : 'No audit events in scope yet. Refresh after control-center activity or gateway operations.'
+              }
             />
           )}
         </div>

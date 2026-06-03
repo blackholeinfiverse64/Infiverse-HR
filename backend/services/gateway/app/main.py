@@ -22,6 +22,14 @@ from collections import defaultdict
 # MongoDB imports (migrated from SQLAlchemy/PostgreSQL)
 from app.database import get_mongo_db, get_mongo_client
 from app.db_helpers import find_one_by_field, find_many, count_documents, insert_one, update_one, delete_one, convert_objectid_to_str
+from app.control_center_governance import (
+    assert_control_center_access,
+    resolve_policy_scope,
+    compute_scoped_candidate_stats,
+    compute_dashboard_aggregates,
+    list_audit_events,
+    build_audit_replay,
+)
 from bson import ObjectId
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, field_validator, Field, model_validator
@@ -303,17 +311,14 @@ async def detailed_health_check():
 @app.get("/metrics/dashboard", tags=["Monitoring"])
 async def metrics_dashboard(response: Response, auth=Depends(get_auth)):
     """Metrics Dashboard Data"""
-    user_role = auth.get("role", "")
-    if auth.get("type") != "api_key" and user_role not in ["client", "recruiter", "admin"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Control center metrics are restricted to authorized command-center roles",
-        )
+    scope = assert_control_center_access(auth)
     response.headers["X-Control-Center-Access"] = "granted"
+    response.headers["X-Policy-Scope"] = scope.get("scope_label", "unknown")
     return {
         "performance_summary": monitor.get_performance_summary(24),
         "business_metrics": monitor.get_business_metrics(),
-        "system_metrics": monitor.collect_system_metrics()
+        "system_metrics": monitor.collect_system_metrics(),
+        "policy_scope": scope,
     }
 
 # Enhanced Granular Rate Limiting
@@ -1978,11 +1983,19 @@ async def create_control_center_audit_event(
     request: Request,
     auth=Depends(get_auth),
 ):
-    if auth.get("type") != "api_key" and auth.get("role", "") not in ["client", "recruiter", "admin"]:
-        raise HTTPException(status_code=403, detail="Control center audit endpoint is role-restricted")
+    scope = assert_control_center_access(auth)
 
     try:
         db = await get_mongo_db()
+        context = dict(event.context or {})
+        context.setdefault("source_system", "gateway")
+        context.setdefault("scope_label", scope.get("scope_label"))
+        context.setdefault("policy_scope", scope.get("scope"))
+        if scope.get("role") == "client":
+            context.setdefault("client_id", scope.get("user_id"))
+        if scope.get("role") == "recruiter":
+            context.setdefault("recruiter_id", scope.get("user_id"))
+
         await db.audit_logs.insert_one(
             {
                 "event_type": "control_center",
@@ -1990,7 +2003,7 @@ async def create_control_center_audit_event(
                 "outcome": event.outcome,
                 "detail": event.detail,
                 "correlation_id": event.correlation_id or getattr(request.state, "correlation_id", None),
-                "context": event.context or {},
+                "context": context,
                 "actor": {
                     "user_id": auth.get("user_id"),
                     "role": auth.get("role"),
@@ -1999,9 +2012,42 @@ async def create_control_center_audit_event(
                 "created_at": datetime.now(timezone.utc),
             }
         )
-        return {"ok": True}
+        return {"ok": True, "policy_scope": scope}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write control-center audit event: {e}")
+
+
+@app.get("/v1/control-center/audit-events", tags=["Monitoring"])
+async def get_control_center_audit_events(
+    request: Request,
+    auth=Depends(get_auth),
+    correlation_id: Optional[str] = None,
+    limit: int = 50,
+):
+    """Scoped audit timeline for control-center replay (live, not seeded)."""
+    scope = assert_control_center_access(auth)
+    db = await get_mongo_db()
+    return await list_audit_events(db, scope, correlation_id=correlation_id, limit=limit)
+
+
+@app.get("/v1/control-center/audit-replay", tags=["Monitoring"])
+async def get_control_center_audit_replay(
+    auth=Depends(get_auth),
+    correlation_id: Optional[str] = None,
+    limit: int = 20,
+):
+    """Grouped replay trace for the latest or requested correlation_id."""
+    scope = assert_control_center_access(auth)
+    db = await get_mongo_db()
+    return await build_audit_replay(db, scope, correlation_id=correlation_id, limit=limit)
+
+
+@app.get("/v1/control-center/dashboard-aggregates", tags=["Monitoring"])
+async def get_control_center_dashboard_aggregates(auth=Depends(get_auth)):
+    """Backend-driven hiring funnel and department load within policy scope."""
+    scope = assert_control_center_access(auth)
+    db = await get_mongo_db()
+    return await compute_dashboard_aggregates(db, scope)
 
 
 # Analytics & Statistics - Move stats endpoint before parameterized routes
@@ -2019,68 +2065,11 @@ async def get_candidate_stats(auth=Depends(get_auth)):
     
     **Response:** Real-time statistics including total candidates, active jobs, recent matches, and pending interviews.
     """
-    if auth.get("type") != "api_key" and auth.get("role", "") not in ["client", "recruiter", "admin"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Candidate statistics for command center are restricted to authorized roles",
-        )
+    scope = assert_control_center_access(auth)
 
     try:
         db = await get_mongo_db()
-        
-        # Get total candidates count
-        total_candidates = await db.candidates.count_documents({})
-        
-        # Get active jobs count
-        active_jobs = await db.jobs.count_documents({"status": "active"})
-        
-        # Get recent matches count (from matching_cache collection if exists)
-        try:
-            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-            recent_matches = await db.matching_cache.count_documents({
-                "created_at": {"$gte": seven_days_ago}
-            })
-        except:
-            # Fallback: estimate based on candidates and jobs
-            recent_matches = min(total_candidates * active_jobs // 10, 50) if total_candidates > 0 and active_jobs > 0 else 0
-        
-        # Get pending interviews count
-        try:
-            now = datetime.now(timezone.utc)
-            pending_interviews = await db.interviews.count_documents({
-                "status": {"$in": ["scheduled", "pending"]},
-                "interview_date": {"$gte": now}
-            })
-        except:
-            # Fallback if interviews collection doesn't exist
-            pending_interviews = 0
-        
-        # Additional dynamic statistics
-        try:
-            # Get new candidates this week
-            new_candidates_this_week = await db.candidates.count_documents({
-                "created_at": {"$gte": seven_days_ago}
-            })
-        except:
-            new_candidates_this_week = 0
-        
-        try:
-            # Get feedback submissions count
-            total_feedback = await db.feedback.count_documents({})
-        except:
-            total_feedback = 0
-        
-        return {
-            "total_candidates": total_candidates,
-            "active_jobs": active_jobs,
-            "recent_matches": recent_matches,
-            "pending_interviews": pending_interviews,
-            "new_candidates_this_week": new_candidates_this_week,
-            "total_feedback_submissions": total_feedback,
-            "statistics_generated_at": datetime.now(timezone.utc).isoformat(),
-            "data_source": "mongodb_atlas",
-            "dashboard_ready": True
-        }
+        return await compute_scoped_candidate_stats(db, scope)
     except Exception as e:
         return {
             "total_candidates": 0,
@@ -2092,7 +2081,8 @@ async def get_candidate_stats(auth=Depends(get_auth)):
             "error": str(e),
             "statistics_generated_at": datetime.now(timezone.utc).isoformat(),
             "data_source": "error_fallback",
-            "dashboard_ready": False
+            "dashboard_ready": False,
+            "policy_scope": resolve_policy_scope(auth),
         }
 
 

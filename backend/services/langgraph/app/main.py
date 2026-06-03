@@ -122,6 +122,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    request.state.correlation_id = correlation_id
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
+
 # Include RL router
 app.include_router(rl_router)
 
@@ -213,13 +222,19 @@ async def read_root():
     }
 
 @app.get("/health", tags=["Core API Endpoints"])
-async def health_check():
+async def health_check(request: Request):
     """Health Check"""
     health_data = monitor.get_health_status()
     health_data.update({
         "service": "langgraph-orchestrator",
         "version": "1.0.0",
-        "environment": settings.environment
+        "environment": settings.environment,
+        "correlation_id": getattr(request.state, "correlation_id", None),
+        "governance": {
+            "policy_visibility": "service_health",
+            "execution_authority": False,
+            "advisory_only": True,
+        },
     })
     return health_data
 

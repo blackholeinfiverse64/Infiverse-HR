@@ -261,13 +261,20 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Tenant Isolation | PASSED (Client B blocked from Client A) |
 | Replay Reconstruction | SUCCESS |
 
+### Task19 Runtime Hardening (2026-06-02)
+- **Policy scope module**: `backend/services/gateway/app/control_center_governance.py`
+- **Live APIs**: `GET /v1/control-center/audit-events`, `audit-replay`, `dashboard-aggregates`; scoped stats/metrics
+- **Control center UI**: Live replay + backend funnel/dept aggregates (`frontend/src/pages/control/ControlCenter.tsx`)
+- **Acceptance**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md` (6/6 unit tests passing)
+
 ### Known Gaps
 | Gap | Risk | Mitigation |
 |-----|------|------------|
 | Internal HR user authentication not implemented | Medium | API keys used as workaround |
-| Tenant isolation is per-endpoint manual filtering | High | Systematic negative testing |
-| RL model training is mocked | Low | Documented accepted limitation |
+| Tenant isolation outside control-center endpoints | Medium | Extend `control_center_governance` patterns platform-wide |
+| RL model training is mocked | Low | Documented accepted limitation; retrain endpoint API-key gated |
 | Tenant-specific encryption missing | Medium | Shared keys — security consideration |
+| Staging/prod canary validation | Medium | `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F |
 
 ### Task19 Document Status
 | Document | Path | Status |
