@@ -1,4 +1,4 @@
-"""Task20 Phase 3 — Policy engine runtime."""
+"""Policy registry, evaluation, and override runtime."""
 
 from __future__ import annotations
 

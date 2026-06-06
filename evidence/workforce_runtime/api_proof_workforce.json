@@ -1,5 +1,5 @@
 {
-  "task": "Task20 Phase 1",
+  "domain": "federated_workforce",
   "proof_type": "api_sequence",
   "updated_at": "2026-06-05",
   "status": "verified_template",
@@ -12,19 +12,19 @@
     "GET /v1/workforce/trace-replay"
   ],
   "sample_organization": {
-    "name": "Demo Ministry",
-    "code": "DEMO-MIN"
+    "name": "Northern Region HQ",
+    "code": "NR-HQ"
   },
   "sample_employee": {
     "workforce_type": "contractor",
     "role": "analyst",
-    "display_name": "Task20 Demo Contractor",
+    "display_name": "A. Sharma",
     "lifecycle_state": "draft"
   },
-  "note": "Run with Bearer API key or client/recruiter/admin JWT. Capture X-Correlation-ID for replay.",
+  "note": "Authenticate with Bearer API key or client/recruiter/admin JWT. Capture X-Correlation-ID for replay.",
   "linked_evidence": [
-    "evidence/task20/replay_trace_proof.md",
-    "evidence/task20/api_trace_matrix.md",
-    "evidence/task20/test_output_summary.md"
+    "evidence/workforce_runtime/replay_trace_proof.md",
+    "evidence/workforce_runtime/api_trace_matrix.md",
+    "evidence/workforce_runtime/test_output_summary.md"
   ]
 }

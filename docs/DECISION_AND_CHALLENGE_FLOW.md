@@ -1,6 +1,6 @@
 # Decision and Challenge Flow
 
-**Task20 Phase 4** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Challenge Lifecycle
 

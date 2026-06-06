@@ -20,14 +20,14 @@ Offline helpers only:
 
 ```bash
 cd backend
-python -m pytest tests/e2e/control_center/test_control_center_offline.py tests/gateway/test_task19_control_center_governance.py -v
+python -m pytest tests/e2e/control_center/test_control_center_offline.py tests/gateway/test_control_center_governance.py -v
 ```
 
 ## 1. Unit tests (policy scope + audit mapping)
 
 ```bash
 cd backend
-python -m pytest tests/gateway/test_task19_control_center_governance.py -v
+python -m pytest tests/gateway/test_control_center_governance.py -v
 ```
 
 **Covers:** scope resolution, role gate, audit trace mapping, scoped empty stats.

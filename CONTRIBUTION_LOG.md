@@ -10,14 +10,15 @@ Entries (newest first):
 
 ---
 
-## Task20 — Federated workforce + governance runtime closure (2026-06-05)
+## Workforce governance runtime closure (2026-06-05)
 
-- [x] **BACKEND WIRING VERIFIED**: Confirmed Task20 router wiring in `backend/services/gateway/app/main.py` (`include_router(task20_router)`), and successful Python compile of Task20 modules/routes.
-- [x] **TASK20 RUNTIME MODULES**: Added/validated Task20 gateway app modules for workforce runtime, lifecycle, policy evaluation, challenge workflow, decision ledger, SETU participation, lineage envelope, and shared workforce governance helpers.
-- [x] **CONTROL CENTER VISIBILITY**: Confirmed Task20 governance panel fetches live Task20 APIs and remains feature-gated via `VITE_ENABLE_TASK20_GOVERNANCE=true`.
-- [x] **PHASE DOCS COHERENCE**: Validated and retained phase docs under `docs/` for workforce runtime, lifecycle APIs, policy engine, challenge flow, decision ledger, SETU runtime, and lineage/ownership.
-- [x] **TEST BASELINE**: Ran `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py` => 12 passed.
-- [x] **EVIDENCE REFRESH**: Added Task20 replay/API/test summary evidence files under `evidence/task20/`; refreshed phase-9 narrative docs (`docs/SAMPADA_CURRENT_STATE.md`, `REVIEW_PACKET.md`).
+- [x] **BACKEND WIRING VERIFIED**: Confirmed workforce governance router in `backend/services/gateway/app/main.py`; successful compile of runtime modules and routes.
+- [x] **RUNTIME MODULES**: Workforce runtime, lifecycle, policy evaluation, challenge workflow, decision ledger, SETU participation, lineage envelope, and shared governance helpers.
+- [x] **CONTROL CENTER VISIBILITY**: Governance panel fetches live workforce/governance APIs; feature-gated via `VITE_ENABLE_GOVERNANCE=true`.
+- [x] **RUNTIME DOCS**: Workforce runtime, lifecycle APIs, policy engine, challenge flow, decision ledger, SETU runtime, and lineage/ownership docs under `docs/`.
+- [x] **TEST BASELINE**: `python -m pytest -q backend/tests/gateway/test_workforce_governance_runtime.py backend/tests/gateway/test_workforce_lifecycle.py` => 12 passed.
+- [x] **EVIDENCE REFRESH**: Replay/API/test summary under `evidence/workforce_runtime/`; updated `docs/SAMPADA_CURRENT_STATE.md` and `REVIEW_PACKET.md`.
+- [x] **NAMING CLEANUP**: Renamed routes/tests/evidence paths; removed task-number identifiers from code and UI symbols.
 
 ---
 
@@ -46,7 +47,7 @@ Entries (newest first):
 - [x] **GATEWAY APIs**: Added `GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay`, `GET /v1/control-center/dashboard-aggregates`; hardened audit write taxonomy; scoped `/v1/candidates/stats` and `/metrics/dashboard`.
 - [x] **SERVICE AUTHZ ALIGNMENT**: Agent and LangGraph correlation middleware + health governance metadata; LangGraph `POST /rl/retrain` requires API key.
 - [x] **FRONTEND LIVE REPLAY**: Control center uses live audit replay and backend funnel/dept aggregates; Command Center nav in client/recruiter sidebars when `VITE_ENABLE_CONTROL_CENTER=true`.
-- [x] **ACCEPTANCE PACK**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md`, `backend/tests/gateway/test_task19_control_center_governance.py`.
+- [x] **ACCEPTANCE PACK**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md`, `backend/tests/gateway/test_control_center_governance.py`.
 - [x] **EVIDENCE CLOSURE**: Updated `REVIEW_PACKET.md` runtime proof table.
 
 ## Task19 — Central Control Live Wiring (2026-06-02)

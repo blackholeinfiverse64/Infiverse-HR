@@ -1,6 +1,6 @@
 # Policy Engine Runtime
 
-**Task20 Phase 3** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Components
 

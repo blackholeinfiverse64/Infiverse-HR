@@ -1,6 +1,6 @@
 # Federated Workforce Runtime
 
-**Task20 Phase 1** | **Owner**: Rishabh Yadav | **Status**: Runtime live in gateway
+**Owner**: Rishabh Yadav | **Status**: Runtime live in gateway
 
 ## Overview
 
@@ -63,7 +63,7 @@ Live workforce identity and organization hierarchy runtime for Sampada. Recruitm
   "department_id": "<dept_id>",
   "workforce_type": "contractor",
   "role": "analyst",
-  "display_name": "Sample Contractor",
+  "display_name": "A. Sharma",
   "lifecycle_state": "draft"
 }
 ```
@@ -74,4 +74,4 @@ Live workforce identity and organization hierarchy runtime for Sampada. Recruitm
 2. `GET /v1/workforce/trace-replay?correlation_id=<cid>`
 3. Verify audit events: `organization_create`, `employee_create`, etc.
 
-Evidence: `evidence/task20/api_proof_workforce.json`
+Evidence: `evidence/workforce_runtime/api_proof_workforce.json`

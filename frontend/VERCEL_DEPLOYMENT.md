@@ -203,6 +203,7 @@ The `vercel.json` file should handle this, but if you see 404 errors:
 | `VITE_AGENT_SERVICE_URL` | AI Agent Service URL | `https://bhiv-hr-agent-cato.onrender.com` |
 | `VITE_LANGGRAPH_SERVICE_URL` | LangGraph Service URL | `https://bhiv-hr-langgraph-luy9.onrender.com` |
 | `VITE_ENABLE_CONTROL_CENTER` | Show Command Center nav + `/control` | `true` |
+| `VITE_ENABLE_GOVERNANCE` | Show Governance tab in Control Center | `true` |
 | `VITE_API_KEY` | Backend API Authentication Key | `prod_api_key_...` |
 
 ## Support

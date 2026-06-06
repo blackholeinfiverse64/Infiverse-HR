@@ -1,6 +1,6 @@
 # SETU Participation Runtime
 
-**Task20 Phase 6** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Participation Contracts
 
@@ -43,4 +43,4 @@
 
 MongoDB collection: `setu_signals`
 
-Evidence: `evidence/task20/setu_signal_proof.json`
+Evidence: `evidence/workforce_runtime/setu_signal_proof.json`

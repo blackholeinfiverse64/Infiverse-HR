@@ -1,6 +1,6 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
 **Last Updated**: 2026-06-05 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Task20 runtime/governance integration completed on gateway + control center visibility enabled by feature flag
+**System Owner**: Rishabh Yadav | **Status**: Workforce governance runtime integrated on gateway; control center visibility enabled by feature flag
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -265,7 +265,7 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 - **Policy scope module**: `backend/services/gateway/app/control_center_governance.py`
 - **Live APIs**: `GET /v1/control-center/audit-events`, `audit-replay`, `dashboard-aggregates`; scoped stats/metrics
 - **Control center UI**: `frontend/src/pages/control/ControlCenter.tsx` — parallel `Promise.all` load, 30s silent background refresh, policy scope strip, live replay + funnel/dept aggregates (no seeded replay default)
-- **Acceptance**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`; `test_task19_control_center_governance.py` + `backend/tests/e2e/control_center/` (localhost 8 pass / 2 skip without JWT)
+- **Acceptance**: `docs/TASK19_ACCEPTANCE_TEST_PACK.md`; `test_control_center_governance.py` + `backend/tests/e2e/control_center/` (localhost 8 pass / 2 skip without JWT)
 - **Contract / checklist**: `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md`, `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md`
 
 ### Production deployment (Render + Vercel)
@@ -297,13 +297,13 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Review Packet | `REVIEW_PACKET.md` | Updated |
 | Contribution Log | `CONTRIBUTION_LOG.md` | Updated |
 
-### Task20 Runtime and Governance Integration (2026-06-05)
+### Workforce Governance Runtime (2026-06-05)
 - **Backend modules live**: `workforce_runtime.py`, `workforce_lifecycle.py`, `policy_engine.py`, `decision_workflow.py`, `decision_ledger.py`, `setu_participation.py`, `lineage_envelope.py`, `workforce_common.py`.
-- **Route wiring verified**: `routes/task20_routes.py` included from gateway `main.py`; app compiles with Task20 routes imported.
-- **Control center visibility**: `frontend/src/pages/control/ControlCenter.tsx` + `frontend/src/services/api.ts` includes Task20 governance tab behind `VITE_ENABLE_TASK20_GOVERNANCE=true`.
-- **Task20 phase docs present**: `FEDERATED_WORKFORCE_RUNTIME.md`, `WORKFORCE_LIFECYCLE_API.md`, `POLICY_ENGINE_RUNTIME.md`, `DECISION_AND_CHALLENGE_FLOW.md`, `DECISION_LEDGER_MODEL.md`, `SETU_PARTICIPATION_RUNTIME.md`, `OWNERSHIP_AND_LINEAGE_MODEL.md`.
-- **Task20 test baseline**: `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py` -> 12 passed.
-- **Evidence bundle**: `evidence/task20/` refreshed with API proof notes, replay/trace proof template, and test output summary.
+- **Route wiring verified**: `routes/workforce_governance_routes.py` included from gateway `main.py`.
+- **Control center visibility**: `frontend/src/pages/control/ControlCenter.tsx` + `frontend/src/services/api.ts` includes governance panel behind `VITE_ENABLE_GOVERNANCE=true`.
+- **Runtime docs present**: `FEDERATED_WORKFORCE_RUNTIME.md`, `WORKFORCE_LIFECYCLE_API.md`, `POLICY_ENGINE_RUNTIME.md`, `DECISION_AND_CHALLENGE_FLOW.md`, `DECISION_LEDGER_MODEL.md`, `SETU_PARTICIPATION_RUNTIME.md`, `OWNERSHIP_AND_LINEAGE_MODEL.md`.
+- **Test baseline**: `python -m pytest -q backend/tests/gateway/test_workforce_governance_runtime.py backend/tests/gateway/test_workforce_lifecycle.py` -> 12 passed.
+- **Evidence bundle**: `evidence/workforce_runtime/` includes API proof notes, replay/trace proof template, and test output summary.
 
 ---
 

@@ -1,4 +1,4 @@
-"""Task20 Phase 2 — Workforce lifecycle APIs."""
+"""Workforce lifecycle state transitions and validation."""
 
 from __future__ import annotations
 

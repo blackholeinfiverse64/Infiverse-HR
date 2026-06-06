@@ -1,5 +1,5 @@
 """
-Unit tests for Task19 control-center governance (offline, no localhost required).
+Unit tests for control-center governance (offline, no localhost required).
 """
 
 from __future__ import annotations

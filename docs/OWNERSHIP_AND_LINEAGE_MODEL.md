@@ -1,6 +1,6 @@
 # Ownership and Lineage Model
 
-**Task20 Phase 7** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Lineage Envelope (required on cross-system signals)
 
@@ -22,7 +22,7 @@
 ## Propagation
 
 - Gateway `X-Correlation-ID` middleware sets `request.state.correlation_id`
-- Task20 routes pass correlation ID into all write operations
+- Workforce governance routes pass correlation ID into all write operations
 - Audit logs store `trace_id` and `correlation_id` at top level
 
 ## Example

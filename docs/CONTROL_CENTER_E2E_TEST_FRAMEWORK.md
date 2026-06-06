@@ -84,7 +84,7 @@ python -m pytest tests/e2e/control_center/test_control_center_e2e.py -v -m e2e
 
 ```bash
 cd backend
-python -m pytest tests/e2e/control_center/test_control_center_offline.py tests/gateway/test_task19_control_center_governance.py -v
+python -m pytest tests/e2e/control_center/test_control_center_offline.py tests/gateway/test_control_center_governance.py -v
 ```
 
 ## Package layout

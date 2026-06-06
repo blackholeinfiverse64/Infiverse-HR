@@ -1,4 +1,4 @@
-"""Task20 Phase 6 — SETU participation runtime."""
+"""SETU cross-system signal ingestion and trace continuity."""
 
 from __future__ import annotations
 

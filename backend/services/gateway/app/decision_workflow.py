@@ -1,4 +1,4 @@
-"""Task20 Phase 4 — Challenge, review, override workflows."""
+"""Challenge, review, and override governance workflows."""
 
 from __future__ import annotations
 

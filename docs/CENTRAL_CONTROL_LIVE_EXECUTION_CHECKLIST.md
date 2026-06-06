@@ -49,7 +49,7 @@ Date: 2026-06-03
 - [x] Gateway syntax validation passed (`python -m py_compile backend/services/gateway/app/main.py`).
 - [x] Localhost live wiring (2026-06-03): all Control Center UI paths return 200 with platform API key; health on `:8000`, `:9000`, `:9001`.
 - [x] E2E runner: `cd backend && set API_KEY_SECRET=... && python tests/e2e/control_center/run_control_center_e2e.py` — 8 passed, 2 skipped (JWT secrets unset).
-- [x] Offline + governance unit tests: `test_control_center_offline.py`, `test_task19_control_center_governance.py` — 10 passed.
+- [x] Offline + governance unit tests: `test_control_center_offline.py`, `test_control_center_governance.py` — 10 passed.
 - [x] Render production health (2026-06-03): gateway, agent, langgraph `/health` → 200.
 - [x] Production API smoke (2026-06-03): `python tests/e2e/control_center/run_production_smoke.py` — 15/15 with explicit `GATEWAY_URL` (health, metrics, stats, aggregates, audit read/write, 401 unauthenticated).
 - [x] Vercel deploy fetch: `infiverse-hr.vercel.app` + `sampada.blackholeinfiverse.com` → 200; JS bundles contain Render gateway/agent hosts.

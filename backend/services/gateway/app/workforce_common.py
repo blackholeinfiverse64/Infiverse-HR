@@ -1,4 +1,4 @@
-"""Task20 shared workforce utilities."""
+"""Shared workforce runtime utilities: scope, audit, and enums."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ LIFECYCLE_STATES = frozenset(
 WORKFORCE_AUDIT_EVENT = "workforce"
 GOVERNANCE_AUDIT_EVENT = "governance"
 POLICY_AUDIT_EVENT = "policy"
-TASK20_AUDIT_TYPES = ("control_center", "governance", "policy", "workforce")
+RUNTIME_AUDIT_EVENT_TYPES = ("control_center", "governance", "policy", "workforce")
 
 
 def new_correlation_id() -> str:

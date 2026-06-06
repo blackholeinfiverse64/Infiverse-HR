@@ -1,4 +1,4 @@
-"""Task20 lifecycle transition tests."""
+"""Lifecycle transition validation tests."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Task20 offline unit tests (no MongoDB required)."""
+"""Unit tests for workforce governance runtime (offline, no MongoDB required)."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.e2e_unit
 
 def test_lineage_envelope_required_fields():
     env = LineageEnvelope.from_request(correlation_id="cid-1", trace_id="trace-1")
-    d = env.to_dict()
+    payload = env.to_dict()
     for field in (
         "origin_system",
         "owning_system",
@@ -36,10 +36,10 @@ def test_lineage_envelope_required_fields():
         "trust_classification",
         "visibility_scope",
     ):
-        assert field in d
+        assert field in payload
 
 
-def test_workforce_types_match_task20():
+def test_workforce_types_are_supported_set():
     assert WORKFORCE_TYPES == frozenset(
         {"contractor", "employee", "consultant", "advisor", "intern", "vendor_workforce"}
     )

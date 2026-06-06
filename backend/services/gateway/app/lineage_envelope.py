@@ -1,4 +1,4 @@
-"""TOwnership metadata and lineage envelope."""
+"""Ownership metadata and lineage envelope for cross-system signals."""
 
 from __future__ import annotations
 

@@ -10,11 +10,11 @@
 | Federated workforce model documented | Complete | `docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md` | Doc review |
 | Command center governance model documented | Complete | `docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md` | Doc review |
 | Human safety model documented | Complete | `docs/SAMPADA_HUMAN_SAFETY_MODEL.md` | Doc review |
-| Centralized tenant/org/policy scope enforcement | Complete | `backend/services/gateway/app/control_center_governance.py`, scoped `/v1/candidates/stats` | `backend/tests/gateway/test_task19_control_center_governance.py` |
+| Centralized tenant/org/policy scope enforcement | Complete | `backend/services/gateway/app/control_center_governance.py`, scoped `/v1/candidates/stats` | `backend/tests/gateway/test_control_center_governance.py` |
 | Live audit write + read + replay APIs | Complete | `POST/GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay` | Acceptance pack + E2E |
 | Backend-driven funnel/dept aggregates (no synthetic default) | Complete | `GET /v1/control-center/dashboard-aggregates` | Frontend hiring zone + E2E |
 | Cross-service correlation propagation | Complete | Gateway/Agent/LangGraph `X-Correlation-ID` middleware | Health responses include `correlation_id` |
-| Agent/LangGraph authz alignment (sensitive ops) | Complete | RL `POST /rl/retrain` requires API key; health governance metadata | `test_task19_control_center_governance.py` |
+| Agent/LangGraph authz alignment (sensitive ops) | Complete | RL `POST /rl/retrain` requires API key; health governance metadata | `test_control_center_governance.py` |
 | Control center live replay (no seeded default) | Complete | `ControlCenter.tsx` → `fetchControlCenterAuditReplay` | UI replay zone; `source: audit_logs` |
 | Policy scope visible in UI | Complete | `readPolicyScopeLabel` + data-scope strip in `ControlCenter.tsx` | Manual `/control` |
 | Parallel load + 30s silent refresh | Complete | `Promise.all` in `loadControlCenterData`; `CONTROL_CENTER_REFRESH_MS = 30_000` | Code review + UI |

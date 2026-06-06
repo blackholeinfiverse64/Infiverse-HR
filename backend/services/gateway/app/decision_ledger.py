@@ -1,4 +1,4 @@
-"""Task20 Phase 5 — Decision ledger."""
+"""Decision ledger storage and replay reconstruction."""
 
 from __future__ import annotations
 

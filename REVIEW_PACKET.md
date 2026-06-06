@@ -1,6 +1,6 @@
-# BHIV Sampada — Task20 Review Packet
+# BHIV Sampada — Workforce Governance Review Packet
 
-**Status**: Task20 implementation completed end-to-end for gateway runtime, control-center visibility, docs, and baseline tests  
+**Status**: Workforce governance runtime completed for gateway, control-center visibility, docs, and baseline tests  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
 **Updated**: 2026-06-05
@@ -11,17 +11,17 @@
 
 ## State Block
 
-- Task20 backend modules are present and compile under gateway app.
-- Task20 route bundle is wired through `backend/services/gateway/app/main.py`.
-- Task20 control-center section is visible only when `VITE_ENABLE_TASK20_GOVERNANCE=true`.
-- Phase docs and evidence artifacts are present under `docs/` and `evidence/task20/`.
+- Workforce governance backend modules are present and compile under gateway app.
+- Route bundle is wired through `backend/services/gateway/app/main.py`.
+- Control-center governance panel is visible only when `VITE_ENABLE_GOVERNANCE=true`.
+- Runtime docs and evidence artifacts are present under `docs/` and `evidence/workforce_runtime/`.
 
 ---
 
 ## Federated Workforce Runtime
 
 - Runtime module: `backend/services/gateway/app/workforce_runtime.py`.
-- Routes: organization, division, unit, department, employee CRUD/list/read and hierarchy/trace replay in `backend/services/gateway/routes/task20_routes.py`.
+- Routes: organization, division, unit, department, employee CRUD/list/read and hierarchy/trace replay in `backend/services/gateway/routes/workforce_governance_routes.py`.
 - Scope controls: workforce access and scope filtering via `backend/services/gateway/app/workforce_common.py`.
 - Reference doc: `docs/FEDERATED_WORKFORCE_RUNTIME.md`.
 
@@ -76,27 +76,27 @@
 
 - Metadata envelope module: `backend/services/gateway/app/lineage_envelope.py`.
 - Shared lineage fields include origin, owning system, schema version, trace ID, correlation ID, trust classification, and visibility scope.
-- Task20 writes pass correlation IDs from request state into runtime actions.
+- Write routes pass correlation IDs from request state into runtime actions.
 - Reference doc: `docs/OWNERSHIP_AND_LINEAGE_MODEL.md`.
 
 ---
 
 ## Testing Results
 
-- Compile verification: `python -m compileall backend/services/gateway/app backend/services/gateway/routes/task20_routes.py`.
-- Unit tests: `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py`.
+- Compile verification: `python -m compileall backend/services/gateway/app backend/services/gateway/routes/workforce_governance_routes.py`.
+- Unit tests: `python -m pytest -q backend/tests/gateway/test_workforce_governance_runtime.py backend/tests/gateway/test_workforce_lifecycle.py`.
 - Latest result: **12 passed**, 3 warnings (custom mark + dependency warning), 0 failures.
 
 ---
 
 ## Replay Evidence
 
-- Workforce API/replay baseline: `evidence/task20/api_proof_workforce.json`.
-- SETU ingest baseline: `evidence/task20/setu_signal_proof.json`.
-- Added evidence summaries:
-  - `evidence/task20/replay_trace_proof.md`
-  - `evidence/task20/test_output_summary.md`
-  - `evidence/task20/api_trace_matrix.md`
+- Workforce API/replay baseline: `evidence/workforce_runtime/api_proof_workforce.json`.
+- SETU ingest baseline: `evidence/workforce_runtime/setu_signal_proof.json`.
+- Evidence summaries:
+  - `evidence/workforce_runtime/replay_trace_proof.md`
+  - `evidence/workforce_runtime/test_output_summary.md`
+  - `evidence/workforce_runtime/api_trace_matrix.md`
 
 ---
 
@@ -104,8 +104,8 @@
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Task20 routes depend on runtime Mongo collections existing | Medium | Seed/initialize required collections during deployment checks |
-| Governance tab default visibility not approved for all tenants | Medium | Keep behind `VITE_ENABLE_TASK20_GOVERNANCE` until owner approval |
+| Routes depend on runtime Mongo collections existing | Medium | Seed/initialize required collections during deployment checks |
+| Governance tab default visibility not approved for all tenants | Medium | Keep behind `VITE_ENABLE_GOVERNANCE` until owner approval |
 | Warning-only pytest marks (`e2e_unit`) may hide marker taxonomy drift | Low | Register custom marks in pytest config in a follow-up cleanup |
 | Replay evidence currently template-driven in docs, not full prod trace capture | Medium | Capture and store signed production replay samples after owner-led run |
 

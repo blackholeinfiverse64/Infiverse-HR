@@ -12,14 +12,14 @@ import {
   postControlCenterAuditEvent,
   fetchControlCenterAuditReplay,
   fetchControlCenterDashboardAggregates,
-  fetchTask20Challenges,
-  fetchTask20Decisions,
-  fetchTask20Organizations,
-  fetchTask20PolicyDefinitions,
-  fetchTask20SetuSignals,
-  fetchTask20WorkforceTraceReplay,
+  fetchGovernanceChallenges,
+  fetchGovernanceDecisions,
+  fetchPolicyDefinitions,
+  fetchSetuSignals,
+  fetchWorkforceOrganizations,
+  fetchWorkforceTraceReplay,
   type GatewayMetricsDashboard,
-  type Task20TraceReplay,
+  type WorkforceTraceReplay,
   type GatewayCandidateStats,
   type ServiceHealthSnapshot,
   type ControlCenterTraceEvent,
@@ -45,13 +45,13 @@ interface KpiCard {
 
 type TraceEvent = ControlCenterTraceEvent
 
-interface Task20GovernanceData {
+interface GovernancePanelData {
   organizations: Record<string, unknown>[]
   policies: Record<string, unknown>[]
   challenges: Record<string, unknown>[]
   decisions: Record<string, unknown>[]
   setuSignals: Record<string, unknown>[]
-  workforceTrace: Task20TraceReplay | null
+  workforceTrace: WorkforceTraceReplay | null
 }
 
 interface ControlCenterLiveData {
@@ -60,7 +60,7 @@ interface ControlCenterLiveData {
   candidateStats: GatewayCandidateStats | null
   dashboardAggregates: ControlCenterDashboardAggregates | null
   auditReplay: ControlCenterAuditReplay | null
-  task20: Task20GovernanceData | null
+  governance: GovernancePanelData | null
   agentHealth: ServiceHealthSnapshot | null
   langgraphHealth: ServiceHealthSnapshot | null
   fetchedAt: string | null
@@ -576,17 +576,17 @@ function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]
   )
 }
 
-function GovernanceZone({ task20 }: { task20: Task20GovernanceData | null }) {
-  const orgCount = task20?.organizations.length ?? 0
-  const policyCount = task20?.policies.length ?? 0
-  const challengeCount = task20?.challenges.length ?? 0
-  const decisionCount = task20?.decisions.length ?? 0
-  const signalCount = task20?.setuSignals.length ?? 0
+function GovernanceZone({ governance }: { governance: GovernancePanelData | null }) {
+  const orgCount = governance?.organizations.length ?? 0
+  const policyCount = governance?.policies.length ?? 0
+  const challengeCount = governance?.challenges.length ?? 0
+  const decisionCount = governance?.decisions.length ?? 0
+  const signalCount = governance?.setuSignals.length ?? 0
 
   return (
     <div>
       <ZoneHeader
-        title="Task20 Governance Visibility"
+        title="Governance Visibility"
         subtitle="Org hierarchy · Policy · Challenges · Decisions · SETU lineage (read-only)"
         icon={
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -595,7 +595,7 @@ function GovernanceZone({ task20 }: { task20: Task20GovernanceData | null }) {
         }
       />
       <div className="mb-4 rounded-lg border border-amber-200/60 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2 text-[10px] text-amber-800 dark:text-amber-200">
-        Pending Rishabh approval for production default. Feature flag: VITE_ENABLE_TASK20_GOVERNANCE=true
+        Governance panel requires owner approval before production default. Feature flag: VITE_ENABLE_GOVERNANCE=true
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
         <KpiPill card={card('Organizations', orgCount, '/v1/workforce/organizations')} />
@@ -617,9 +617,9 @@ function GovernanceZone({ task20 }: { task20: Task20GovernanceData | null }) {
         </div>
         <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 p-4">
           <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Workforce Trace Replay</p>
-          {task20?.workforceTrace?.events?.length ? (
+          {governance?.workforceTrace?.events?.length ? (
             <div className="space-y-1 max-h-40 overflow-y-auto text-[10px] font-mono text-slate-600 dark:text-slate-400">
-              {task20.workforceTrace.events.map((ev, i) => (
+              {governance.workforceTrace.events.map((ev, i) => (
                 <p key={i}>{ev.action} · {ev.outcome} · {ev.correlation_id?.slice(0, 8)}</p>
               ))}
             </div>
@@ -638,7 +638,7 @@ function GovernanceZone({ task20 }: { task20: Task20GovernanceData | null }) {
 
 // Feature flag (Vite env): set VITE_ENABLE_CONTROL_CENTER=true to enable
 const ENABLE_CONTROL_CENTER = import.meta.env.VITE_ENABLE_CONTROL_CENTER === 'true'
-const ENABLE_TASK20_GOVERNANCE = import.meta.env.VITE_ENABLE_TASK20_GOVERNANCE === 'true'
+const ENABLE_GOVERNANCE_PANEL = import.meta.env.VITE_ENABLE_GOVERNANCE === 'true'
 const CONTROL_CENTER_REFRESH_MS = 30_000
 
 const ZONES: { id: Zone; label: string; short: string }[] = [
@@ -647,7 +647,7 @@ const ZONES: { id: Zone; label: string; short: string }[] = [
   { id: 'workforce', label: 'Workforce Ops', short: 'Ops' },
   { id: 'growth', label: 'Growth', short: 'Growth' },
   { id: 'org', label: 'Org Visibility', short: 'Org' },
-  ...(ENABLE_TASK20_GOVERNANCE ? [{ id: 'governance' as Zone, label: 'Governance', short: 'Gov' }] : []),
+  ...(ENABLE_GOVERNANCE_PANEL ? [{ id: 'governance' as Zone, label: 'Governance', short: 'Gov' }] : []),
   { id: 'replay', label: 'Replay / Trace', short: 'Trace' },
 ]
 
@@ -683,14 +683,14 @@ export default function ControlCenter() {
     const errors: string[] = []
 
     try {
-      const task20Promise = ENABLE_TASK20_GOVERNANCE
+      const governancePromise = ENABLE_GOVERNANCE_PANEL
         ? Promise.all([
-            fetchTask20Organizations().catch(() => ({ items: [] })),
-            fetchTask20PolicyDefinitions().catch(() => ({ items: [] })),
-            fetchTask20Challenges().catch(() => ({ items: [] })),
-            fetchTask20Decisions().catch(() => ({ items: [] })),
-            fetchTask20SetuSignals().catch(() => ({ items: [] })),
-            fetchTask20WorkforceTraceReplay().catch(() => null),
+            fetchWorkforceOrganizations().catch(() => ({ items: [] })),
+            fetchPolicyDefinitions().catch(() => ({ items: [] })),
+            fetchGovernanceChallenges().catch(() => ({ items: [] })),
+            fetchGovernanceDecisions().catch(() => ({ items: [] })),
+            fetchSetuSignals().catch(() => ({ items: [] })),
+            fetchWorkforceTraceReplay().catch(() => null),
           ])
         : Promise.resolve(null)
 
@@ -702,7 +702,7 @@ export default function ControlCenter() {
         auditReplayResponse,
         agentHealth,
         langgraphHealth,
-        task20Results,
+        governanceResults,
       ] = await Promise.all([
         checkApiHealth(),
         fetchGatewayMetricsDashboard().catch((error) => {
@@ -731,17 +731,17 @@ export default function ControlCenter() {
         }),
         fetchServiceHealth(AGENT_SERVICE_URL, 'BHIV AI Agent'),
         fetchServiceHealth(LANGGRAPH_SERVICE_URL, 'langgraph-orchestrator'),
-        task20Promise,
+        governancePromise,
       ])
 
-      const task20Data: Task20GovernanceData | null = task20Results
+      const governanceData: GovernancePanelData | null = governanceResults
         ? {
-            organizations: task20Results[0].items,
-            policies: task20Results[1].items,
-            challenges: task20Results[2].items,
-            decisions: task20Results[3].items,
-            setuSignals: task20Results[4].items,
-            workforceTrace: task20Results[5],
+            organizations: governanceResults[0].items,
+            policies: governanceResults[1].items,
+            challenges: governanceResults[2].items,
+            decisions: governanceResults[3].items,
+            setuSignals: governanceResults[4].items,
+            workforceTrace: governanceResults[5],
           }
         : null
 
@@ -776,7 +776,7 @@ export default function ControlCenter() {
         candidateStats: candidateStatsResponse?.data ?? null,
         dashboardAggregates: aggregatesResponse?.data ?? null,
         auditReplay: auditReplayResponse?.data ?? null,
-        task20: task20Data,
+        governance: governanceData,
         agentHealth,
         langgraphHealth,
         fetchedAt: new Date().toISOString(),
@@ -995,8 +995,8 @@ export default function ControlCenter() {
           {activeZone === 'org' && (
             <OrgVisibilityZone cards={orgCards} sourceSummary="Gateway performance_summary + system_metrics (aggregated)" departmentLoad={departmentLoad} />
           )}
-          {activeZone === 'governance' && ENABLE_TASK20_GOVERNANCE && (
-            <GovernanceZone task20={liveData?.task20 ?? null} />
+          {activeZone === 'governance' && ENABLE_GOVERNANCE_PANEL && (
+            <GovernanceZone governance={liveData?.governance ?? null} />
           )}
           {activeZone === 'replay' && (
             <ReplayTraceZone

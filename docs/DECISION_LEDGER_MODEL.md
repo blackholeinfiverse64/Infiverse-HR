@@ -1,6 +1,6 @@
 # Decision Ledger Model
 
-**Task20 Phase 5** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Required Fields
 

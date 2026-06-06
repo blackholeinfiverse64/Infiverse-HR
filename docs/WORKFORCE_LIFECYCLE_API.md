@@ -1,6 +1,6 @@
 # Workforce Lifecycle API
 
-**Task20 Phase 2** | **Owner**: Rishabh Yadav
+**Owner**: Rishabh Yadav
 
 ## Lifecycle States
 

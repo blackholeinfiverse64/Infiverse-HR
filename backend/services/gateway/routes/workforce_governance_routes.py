@@ -1,4 +1,4 @@
-"""Task20 API routes."""
+"""Workforce, policy, governance, and SETU participation API routes."""
 
 from __future__ import annotations
 
@@ -47,10 +47,10 @@ from app.workforce_runtime import (
 )
 from jwt_auth import get_auth
 
-router = APIRouter(tags=["Task20 Workforce Runtime"])
+router = APIRouter(tags=["Workforce Governance"])
 
 
-def _corr(request: Request) -> Optional[str]:
+def _correlation_id(request: Request) -> Optional[str]:
     return getattr(request.state, "correlation_id", None)
 
 
@@ -58,7 +58,7 @@ def _corr(request: Request) -> Optional[str]:
 async def api_create_organization(body: OrganizationCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_organization(db, body, scope, _corr(request))
+    return await create_organization(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/workforce/organizations")
@@ -86,7 +86,7 @@ async def api_org_hierarchy(org_id: str, auth=Depends(get_auth)):
 async def api_create_division(body: DivisionCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_division(db, body, scope, _corr(request))
+    return await create_division(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/workforce/divisions")
@@ -100,7 +100,7 @@ async def api_list_divisions(auth=Depends(get_auth), organization_id: Optional[s
 async def api_create_unit(body: UnitCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_unit(db, body, scope, _corr(request))
+    return await create_unit(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/workforce/units")
@@ -114,7 +114,7 @@ async def api_list_units(auth=Depends(get_auth), division_id: Optional[str] = No
 async def api_create_department(body: DepartmentCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_department(db, body, scope, _corr(request))
+    return await create_department(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/workforce/departments")
@@ -128,7 +128,7 @@ async def api_list_departments(auth=Depends(get_auth), organization_id: Optional
 async def api_create_employee(body: EmployeeCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_employee(db, body, scope, _corr(request))
+    return await create_employee(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/workforce/employees")
@@ -162,42 +162,42 @@ async def api_workforce_trace_replay(auth=Depends(get_auth), correlation_id: Opt
 async def api_onboard(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await onboard_employee(db, employee_id, scope, body, _corr(request))
+    return await onboard_employee(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.post("/v1/workforce/employees/{employee_id}/lifecycle/onboard-complete")
 async def api_onboard_complete(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await complete_onboarding(db, employee_id, scope, body, _corr(request))
+    return await complete_onboarding(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.post("/v1/workforce/employees/{employee_id}/lifecycle/role-move")
 async def api_role_move(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await role_movement(db, employee_id, scope, body, _corr(request))
+    return await role_movement(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.post("/v1/workforce/employees/{employee_id}/lifecycle/department-transfer")
 async def api_dept_transfer(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await department_transfer(db, employee_id, scope, body, _corr(request))
+    return await department_transfer(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.patch("/v1/workforce/employees/{employee_id}/lifecycle/status")
 async def api_status_change(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await status_change(db, employee_id, scope, body, _corr(request))
+    return await status_change(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.post("/v1/workforce/employees/{employee_id}/lifecycle/offboard-prepare")
 async def api_offboard_prepare(employee_id: str, body: LifecycleTransition, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await offboarding_prepare(db, employee_id, scope, body, _corr(request))
+    return await offboarding_prepare(db, employee_id, scope, body, _correlation_id(request))
 
 
 @router.post("/v1/policies/seed")
@@ -225,21 +225,21 @@ async def api_create_policy(body: PolicyDefinitionCreate, auth=Depends(get_auth)
 async def api_evaluate_policy(body: PolicyEvaluateRequest, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await evaluate_policy(db, body, scope, _corr(request))
+    return await evaluate_policy(db, body, scope, _correlation_id(request))
 
 
 @router.post("/v1/policies/overrides")
 async def api_policy_override(body: PolicyOverrideCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_policy_override(db, body, scope, _corr(request))
+    return await create_policy_override(db, body, scope, _correlation_id(request))
 
 
 @router.post("/v1/governance/challenges")
 async def api_create_challenge(body: ChallengeCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_challenge(db, body, scope, _corr(request))
+    return await create_challenge(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/governance/challenges")
@@ -253,7 +253,7 @@ async def api_list_challenges(auth=Depends(get_auth), limit: int = 50):
 async def api_assign_review(body: ReviewCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await assign_review(db, body, scope, _corr(request))
+    return await assign_review(db, body, scope, _correlation_id(request))
 
 
 @router.post("/v1/governance/reviews/{review_id}/complete")
@@ -267,7 +267,7 @@ async def api_complete_review(review_id: str, body: ReviewComplete, auth=Depends
 async def api_workflow_override(body: WorkflowOverrideCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await record_workflow_override(db, body, scope, _corr(request))
+    return await record_workflow_override(db, body, scope, _correlation_id(request))
 
 
 @router.post("/v1/governance/overrides/{override_id}/apply")
@@ -281,7 +281,7 @@ async def api_apply_override(override_id: str, auth=Depends(get_auth)):
 async def api_create_decision(body: DecisionCreate, request: Request, auth=Depends(get_auth)):
     scope = assert_workforce_access(auth)
     db = await get_mongo_db()
-    return await create_decision(db, body, scope, _corr(request))
+    return await create_decision(db, body, scope, _correlation_id(request))
 
 
 @router.get("/v1/decisions/replay")

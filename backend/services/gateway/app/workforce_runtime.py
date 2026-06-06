@@ -1,4 +1,4 @@
-"""Task20 Phase 1 — Federated workforce runtime."""
+"""Federated workforce runtime: organizations, hierarchy, and employees."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from app.lineage_envelope import LineageEnvelope
 from app.workforce_common import (
     LIFECYCLE_STATES,
     WORKFORCE_TYPES,
-    TASK20_AUDIT_TYPES,
+    RUNTIME_AUDIT_EVENT_TYPES,
     compute_inherited_roles,
     doc_id_filter,
     new_correlation_id,
@@ -288,7 +288,7 @@ async def get_org_hierarchy(db, organization_id, scope):
 
 
 async def workforce_trace_replay(db, scope, correlation_id=None, limit=30):
-    filt: Dict[str, Any] = {"event_type": {"$in": list(TASK20_AUDIT_TYPES)}}
+    filt: Dict[str, Any] = {"event_type": {"$in": list(RUNTIME_AUDIT_EVENT_TYPES)}}
     if scope.get("scope") != "platform":
         user_id = str(scope.get("user_id") or "")
         filt["$or"] = [

@@ -257,14 +257,14 @@ export const fetchControlCenterAuditReplay = async (
   }
 }
 
-// ── Task20 Workforce / Governance APIs ─────────────────────────────────────
+// ── Workforce governance APIs (control center visibility) ───────────────────
 
-export interface Task20ListResponse<T> {
+export interface WorkforceListResponse<T> {
   items: T[]
   policy_scope?: Record<string, unknown>
 }
 
-export interface Task20OrgHierarchy {
+export interface WorkforceOrgHierarchy {
   organization: Record<string, unknown>
   divisions: Record<string, unknown>[]
   units: Record<string, unknown>[]
@@ -273,49 +273,49 @@ export interface Task20OrgHierarchy {
   policy_scope?: Record<string, unknown>
 }
 
-export interface Task20TraceReplay {
+export interface WorkforceTraceReplay {
   correlation_id?: string | null
   event_count: number
   events: { action: string; outcome: string; correlation_id?: string; trace_id?: string }[]
 }
 
-export const fetchTask20Organizations = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+export const fetchWorkforceOrganizations = async (): Promise<WorkforceListResponse<Record<string, unknown>>> => {
   const response = await api.get('/v1/workforce/organizations')
-  return response.data as Task20ListResponse<Record<string, unknown>>
+  return response.data as WorkforceListResponse<Record<string, unknown>>
 }
 
-export const fetchTask20OrgHierarchy = async (orgId: string): Promise<Task20OrgHierarchy> => {
+export const fetchWorkforceOrgHierarchy = async (orgId: string): Promise<WorkforceOrgHierarchy> => {
   const response = await api.get(`/v1/workforce/organizations/${orgId}/hierarchy`)
-  return response.data as Task20OrgHierarchy
+  return response.data as WorkforceOrgHierarchy
 }
 
-export const fetchTask20PolicyDefinitions = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+export const fetchPolicyDefinitions = async (): Promise<WorkforceListResponse<Record<string, unknown>>> => {
   const response = await api.get('/v1/policies/definitions')
-  return response.data as Task20ListResponse<Record<string, unknown>>
+  return response.data as WorkforceListResponse<Record<string, unknown>>
 }
 
-export const fetchTask20Challenges = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+export const fetchGovernanceChallenges = async (): Promise<WorkforceListResponse<Record<string, unknown>>> => {
   const response = await api.get('/v1/governance/challenges')
-  return response.data as Task20ListResponse<Record<string, unknown>>
+  return response.data as WorkforceListResponse<Record<string, unknown>>
 }
 
-export const fetchTask20Decisions = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+export const fetchGovernanceDecisions = async (): Promise<WorkforceListResponse<Record<string, unknown>>> => {
   const response = await api.get('/v1/decisions')
-  return response.data as Task20ListResponse<Record<string, unknown>>
+  return response.data as WorkforceListResponse<Record<string, unknown>>
 }
 
-export const fetchTask20SetuSignals = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+export const fetchSetuSignals = async (): Promise<WorkforceListResponse<Record<string, unknown>>> => {
   const response = await api.get('/v1/setu/signals')
-  return response.data as Task20ListResponse<Record<string, unknown>>
+  return response.data as WorkforceListResponse<Record<string, unknown>>
 }
 
-export const fetchTask20WorkforceTraceReplay = async (
+export const fetchWorkforceTraceReplay = async (
   correlationId?: string,
-): Promise<Task20TraceReplay> => {
+): Promise<WorkforceTraceReplay> => {
   const response = await api.get('/v1/workforce/trace-replay', {
     params: correlationId ? { correlation_id: correlationId } : undefined,
   })
-  return response.data as Task20TraceReplay
+  return response.data as WorkforceTraceReplay
 }
 
 export const fetchControlCenterDashboardAggregates = async (): Promise<{

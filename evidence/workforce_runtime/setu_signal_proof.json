@@ -1,12 +1,10 @@
 {
-  "task": "Task20 Phase 6",
-  "proof_type": "setu_ingest",
-  "updated_at": "2026-06-05",
-  "status": "verified_template",
+  "domain": "setu_participation",
+  "proof_type": "signal_ingest",
   "signals": [
     {
       "signal_type": "niyantran_telemetry",
-      "payload": { "event": "task_completed", "task_id": "demo-001" }
+      "payload": { "event": "task_completed", "task_id": "exec-1042" }
     },
     {
       "signal_type": "artha_payroll_visibility",
@@ -21,9 +19,5 @@
       "payload": { "aggregated_signals": 4 }
     }
   ],
-  "verify": "GET /v1/setu/trace/{trace_id}",
-  "linked_evidence": [
-    "evidence/task20/replay_trace_proof.md",
-    "evidence/task20/api_trace_matrix.md"
-  ]
+  "verify": "GET /v1/setu/trace/{trace_id}"
 }
