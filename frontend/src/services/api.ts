@@ -257,6 +257,67 @@ export const fetchControlCenterAuditReplay = async (
   }
 }
 
+// ── Task20 Workforce / Governance APIs ─────────────────────────────────────
+
+export interface Task20ListResponse<T> {
+  items: T[]
+  policy_scope?: Record<string, unknown>
+}
+
+export interface Task20OrgHierarchy {
+  organization: Record<string, unknown>
+  divisions: Record<string, unknown>[]
+  units: Record<string, unknown>[]
+  departments: Record<string, unknown>[]
+  employees: Record<string, unknown>[]
+  policy_scope?: Record<string, unknown>
+}
+
+export interface Task20TraceReplay {
+  correlation_id?: string | null
+  event_count: number
+  events: { action: string; outcome: string; correlation_id?: string; trace_id?: string }[]
+}
+
+export const fetchTask20Organizations = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+  const response = await api.get('/v1/workforce/organizations')
+  return response.data as Task20ListResponse<Record<string, unknown>>
+}
+
+export const fetchTask20OrgHierarchy = async (orgId: string): Promise<Task20OrgHierarchy> => {
+  const response = await api.get(`/v1/workforce/organizations/${orgId}/hierarchy`)
+  return response.data as Task20OrgHierarchy
+}
+
+export const fetchTask20PolicyDefinitions = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+  const response = await api.get('/v1/policies/definitions')
+  return response.data as Task20ListResponse<Record<string, unknown>>
+}
+
+export const fetchTask20Challenges = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+  const response = await api.get('/v1/governance/challenges')
+  return response.data as Task20ListResponse<Record<string, unknown>>
+}
+
+export const fetchTask20Decisions = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+  const response = await api.get('/v1/decisions')
+  return response.data as Task20ListResponse<Record<string, unknown>>
+}
+
+export const fetchTask20SetuSignals = async (): Promise<Task20ListResponse<Record<string, unknown>>> => {
+  const response = await api.get('/v1/setu/signals')
+  return response.data as Task20ListResponse<Record<string, unknown>>
+}
+
+export const fetchTask20WorkforceTraceReplay = async (
+  correlationId?: string,
+): Promise<Task20TraceReplay> => {
+  const response = await api.get('/v1/workforce/trace-replay', {
+    params: correlationId ? { correlation_id: correlationId } : undefined,
+  })
+  return response.data as Task20TraceReplay
+}
+
 export const fetchControlCenterDashboardAggregates = async (): Promise<{
   data: ControlCenterDashboardAggregates
   meta: ControlCenterApiMeta

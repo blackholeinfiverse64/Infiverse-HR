@@ -12,7 +12,14 @@ import {
   postControlCenterAuditEvent,
   fetchControlCenterAuditReplay,
   fetchControlCenterDashboardAggregates,
+  fetchTask20Challenges,
+  fetchTask20Decisions,
+  fetchTask20Organizations,
+  fetchTask20PolicyDefinitions,
+  fetchTask20SetuSignals,
+  fetchTask20WorkforceTraceReplay,
   type GatewayMetricsDashboard,
+  type Task20TraceReplay,
   type GatewayCandidateStats,
   type ServiceHealthSnapshot,
   type ControlCenterTraceEvent,
@@ -24,7 +31,7 @@ import {
 // Types
 // ────────────────────────────────────────────────────────────────────────────
 
-type Zone = 'executive' | 'hiring' | 'workforce' | 'growth' | 'org' | 'replay'
+type Zone = 'executive' | 'hiring' | 'workforce' | 'growth' | 'org' | 'governance' | 'replay'
 
 interface KpiCard {
   label: string
@@ -38,12 +45,22 @@ interface KpiCard {
 
 type TraceEvent = ControlCenterTraceEvent
 
+interface Task20GovernanceData {
+  organizations: Record<string, unknown>[]
+  policies: Record<string, unknown>[]
+  challenges: Record<string, unknown>[]
+  decisions: Record<string, unknown>[]
+  setuSignals: Record<string, unknown>[]
+  workforceTrace: Task20TraceReplay | null
+}
+
 interface ControlCenterLiveData {
   gatewayHealth: { healthy: boolean; data?: Record<string, unknown> | null } | null
   gatewayMetrics: GatewayMetricsDashboard | null
   candidateStats: GatewayCandidateStats | null
   dashboardAggregates: ControlCenterDashboardAggregates | null
   auditReplay: ControlCenterAuditReplay | null
+  task20: Task20GovernanceData | null
   agentHealth: ServiceHealthSnapshot | null
   langgraphHealth: ServiceHealthSnapshot | null
   fetchedAt: string | null
@@ -559,12 +576,69 @@ function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]
   )
 }
 
+function GovernanceZone({ task20 }: { task20: Task20GovernanceData | null }) {
+  const orgCount = task20?.organizations.length ?? 0
+  const policyCount = task20?.policies.length ?? 0
+  const challengeCount = task20?.challenges.length ?? 0
+  const decisionCount = task20?.decisions.length ?? 0
+  const signalCount = task20?.setuSignals.length ?? 0
+
+  return (
+    <div>
+      <ZoneHeader
+        title="Task20 Governance Visibility"
+        subtitle="Org hierarchy · Policy · Challenges · Decisions · SETU lineage (read-only)"
+        icon={
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        }
+      />
+      <div className="mb-4 rounded-lg border border-amber-200/60 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2 text-[10px] text-amber-800 dark:text-amber-200">
+        Pending Rishabh approval for production default. Feature flag: VITE_ENABLE_TASK20_GOVERNANCE=true
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        <KpiPill card={card('Organizations', orgCount, '/v1/workforce/organizations')} />
+        <KpiPill card={card('Policies', policyCount, '/v1/policies/definitions')} />
+        <KpiPill card={card('Challenges', challengeCount, '/v1/governance/challenges')} />
+        <KpiPill card={card('Decisions', decisionCount, '/v1/decisions')} />
+        <KpiPill card={card('SETU Signals', signalCount, '/v1/setu/signals')} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 p-4">
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">OARDE Layer Separation</p>
+          <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+            <p><strong>Observation:</strong> workforce + SETU signal counts above</p>
+            <p><strong>Assessment:</strong> policy definitions loaded from registry</p>
+            <p><strong>Recommendation:</strong> challenge records (advisory)</p>
+            <p><strong>Decision:</strong> decision ledger entries (external owner)</p>
+            <p><strong>Execution:</strong> blocked — no mutate actions in UI</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 p-4">
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Workforce Trace Replay</p>
+          {task20?.workforceTrace?.events?.length ? (
+            <div className="space-y-1 max-h-40 overflow-y-auto text-[10px] font-mono text-slate-600 dark:text-slate-400">
+              {task20.workforceTrace.events.map((ev, i) => (
+                <p key={i}>{ev.action} · {ev.outcome} · {ev.correlation_id?.slice(0, 8)}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[10px] text-slate-500">No workforce audit events in scope yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Main Control Center
 // ────────────────────────────────────────────────────────────────────────────
 
 // Feature flag (Vite env): set VITE_ENABLE_CONTROL_CENTER=true to enable
 const ENABLE_CONTROL_CENTER = import.meta.env.VITE_ENABLE_CONTROL_CENTER === 'true'
+const ENABLE_TASK20_GOVERNANCE = import.meta.env.VITE_ENABLE_TASK20_GOVERNANCE === 'true'
 const CONTROL_CENTER_REFRESH_MS = 30_000
 
 const ZONES: { id: Zone; label: string; short: string }[] = [
@@ -573,6 +647,7 @@ const ZONES: { id: Zone; label: string; short: string }[] = [
   { id: 'workforce', label: 'Workforce Ops', short: 'Ops' },
   { id: 'growth', label: 'Growth', short: 'Growth' },
   { id: 'org', label: 'Org Visibility', short: 'Org' },
+  ...(ENABLE_TASK20_GOVERNANCE ? [{ id: 'governance' as Zone, label: 'Governance', short: 'Gov' }] : []),
   { id: 'replay', label: 'Replay / Trace', short: 'Trace' },
 ]
 
@@ -608,6 +683,17 @@ export default function ControlCenter() {
     const errors: string[] = []
 
     try {
+      const task20Promise = ENABLE_TASK20_GOVERNANCE
+        ? Promise.all([
+            fetchTask20Organizations().catch(() => ({ items: [] })),
+            fetchTask20PolicyDefinitions().catch(() => ({ items: [] })),
+            fetchTask20Challenges().catch(() => ({ items: [] })),
+            fetchTask20Decisions().catch(() => ({ items: [] })),
+            fetchTask20SetuSignals().catch(() => ({ items: [] })),
+            fetchTask20WorkforceTraceReplay().catch(() => null),
+          ])
+        : Promise.resolve(null)
+
       const [
         gatewayHealth,
         gatewayMetricsResponse,
@@ -616,6 +702,7 @@ export default function ControlCenter() {
         auditReplayResponse,
         agentHealth,
         langgraphHealth,
+        task20Results,
       ] = await Promise.all([
         checkApiHealth(),
         fetchGatewayMetricsDashboard().catch((error) => {
@@ -644,7 +731,19 @@ export default function ControlCenter() {
         }),
         fetchServiceHealth(AGENT_SERVICE_URL, 'BHIV AI Agent'),
         fetchServiceHealth(LANGGRAPH_SERVICE_URL, 'langgraph-orchestrator'),
+        task20Promise,
       ])
+
+      const task20Data: Task20GovernanceData | null = task20Results
+        ? {
+            organizations: task20Results[0].items,
+            policies: task20Results[1].items,
+            challenges: task20Results[2].items,
+            decisions: task20Results[3].items,
+            setuSignals: task20Results[4].items,
+            workforceTrace: task20Results[5],
+          }
+        : null
 
       if (!gatewayHealth.healthy) {
         errors.push('Gateway health check returned an unhealthy state')
@@ -677,6 +776,7 @@ export default function ControlCenter() {
         candidateStats: candidateStatsResponse?.data ?? null,
         dashboardAggregates: aggregatesResponse?.data ?? null,
         auditReplay: auditReplayResponse?.data ?? null,
+        task20: task20Data,
         agentHealth,
         langgraphHealth,
         fetchedAt: new Date().toISOString(),
@@ -894,6 +994,9 @@ export default function ControlCenter() {
           )}
           {activeZone === 'org' && (
             <OrgVisibilityZone cards={orgCards} sourceSummary="Gateway performance_summary + system_metrics (aggregated)" departmentLoad={departmentLoad} />
+          )}
+          {activeZone === 'governance' && ENABLE_TASK20_GOVERNANCE && (
+            <GovernanceZone task20={liveData?.task20 ?? null} />
           )}
           {activeZone === 'replay' && (
             <ReplayTraceZone

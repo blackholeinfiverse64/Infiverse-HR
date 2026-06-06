@@ -1,248 +1,114 @@
-# BHIV Sampada — Task19 Review Packet
+# BHIV Sampada — Task20 Review Packet
 
-**Status**: Task19 boundary documents complete; runtime governance hardening complete; production health verified on Render (2026-06-03)  
-**Task19 Deliverables**: 5/5 primary docs + live control center + E2E acceptance framework  
+**Status**: Task20 implementation completed end-to-end for gateway runtime, control-center visibility, docs, and baseline tests  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
-**Updated**: 2026-06-03
+**Updated**: 2026-06-05
 
-> **Operational Role**: Support Builder under Rishabh Yadav's leadership. Sampada remains an intelligence and visibility layer only. No execution authority is claimed here.
-
----
-
-## 1. Government-Scale Architecture
-
-The architecture boundary for Task19 is defined in [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md).
-
-### What it establishes
-- Ministry, department, division, unit, office, and contractor/vendor participation levels
-- Permanent, contractual, consultant, outsourced, volunteer, fellow, and advisor workforce scope
-- Federated administration with local, department, platform, and auditor roles
-- Tenant, org, visibility, and policy isolation boundaries
-
-### Key rule
-- Sampada must not collapse the multi-org model into a single global admin or a universal workforce state.
+> Operational boundary remains unchanged: Sampada is a visibility and intelligence surface; execution authority stays with owning systems and approved owners.
 
 ---
 
-## 2. Policy / Governance Model
+## State Block
 
-The governance model is defined in [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md).
-
-### Core rules
-- Policy examples: leave, attendance, growth, visibility, consent, retention
-- Governance verbs: observe, assess, recommend, approve, execute
-- Required separation: observation ≠ assessment ≠ recommendation ≠ approval ≠ execution
-- Enforcement patterns: policy tags, rule provenance, auditability, override recording, challenge pathways
-
-### Key rule
-- No hidden governance and no dashboard-level authority drift.
+- Task20 backend modules are present and compile under gateway app.
+- Task20 route bundle is wired through `backend/services/gateway/app/main.py`.
+- Task20 control-center section is visible only when `VITE_ENABLE_TASK20_GOVERNANCE=true`.
+- Phase docs and evidence artifacts are present under `docs/` and `evidence/task20/`.
 
 ---
 
-## 3. Federated Workforce Model
+## Federated Workforce Runtime
 
-The federated identity and ontology model is defined in [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md).
-
-### Core rules
-- Minimal shared workforce reference only
-- Sampada owns growth, lifecycle, and workforce intelligence
-- Niyantran owns execution telemetry
-- Artha owns payroll truth
-- Other systems participate only within bounded scopes
-- Derived intelligence remains challengeable, not canonical truth
-
-### Key rule
-- No universal human-state model and no silent absorption of other systems' sovereignty.
+- Runtime module: `backend/services/gateway/app/workforce_runtime.py`.
+- Routes: organization, division, unit, department, employee CRUD/list/read and hierarchy/trace replay in `backend/services/gateway/routes/task20_routes.py`.
+- Scope controls: workforce access and scope filtering via `backend/services/gateway/app/workforce_common.py`.
+- Reference doc: `docs/FEDERATED_WORKFORCE_RUNTIME.md`.
 
 ---
 
-## 4. Dashboard Governance Hardening
+## Lifecycle APIs
 
-The command center governance model is defined in [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md).
-
-### Executive use cases
-- Minister
-- Secretary
-- Department Head
-- HR Operator
-- Auditor
-
-### Cognition separation
-- Observation
-- Assessment
-- Recommendation
-- Decision
-- Execution
-
-### Explainability surfaces
-- Source visibility
-- Calculation explanation
-- Signal provenance
-
-### Key rule
-- The dashboard informs, but does not become legitimacy or execution authority.
+- Runtime module: `backend/services/gateway/app/workforce_lifecycle.py`.
+- Endpoints include onboarding start/complete, role movement, department transfer, status change, and offboard preparation.
+- Allowed transitions are enforced with explicit lifecycle-state mapping.
+- Reference doc: `docs/WORKFORCE_LIFECYCLE_API.md`.
 
 ---
 
-## 5. Human Safety Framework
+## Policy Engine
 
-The safety model is defined in [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md).
-
-### Core principles
-- Human dignity
-- Explainability
-- Bounded scoring
-- Context awareness
-- Assistive intelligence
-- Reviewability
-
-### Required controls
-- Role-based visibility
-- Org-scoped visibility
-- Policy-scoped visibility
-- Minimum necessary display
-- Challenge and appeal paths
-
-### Key rule
-- No surveillance-style monitoring, opaque scoring, or coercive productivity ranking.
+- Runtime module: `backend/services/gateway/app/policy_engine.py`.
+- Endpoints include policy seed/list/create/evaluate/override.
+- Policy evaluation and override events are auditable through gateway audit storage.
+- Reference doc: `docs/POLICY_ENGINE_RUNTIME.md`.
 
 ---
 
-## 6. Boundary Protection
+## Challenge Workflow
 
-### Task19 constitutional boundaries
-| Boundary | Protection |
-|---|---|
-| Visibility ≠ execution authority | Dashboards remain read-only by default |
-| Policy ≠ hidden governance | All policy effects must be inspectable |
-| Derived insight ≠ canonical truth | Provenance and source visibility remain mandatory |
-| Aggregation ≠ sovereignty | Cross-system references preserve origin |
-| Assistive intelligence ≠ coercion | Recommendations stay advisory until explicitly approved |
-
-### Reinforced by
-- [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md)
-- [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md)
-- [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md)
-- [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md)
-- [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md)
+- Runtime module: `backend/services/gateway/app/decision_workflow.py`.
+- Endpoints include challenge creation/listing, review assignment/completion, and override proposal/apply flow.
+- Review-to-decision bridge is exposed through governance review decision recording.
+- Reference doc: `docs/DECISION_AND_CHALLENGE_FLOW.md`.
 
 ---
 
-## 7. SETU Alignment
+## Decision Ledger
 
-### Alignment summary
-- Sampada remains the intelligence layer inside SETU-connected operations.
-- Niyantran remains the execution telemetry domain.
-- Artha remains the payroll truth domain.
-- SETU aggregation must not erase local ownership or policy context.
-
-### Boundary note
-- Payroll visibility participation does not become payroll ownership.
-- Derived workforce intelligence remains challengeable and scoped.
-
-### Existing reference material
-- [docs/SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md)
-- [CONTRIBUTION_LOG.md](CONTRIBUTION_LOG.md)
-- [docs/SAMPADA_SETU_CONVERGENCE_MAP.md](docs/SAMPADA_SETU_CONVERGENCE_MAP.md)
+- Runtime module: `backend/services/gateway/app/decision_ledger.py`.
+- Endpoints include decision create/list/read/replay.
+- Replay supports chain reconstruction and correlation-based timeline review.
+- Reference doc: `docs/DECISION_LEDGER_MODEL.md`.
 
 ---
 
-## 8. Risks
+## SETU Participation
 
-| # | Risk | Impact | Mitigation |
-|---|---|---|---|
-| R1 | Multi-org hierarchy collapses into a flat admin model | Critical | Keep ministry/department/division/unit/office boundaries explicit |
-| R2 | Policy logic becomes hidden governance | High | Preserve policy source, scope, and override traceability |
-| R3 | Derived dashboard insights are mistaken for authority | High | Show source visibility, calculation explanation, and provenance |
-| R4 | Workforce truth becomes centralized in one layer | Critical | Maintain federated ownership across Sampada, Niyantran, Artha, and others |
-| R5 | Safety controls drift into surveillance or coercion | High | Keep human dignity, explainability, bounded scoring, and reviewability explicit |
+- Runtime module: `backend/services/gateway/app/setu_participation.py`.
+- Endpoints include signal ingest, scoped signal list, and trace continuity reads.
+- Cross-system participation uses lineage + ownership metadata for replay integrity.
+- Reference doc: `docs/SETU_PARTICIPATION_RUNTIME.md`.
 
 ---
 
-## 9. Roadmap
+## Ownership Metadata
 
-### Complete (2026-06-03)
-- Five Task19 boundary documents
-- Live control center wiring (gateway governance module, audit replay, aggregates, scoped stats)
-- Frontend `ControlCenter.tsx`: parallel `Promise.all` load, 30s silent refresh, policy scope UI
-- Acceptance: `test_task19_control_center_governance.py`, `backend/tests/e2e/control_center/`
-- Render production `/health` verified; Vercel deployment documented (`VITE_LANGGRAPH_SERVICE_URL`)
-- Production API smoke script: 15/15 (`run_production_smoke.py`); prod audit write canary OK
-
-### Immediate (acceptance)
-- Rishabh review and sign-off on this review packet
-- Manual: log in on Vercel → `/control` (bundle already contains Render URLs; confirm live cards in browser)
-- Manual: JWT role matrix on prod with real client/recruiter/admin accounts (demo `TECH001` not in prod DB)
-
-### Next (lead-directed)
-- Extend `control_center_governance` patterns platform-wide (tenant isolation beyond control center)
-- Runtime ministry→office hierarchy and policy engine only if approved
-- Owner API integration (Niyantran/Artha) per SETU convergence map
-
-### Later
-- Staging/preview environment parity for control center
-- Diagrams and additional replay evidence when directed
+- Metadata envelope module: `backend/services/gateway/app/lineage_envelope.py`.
+- Shared lineage fields include origin, owning system, schema version, trace ID, correlation ID, trust classification, and visibility scope.
+- Task20 writes pass correlation IDs from request state into runtime actions.
+- Reference doc: `docs/OWNERSHIP_AND_LINEAGE_MODEL.md`.
 
 ---
 
-## 10. Proof / Evidence
+## Testing Results
 
-### Task19 runtime evidence (2026-06-03)
-
-| Requirement | Proof |
-|-------------|-------|
-| Policy-scope enforcement | `backend/services/gateway/app/control_center_governance.py`; scoped `/v1/candidates/stats`, `/metrics/dashboard` |
-| Live audit read/replay | `GET /v1/control-center/audit-events`, `GET /v1/control-center/audit-replay` |
-| Backend aggregates (funnel/dept) | `GET /v1/control-center/dashboard-aggregates` |
-| Control center UI | `frontend/src/pages/control/ControlCenter.tsx` — live replay, parallel load, 30s silent refresh, policy scope strip |
-| Correlation propagation | Gateway, Agent, LangGraph `X-Correlation-ID` middleware |
-| LangGraph RL guard | `POST /rl/retrain` requires API key |
-| E2E framework | `backend/tests/e2e/control_center/`, `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md` (8 pass / 2 skip localhost) |
-| API contract + checklist | `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md`, `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` |
-| Production health | Render gateway/agent/langgraph `/health` → 200 (2026-06-03) |
-| Production API smoke | `run_production_smoke.py` — 15/15 (control-center APIs + Vercel bundles include Render hosts) |
-| Vercel env contract | `VITE_LANGGRAPH_SERVICE_URL` (not `VITE_LANGGRAPH_URL`) — `frontend/VERCEL_DEPLOYMENT.md` |
-| Executable acceptance | `docs/TASK19_ACCEPTANCE_TEST_PACK.md`, governance + E2E pytest |
-| Requirement matrix | `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md` |
-
-### Created Task19 artifacts
-- [docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md](docs/SAMPADA_GOVERNMENT_SCALE_ARCHITECTURE.md)
-- [docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md](docs/SAMPADA_POLICY_GOVERNANCE_MODEL.md)
-- [docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md](docs/SAMPADA_FEDERATED_WORKFORCE_MODEL.md)
-- [docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md](docs/SAMPADA_COMMAND_CENTER_GOVERNANCE_MODEL.md)
-- [docs/SAMPADA_HUMAN_SAFETY_MODEL.md](docs/SAMPADA_HUMAN_SAFETY_MODEL.md)
-
-### Updated support artifacts
-- [docs/SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md)
-- [CONTRIBUTION_LOG.md](CONTRIBUTION_LOG.md)
-
-### Existing convergence evidence baseline
-- `evidence/entry-points/`
-- `evidence/trace-continuity/`
-- `evidence/enforcement/`
-- `evidence/replay/`
-- `evidence/failure/`
-- `evidence/boundaries/`
-- `evidence/ownership/`
-- `evidence/general/`
-- `evidence/tests/`
-
-### Open runtime evidence (not blocking doc acceptance)
-- Production UI smoke on Vercel `/control` (JWT matrix, scoped stats on prod data)
-- Full government org hierarchy and policy engine in runtime (constitutional docs only today)
-- Platform-wide tenant isolation beyond control-center endpoints
-
-### Task19 boundary stack
-```mermaid
-flowchart TB
-	A[Government-Scale Architecture] --> B[Policy / Governance Model]
-	B --> C[Federated Workforce Model]
-	C --> D[Command Center Governance]
-	D --> E[Human Safety Model]
-	E --> F[Current State + Contribution Log + Review Packet]
-```
+- Compile verification: `python -m compileall backend/services/gateway/app backend/services/gateway/routes/task20_routes.py`.
+- Unit tests: `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py`.
+- Latest result: **12 passed**, 3 warnings (custom mark + dependency warning), 0 failures.
 
 ---
 
-*This review packet is maintained by the Sampada Support Builder role. All architectural decisions, acceptance criteria, and sign-off authority remain with Rishabh Yadav.*
+## Replay Evidence
+
+- Workforce API/replay baseline: `evidence/task20/api_proof_workforce.json`.
+- SETU ingest baseline: `evidence/task20/setu_signal_proof.json`.
+- Added evidence summaries:
+  - `evidence/task20/replay_trace_proof.md`
+  - `evidence/task20/test_output_summary.md`
+  - `evidence/task20/api_trace_matrix.md`
+
+---
+
+## Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Task20 routes depend on runtime Mongo collections existing | Medium | Seed/initialize required collections during deployment checks |
+| Governance tab default visibility not approved for all tenants | Medium | Keep behind `VITE_ENABLE_TASK20_GOVERNANCE` until owner approval |
+| Warning-only pytest marks (`e2e_unit`) may hide marker taxonomy drift | Low | Register custom marks in pytest config in a follow-up cleanup |
+| Replay evidence currently template-driven in docs, not full prod trace capture | Medium | Capture and store signed production replay samples after owner-led run |
+
+---
+
+*This review packet is maintained by the Sampada Support Builder role. Architectural decisions and final acceptance remain with Rishabh Yadav.*

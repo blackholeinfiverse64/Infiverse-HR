@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 
 CONTROL_CENTER_ROLES = frozenset({"client", "recruiter", "admin"})
-AUDIT_EVENT_TYPES = ("control_center", "governance", "policy")
+AUDIT_EVENT_TYPES = ("control_center", "governance", "policy", "workforce")
 
 
 def resolve_policy_scope(auth: Dict[str, Any]) -> Dict[str, Any]:

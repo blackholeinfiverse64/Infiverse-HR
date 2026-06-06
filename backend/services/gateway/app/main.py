@@ -244,6 +244,15 @@ try:
 except ImportError as e:
     print(f"WARNING: workflow_proxy not available: {e}")
 
+# Task20 workforce / policy / governance / SETU runtime
+try:
+    from routes.task20_routes import router as task20_router
+
+    app.include_router(task20_router)
+    print("Task20 runtime routes loaded")
+except ImportError as e:
+    print(f"WARNING: Task20 routes not available: {e}")
+
 # ── Auth dependency resolution ─────────────────────────────────────────────────
 # Must be defined BEFORE any @app route that uses Depends(get_auth).
 if jwt_get_auth is not None:

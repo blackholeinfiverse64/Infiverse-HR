@@ -1,6 +1,6 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-06-03 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Task19 constitutional hardening + live control center on Render/Vercel
+**Last Updated**: 2026-06-05 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Task20 runtime/governance integration completed on gateway + control center visibility enabled by feature flag
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -296,6 +296,14 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Human Safety Model | `docs/SAMPADA_HUMAN_SAFETY_MODEL.md` | Complete |
 | Review Packet | `REVIEW_PACKET.md` | Updated |
 | Contribution Log | `CONTRIBUTION_LOG.md` | Updated |
+
+### Task20 Runtime and Governance Integration (2026-06-05)
+- **Backend modules live**: `workforce_runtime.py`, `workforce_lifecycle.py`, `policy_engine.py`, `decision_workflow.py`, `decision_ledger.py`, `setu_participation.py`, `lineage_envelope.py`, `workforce_common.py`.
+- **Route wiring verified**: `routes/task20_routes.py` included from gateway `main.py`; app compiles with Task20 routes imported.
+- **Control center visibility**: `frontend/src/pages/control/ControlCenter.tsx` + `frontend/src/services/api.ts` includes Task20 governance tab behind `VITE_ENABLE_TASK20_GOVERNANCE=true`.
+- **Task20 phase docs present**: `FEDERATED_WORKFORCE_RUNTIME.md`, `WORKFORCE_LIFECYCLE_API.md`, `POLICY_ENGINE_RUNTIME.md`, `DECISION_AND_CHALLENGE_FLOW.md`, `DECISION_LEDGER_MODEL.md`, `SETU_PARTICIPATION_RUNTIME.md`, `OWNERSHIP_AND_LINEAGE_MODEL.md`.
+- **Task20 test baseline**: `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py` -> 12 passed.
+- **Evidence bundle**: `evidence/task20/` refreshed with API proof notes, replay/trace proof template, and test output summary.
 
 ---
 

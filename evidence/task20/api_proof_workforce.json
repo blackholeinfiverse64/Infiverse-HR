@@ -1,0 +1,30 @@
+{
+  "task": "Task20 Phase 1",
+  "proof_type": "api_sequence",
+  "updated_at": "2026-06-05",
+  "status": "verified_template",
+  "endpoints": [
+    "POST /v1/workforce/organizations",
+    "POST /v1/workforce/divisions",
+    "POST /v1/workforce/departments",
+    "POST /v1/workforce/employees",
+    "GET /v1/workforce/organizations/{id}/hierarchy",
+    "GET /v1/workforce/trace-replay"
+  ],
+  "sample_organization": {
+    "name": "Demo Ministry",
+    "code": "DEMO-MIN"
+  },
+  "sample_employee": {
+    "workforce_type": "contractor",
+    "role": "analyst",
+    "display_name": "Task20 Demo Contractor",
+    "lifecycle_state": "draft"
+  },
+  "note": "Run with Bearer API key or client/recruiter/admin JWT. Capture X-Correlation-ID for replay.",
+  "linked_evidence": [
+    "evidence/task20/replay_trace_proof.md",
+    "evidence/task20/api_trace_matrix.md",
+    "evidence/task20/test_output_summary.md"
+  ]
+}

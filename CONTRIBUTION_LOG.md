@@ -2,11 +2,22 @@
 
 **Owner**: Rishabh Yadav (system owner; all architectural decisions require his sign-off)  
 **Maintained by**: Shashank (Sampada, Support Builder)  
-**Last Updated**: 2026-06-03  
+**Last Updated**: 2026-06-05  
 
 This log tracks work completed, implementation support provided, commits, architectural contributions, blockers, and convergence impact under Task19.
 
 Entries (newest first):
+
+---
+
+## Task20 — Federated workforce + governance runtime closure (2026-06-05)
+
+- [x] **BACKEND WIRING VERIFIED**: Confirmed Task20 router wiring in `backend/services/gateway/app/main.py` (`include_router(task20_router)`), and successful Python compile of Task20 modules/routes.
+- [x] **TASK20 RUNTIME MODULES**: Added/validated Task20 gateway app modules for workforce runtime, lifecycle, policy evaluation, challenge workflow, decision ledger, SETU participation, lineage envelope, and shared workforce governance helpers.
+- [x] **CONTROL CENTER VISIBILITY**: Confirmed Task20 governance panel fetches live Task20 APIs and remains feature-gated via `VITE_ENABLE_TASK20_GOVERNANCE=true`.
+- [x] **PHASE DOCS COHERENCE**: Validated and retained phase docs under `docs/` for workforce runtime, lifecycle APIs, policy engine, challenge flow, decision ledger, SETU runtime, and lineage/ownership.
+- [x] **TEST BASELINE**: Ran `python -m pytest -q backend/tests/gateway/test_task20_runtime.py backend/tests/gateway/test_task20_workforce_lifecycle.py` => 12 passed.
+- [x] **EVIDENCE REFRESH**: Added Task20 replay/API/test summary evidence files under `evidence/task20/`; refreshed phase-9 narrative docs (`docs/SAMPADA_CURRENT_STATE.md`, `REVIEW_PACKET.md`).
 
 ---
 
