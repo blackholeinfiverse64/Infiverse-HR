@@ -1,15 +1,15 @@
 {
   "suite": "control_center_production_smoke",
-  "finished_at": "2026-06-03T09:57:35.137279+00:00",
-  "duration_ms": 2975.0,
+  "finished_at": "2026-06-08T06:54:40.226435+00:00",
+  "duration_ms": 8173.9,
   "gateway": "https://bhiv-hr-gateway-l0xp.onrender.com",
   "vercel_urls": [
     "https://infiverse-hr.vercel.app",
     "https://sampada.blackholeinfiverse.com"
   ],
   "summary": {
-    "total": 15,
-    "passed": 15,
+    "total": 25,
+    "passed": 25,
     "failed": 0
   },
   "tests": [
@@ -66,7 +66,19 @@
     {
       "name": "client_login",
       "passed": true,
-      "detail": "skipped: prod credentials unavailable (Invalid credentials)",
+      "detail": "skipped: no E2E_CLIENT_ID/E2E_CLIENT_PASSWORD (archived TECH001/demo123 not used)",
+      "skipped": true
+    },
+    {
+      "name": "client_scoped_stats",
+      "passed": true,
+      "detail": "skipped: requires client JWT",
+      "skipped": true
+    },
+    {
+      "name": "client_metrics_allowed",
+      "passed": true,
+      "detail": "skipped: requires client JWT",
       "skipped": true
     },
     {
@@ -88,6 +100,46 @@
       "name": "vercel_bundle_urls_sampada.blackholeinfiverse.com",
       "passed": true,
       "detail": "render_hosts_in_js=True chunks_checked=1"
+    },
+    {
+      "name": "workforce_org_create",
+      "passed": true,
+      "detail": "status=200 org_id=6a26673488b72534dc0c06b8"
+    },
+    {
+      "name": "workforce_employee_create",
+      "passed": true,
+      "detail": "status=200 workforce_ref_id=wf-5e8f9a0e4228"
+    },
+    {
+      "name": "policy_seed",
+      "passed": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "policy_evaluate",
+      "passed": true,
+      "detail": "status=200 decision=allow"
+    },
+    {
+      "name": "setu_signal_ingest",
+      "passed": true,
+      "detail": "status=200 signal_id=sig-5e0a8bd92ae6"
+    },
+    {
+      "name": "setu_trace_continuity",
+      "passed": true,
+      "detail": "status=200 signal_count=1"
+    },
+    {
+      "name": "decision_create",
+      "passed": true,
+      "detail": "status=200 decision_id=dec-e6519d7a1fca"
+    },
+    {
+      "name": "challenge_create",
+      "passed": true,
+      "detail": "status=200 challenge_id=chl-0bc76a834c42"
     }
   ]
 }

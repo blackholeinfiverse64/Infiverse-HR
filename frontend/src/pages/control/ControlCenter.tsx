@@ -594,8 +594,8 @@ function GovernanceZone({ governance }: { governance: GovernancePanelData | null
           </svg>
         }
       />
-      <div className="mb-4 rounded-lg border border-amber-200/60 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2 text-[10px] text-amber-800 dark:text-amber-200">
-        Governance panel requires owner approval before production default. Feature flag: VITE_ENABLE_GOVERNANCE=true
+      <div className="mb-4 rounded-lg border border-slate-200/60 dark:border-slate-700/40 bg-slate-50/50 dark:bg-slate-900/30 px-3 py-2 text-[10px] text-slate-600 dark:text-slate-400">
+        Read-only oversight (GOV-PANEL-001 approved). Visibility ≠ authority — no execution actions in this panel.
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
         <KpiPill card={card('Organizations', orgCount, '/v1/workforce/organizations')} />

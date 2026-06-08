@@ -22,6 +22,15 @@
    - `GET /v1/setu/trace/<trace_id>`
 4. Validate continuity response includes expected signal chain and audit references.
 
+## Live Production Capture
+
+- **Date:** 2026-06-08
+- **Gateway:** https://bhiv-hr-gateway-l0xp.onrender.com
+- **org_id:** 6a26664c88b72534dc0c06ab
+- **trace_id:** f6f72b52-57ed-4ddf-a5c1-43379364c180
+- **X-Correlation-ID (org create):** 9a83b441-e387-4e26-aeb2-2616e86d2762
+- **Outcome:** All workforce and SETU sequence calls returned HTTP 200; evidence files updated to `live_capture`.
+
 ## Linked evidence
 
 - `evidence/workforce_runtime/api_proof_workforce.json`

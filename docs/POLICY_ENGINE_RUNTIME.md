@@ -51,3 +51,56 @@
   "correlation_id": "<uuid>"
 }
 ```
+
+---
+
+### Failure Cases
+
+| Scenario | HTTP Status | Error Detail | Audit Event Written |
+|----------|-------------|--------------|---------------------|
+| Unknown `policy_key` at evaluate | 404 | Policy definition not found | No |
+| Missing required evaluate body fields | 422 | FastAPI validation error | No |
+| Caller lacks workforce role (non-client/recruiter/admin) | 403 | Workforce APIs require client, recruiter, or admin role | No |
+
+---
+
+### Audit Events
+
+| Action | Outcome Values | When Fired | Correlation ID Propagated |
+|--------|---------------|------------|--------------------------|
+| `policy_evaluate` | allow / deny / observe (from evaluation result) | After successful policy evaluation insert | Yes |
+| `policy_override` | recorded | After policy override document insert | Yes |
+
+---
+
+### Replay Example
+
+```json
+{
+  "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+  "event_count": 3,
+  "events": [
+    {
+      "action": "policy_seed",
+      "outcome": "success",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:43.132018+00:00"
+    },
+    {
+      "action": "policy_evaluate",
+      "outcome": "allow",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:44.000000+00:00"
+    },
+    {
+      "action": "policy_override",
+      "outcome": "recorded",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:45.000000+00:00"
+    }
+  ]
+}
+```

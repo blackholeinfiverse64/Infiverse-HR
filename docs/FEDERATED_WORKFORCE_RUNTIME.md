@@ -75,3 +75,61 @@ Live workforce identity and organization hierarchy runtime for Sampada. Recruitm
 3. Verify audit events: `organization_create`, `employee_create`, etc.
 
 Evidence: `evidence/workforce_runtime/api_proof_workforce.json`
+
+---
+
+### Failure Cases
+
+| Scenario | HTTP Status | Error Detail | Audit Event Written |
+|----------|-------------|--------------|---------------------|
+| Invalid `workforce_type` on employee create | 422 | workforce_type must be one of: [...] | No |
+| Invalid `lifecycle_state` on employee create | 422 | lifecycle_state must be one of: [...] | No |
+| Organization not found (missing or cross-tenant) | 404 | Organization not found | No |
+| Department not found on employee create | 404 | Department not found | No |
+| Caller lacks workforce role | 403 | Workforce APIs require client, recruiter, or admin role | No |
+| Cross-tenant org read / hierarchy | 404 | Organization not found | No |
+
+---
+
+### Audit Events
+
+| Action | Outcome Values | When Fired | Correlation ID Propagated |
+|--------|---------------|------------|--------------------------|
+| `organization_create` | success | After organization insert | Yes |
+| `division_create` | success | After division insert | Yes |
+| `department_create` | success | After department insert | Yes |
+| `employee_create` | success | After employee insert | Yes |
+
+---
+
+### Replay Example
+
+```json
+{
+  "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+  "event_count": 3,
+  "events": [
+    {
+      "action": "organization_create",
+      "outcome": "success",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:43.132018+00:00"
+    },
+    {
+      "action": "division_create",
+      "outcome": "success",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:44.000000+00:00"
+    },
+    {
+      "action": "employee_create",
+      "outcome": "success",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:45.000000+00:00"
+    }
+  ]
+}
+```

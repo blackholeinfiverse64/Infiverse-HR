@@ -105,9 +105,10 @@
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Routes depend on runtime Mongo collections existing | Medium | Seed/initialize required collections during deployment checks |
-| Governance tab default visibility not approved for all tenants | Medium | Keep behind `VITE_ENABLE_GOVERNANCE` until owner approval |
+| Governance tab visibility for all tenants | Medium | Owner approved (GOV-PANEL-001); remains behind `VITE_ENABLE_GOVERNANCE` env flag for rollback |
 | Warning-only pytest marks (`e2e_unit`) may hide marker taxonomy drift | Low | Register custom marks in pytest config in a follow-up cleanup |
 | Replay evidence currently template-driven in docs, not full prod trace capture | Medium | Capture and store signed production replay samples after owner-led run |
+| Governance panel enablement | Low | GOV-PANEL-001 approved — see docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md; enabled in production |
 
 ---
 

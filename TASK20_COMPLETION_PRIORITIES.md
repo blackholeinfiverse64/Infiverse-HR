@@ -2,7 +2,20 @@
 # Sampada / INFIVERSE-HR-PLATFORM — Task 20 Completion Work Orders
 # Place this file at the repo root and execute all 5 priorities in order.
 # Each priority is a self-contained work order. Do not skip steps.
-# Priorities 2–5 require no live services. Priority 1 requires MongoDB running.
+# ALL tests and captures run against the live production gateway — NOT localhost.
+
+---
+
+## PRODUCTION ENVIRONMENT
+
+| Resource | Value |
+|----------|-------|
+| Gateway (production) | `https://bhiv-hr-gateway-l0xp.onrender.com` |
+| Auth header | `Authorization: Bearer <API_KEY_SECRET>` |
+| API key source | `API_KEY_SECRET` env var (same as used in run_production_smoke.py) |
+| Health check | `GET https://bhiv-hr-gateway-l0xp.onrender.com/health` |
+
+**Never use localhost in any URL. All calls hit the production Render gateway.**
 
 ---
 
@@ -14,31 +27,36 @@
 - Do not forge approvals, timestamps, or real API responses — use real captured data or leave clearly marked placeholders.
 - After completing each priority, print a one-line confirmation: `[DONE] Priority N complete — <summary>`.
 - If a step fails, print `[BLOCKED] Priority N step X — <reason>` and continue to the next priority.
+- All HTTP calls use the production gateway URL defined in the PRODUCTION ENVIRONMENT table above.
 
 ---
 
 ## PRIORITY 1 — Replace Template Evidence with Real Live Captures
 
-**Goal:** The two JSON proof files under `evidence/workforce_runtime/` are currently self-labeled templates. Replace them with real HTTP response data captured from a live gateway run.
+**Goal:** The two JSON proof files under `evidence/workforce_runtime/` are self-labeled templates.
+Replace them with real HTTP response data captured from the live production gateway.
 
-**Requires:** MongoDB running locally OR Atlas URI in `backend/.env`. Gateway able to start on port 8000.
+**Requires:** `API_KEY_SECRET` environment variable set. No local services needed.
 
 ### Steps
 
-**Step 1.1 — Start the gateway**
+**Step 1.1 — Confirm production gateway is healthy**
+
 ```
-cd backend/services/gateway
-uvicorn app.main:app --port 8000 --reload
+GET https://bhiv-hr-gateway-l0xp.onrender.com/health
+Headers: Authorization: Bearer <API_KEY_SECRET>
 ```
-Confirm health: `GET http://localhost:8000/health` returns 200.
+Must return HTTP 200 before proceeding. If not 200, print `[BLOCKED] P1 Step 1.1 — gateway unhealthy` and stop Priority 1.
 
 **Step 1.2 — Run the workforce creation sequence**
 
-Execute these HTTP calls in order, capturing the full response body each time. Store the returned IDs for use in subsequent calls.
+Execute these HTTP calls in order against the production gateway. Capture the full response body and response headers each time. Store returned IDs for subsequent calls.
 
 ```
-POST http://localhost:8000/v1/workforce/organizations
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/workforce/organizations
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
   "name": "Northern Region HQ",
@@ -46,26 +64,30 @@ Body:
   "default_roles": ["org_member"],
   "status": "active"
 }
-→ Store: org_id from response
-→ Store: X-Correlation-ID response header
+→ Store: org_id from response body
+→ Store: X-Correlation-ID from response headers
 ```
 
 ```
-POST http://localhost:8000/v1/workforce/divisions
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/workforce/divisions
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
-  "organization_id": "<org_id>",
+  "organization_id": "<org_id from above>",
   "name": "Operations Division",
   "code": "OPS-001",
   "status": "active"
 }
-→ Store: division_id
+→ Store: division_id from response body
 ```
 
 ```
-POST http://localhost:8000/v1/workforce/departments
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/workforce/departments
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
   "organization_id": "<org_id>",
@@ -74,12 +96,14 @@ Body:
   "default_roles": ["analyst"],
   "status": "active"
 }
-→ Store: department_id
+→ Store: department_id from response body
 ```
 
 ```
-POST http://localhost:8000/v1/workforce/employees
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/workforce/employees
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
   "organization_id": "<org_id>",
@@ -91,21 +115,24 @@ Body:
   "lifecycle_state": "draft",
   "source_system": "sampada"
 }
-→ Store: workforce_ref_id
-→ Store: trace_id from response lineage
+→ Store: workforce_ref_id from response body
+→ Store: trace_id from response lineage field
 ```
 
 ```
-GET http://localhost:8000/v1/workforce/organizations/<org_id>/hierarchy
-Headers: X-API-Key: <from backend/.env>
-→ Store: full hierarchy response
+GET https://bhiv-hr-gateway-l0xp.onrender.com/v1/workforce/organizations/<org_id>/hierarchy
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+→ Store: full hierarchy response body
 ```
 
 **Step 1.3 — Run the SETU signal sequence**
 
 ```
-POST http://localhost:8000/v1/setu/signals/niyantran_telemetry
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/setu/signals/niyantran_telemetry
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
   "payload": {"event": "task_completed", "task_id": "exec-1042"},
@@ -113,12 +140,15 @@ Body:
   "trust_classification": "observed",
   "visibility_scope": "tenant"
 }
-→ Store: signal_id, trace_id
+→ Store: signal_id from response body
+→ Store: trace_id from response lineage field
 ```
 
 ```
-POST http://localhost:8000/v1/setu/signals/artha_payroll_visibility
-Headers: X-API-Key: <from backend/.env>
+POST https://bhiv-hr-gateway-l0xp.onrender.com/v1/setu/signals/artha_payroll_visibility
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+  Content-Type: application/json
 Body:
 {
   "payload": {"period": "2026-06", "visibility": "summary_only"},
@@ -126,159 +156,225 @@ Body:
   "trust_classification": "observed",
   "visibility_scope": "tenant"
 }
-→ Store: signal_id
+→ Store: signal_id from response body
 ```
 
 ```
-GET http://localhost:8000/v1/setu/trace/<trace_id>
-Headers: X-API-Key: <from backend/.env>
-→ Store: full trace continuity response
+GET https://bhiv-hr-gateway-l0xp.onrender.com/v1/setu/trace/<trace_id from niyantran signal>
+Headers:
+  Authorization: Bearer <API_KEY_SECRET>
+→ Store: full trace continuity response body
 ```
 
 **Step 1.4 — Replace evidence files**
 
-Overwrite `evidence/workforce_runtime/api_proof_workforce.json` with a JSON object containing:
-- `proof_type`: `"api_sequence"`
-- `status`: `"live_capture"` (remove `"verified_template"`)
-- `captured_at`: real UTC timestamp
-- `gateway`: `"http://localhost:8000"`
-- `sequence`: array of objects, one per call, each with: `step`, `method`, `path`, `request_body`, `response_status`, `response_body`, `correlation_id`
-- `ids_captured`: object with `org_id`, `division_id`, `department_id`, `workforce_ref_id`, `trace_id`
+Overwrite `evidence/workforce_runtime/api_proof_workforce.json` with:
+```json
+{
+  "proof_type": "api_sequence",
+  "status": "live_capture",
+  "captured_at": "<real UTC timestamp>",
+  "gateway": "https://bhiv-hr-gateway-l0xp.onrender.com",
+  "sequence": [
+    {
+      "step": 1,
+      "method": "POST",
+      "path": "/v1/workforce/organizations",
+      "request_body": { ... },
+      "response_status": <real status>,
+      "response_body": { ... full real response ... },
+      "correlation_id": "<real X-Correlation-ID>"
+    },
+    ... one entry per call made in Step 1.2 ...
+  ],
+  "ids_captured": {
+    "org_id": "<real id>",
+    "division_id": "<real id>",
+    "department_id": "<real id>",
+    "workforce_ref_id": "<real id>",
+    "trace_id": "<real id>"
+  }
+}
+```
+Remove `"verified_template"` entirely. Every ID and timestamp must be real values from the actual responses.
 
-Overwrite `evidence/workforce_runtime/setu_signal_proof.json` with a JSON object containing:
-- `proof_type`: `"signal_ingest"`
-- `status`: `"live_capture"`
-- `captured_at`: real UTC timestamp
-- `signals`: array of 2 objects (niyantran + artha), each with: `signal_type`, `signal_id`, `trace_id`, `ownership`, `response_status`, `response_body`
-- `trace_continuity`: full response from the trace GET call
+Overwrite `evidence/workforce_runtime/setu_signal_proof.json` with:
+```json
+{
+  "proof_type": "signal_ingest",
+  "status": "live_capture",
+  "captured_at": "<real UTC timestamp>",
+  "gateway": "https://bhiv-hr-gateway-l0xp.onrender.com",
+  "signals": [
+    {
+      "signal_type": "niyantran_telemetry",
+      "signal_id": "<real signal_id>",
+      "trace_id": "<real trace_id>",
+      "ownership": "niyantran",
+      "response_status": <real status>,
+      "response_body": { ... full real response ... }
+    },
+    {
+      "signal_type": "artha_payroll_visibility",
+      "signal_id": "<real signal_id>",
+      "trace_id": "<real trace_id>",
+      "ownership": "artha",
+      "response_status": <real status>,
+      "response_body": { ... full real response ... }
+    }
+  ],
+  "trace_continuity": { ... full real response from GET /v1/setu/trace/<trace_id> ... }
+}
+```
 
 **Step 1.5 — Update replay and summary docs**
 
 Update `evidence/workforce_runtime/replay_trace_proof.md`:
-- Replace any placeholder correlation_ids with the real `X-Correlation-ID` values captured above.
-- Add a section: `## Live Capture Run` with the date, real IDs, and outcome.
+- Replace any placeholder correlation_ids with the real `X-Correlation-ID` values from Step 1.2.
+- Add a section `## Live Production Capture` with: date, gateway URL, real org_id, real trace_id, outcome.
 
 Update `evidence/workforce_runtime/test_output_summary.md`:
 - Change execution date to today's real date.
-- Add the real correlation_id and trace_id captured.
-- Change status line from template to `live_capture`.
+- Change gateway reference to `https://bhiv-hr-gateway-l0xp.onrender.com`.
+- Add real correlation_id and trace_id captured.
+- Change status from `verified_template` to `live_capture`.
 
-**Boundary:** Do not modify any source `.py` file. Evidence files only.
+**Boundary:** Do not modify any `.py` source file. Evidence files only.
 
 ---
 
 ## PRIORITY 2 — Add Task 20 Endpoints to Production Smoke Test
 
-**Goal:** Extend `backend/tests/e2e/control_center/run_production_smoke.py` to cover Task 20 workforce governance endpoints. Current smoke test (15 tests) covers only health, auth, and control-center routes — none of the Task 20 routes are exercised.
+**Goal:** Extend `backend/tests/e2e/control_center/run_production_smoke.py` to cover Task 20
+workforce governance endpoints against the production gateway. Current smoke test (15 tests) covers
+only health, auth, and control-center routes.
 
-**Requires:** No live service needed to write the code. Tests will run against `GATEWAY_URL` env var (production or local).
+**Requires:** Same `API_KEY_SECRET` env var already used by the existing smoke test.
+Tests target `GATEWAY` variable already defined in the file (`https://bhiv-hr-gateway-l0xp.onrender.com`).
 
 ### Steps
 
 **Step 2.1 — Read the existing smoke test file**
 
-Open `backend/tests/e2e/control_center/run_production_smoke.py`. Understand the existing test pattern: how tests are defined, how results are recorded, how the report JSON is built.
+Open `backend/tests/e2e/control_center/run_production_smoke.py`.
+Note how existing tests are structured: each test uses `client.get/post(f"{GATEWAY}/path", headers=headers)`,
+checks the status code, records result with `_rec(name, passed, detail)` or equivalent, and catches exceptions.
+The `GATEWAY` variable and `headers` (Bearer token) are already defined at the top — use them exactly as-is.
 
 **Step 2.2 — Add new section after existing tests**
 
-Find the location just before the final summary/report generation block. Insert the following comment and 8 new tests, following the exact same pattern already used in the file:
+Find the location just before the final summary/report-generation block.
+Insert a comment and 8 new tests following the exact pattern already in the file.
+Use the existing `GATEWAY`, `headers`, and result-recording function without redefinition.
 
-```
+```python
 # --- Task 20: Workforce Governance Endpoints ---
 ```
 
 **Test 1 — `workforce_org_create`**
-- `POST /v1/workforce/organizations`
+- `POST {GATEWAY}/v1/workforce/organizations`
+- Use `headers` already defined (Bearer token)
 - Body: `{"name": "Smoke Test Org", "code": "SMOKE-001", "status": "active", "default_roles": []}`
-- Expect: status 200 or 201, response contains `"id"` or `"_id"` field
-- On success: store `org_id` from response for use in test 2
+- Pass if: status 200 or 201 AND response JSON contains `"id"` or `"_id"` key
+- On pass: store `org_id` from response for test 2
+- On fail: log status + first 300 chars of response body; set `org_id = None`
 
 **Test 2 — `workforce_employee_create`**
-- `POST /v1/workforce/employees`
-- Body: `{"organization_id": "<org_id from test 1>", "workforce_type": "employee", "role": "analyst", "display_name": "Smoke User", "lifecycle_state": "draft", "source_system": "smoke_test"}`
-- Expect: status 200 or 201, response contains `"workforce_ref_id"`
+- `POST {GATEWAY}/v1/workforce/employees`
+- Body: `{"organization_id": org_id, "workforce_type": "employee", "role": "analyst", "display_name": "Smoke User", "lifecycle_state": "draft", "source_system": "smoke_test"}`
+- Skip with `[SKIP]` detail if `org_id is None` (test 1 failed)
+- Pass if: status 200 or 201 AND response contains `"workforce_ref_id"`
 
 **Test 3 — `policy_seed`**
-- `POST /v1/policies/seed`
+- `POST {GATEWAY}/v1/policies/seed`
 - Body: `{}`
-- Expect: status 200, response contains `"seeded"` list
+- Pass if: status 200 AND response contains `"seeded"` key
 
 **Test 4 — `policy_evaluate`**
-- `POST /v1/policies/evaluate`
+- `POST {GATEWAY}/v1/policies/evaluate`
 - Body: `{"policy_key": "leave_policy", "context": {"tenure_days": 120}}`
-- Expect: status 200, response contains `"result"` with `"decision"` field
+- Pass if: status 200 AND response contains `"result"` with `"decision"` field
 
 **Test 5 — `setu_signal_ingest`**
-- `POST /v1/setu/signals/niyantran_telemetry`
+- `POST {GATEWAY}/v1/setu/signals/niyantran_telemetry`
 - Body: `{"payload": {"event": "smoke_check"}, "source_declaration": "smoke test", "trust_classification": "observed", "visibility_scope": "tenant"}`
-- Expect: status 200 or 201, response contains `"signal_id"`
-- On success: store `trace_id` from response for use in test 6
+- Pass if: status 200 or 201 AND response contains `"signal_id"`
+- On pass: store `smoke_trace_id` from response for test 6
+- On fail: set `smoke_trace_id = None`
 
 **Test 6 — `setu_trace_continuity`**
-- `GET /v1/setu/trace/<trace_id from test 5>`
-- Expect: status 200, response contains `"signal_count"` >= 1
+- `GET {GATEWAY}/v1/setu/trace/{smoke_trace_id}`
+- Skip if `smoke_trace_id is None`
+- Pass if: status 200 AND response contains `"signal_count"` with value >= 1
 
 **Test 7 — `decision_create`**
-- `POST /v1/decisions`
+- `POST {GATEWAY}/v1/decisions`
 - Body: `{"owner": "smoke_runner", "scope": "platform", "rationale": "Smoke test decision", "inputs": {"source": "smoke"}, "status": "active"}`
-- Expect: status 200 or 201, response contains `"decision_id"`
+- Pass if: status 200 or 201 AND response contains `"decision_id"`
 
 **Test 8 — `challenge_create`**
-- `POST /v1/governance/challenges`
+- `POST {GATEWAY}/v1/governance/challenges`
 - Body: `{"policy_key": "leave_policy", "reason": "Smoke test challenge", "subject_type": "policy_evaluation"}`
-- Expect: status 200 or 201, response contains `"challenge_id"`
+- Pass if: status 200 or 201 AND response contains `"challenge_id"`
 
 **Step 2.3 — Error handling requirement**
 
-Each new test must:
-- On failure: log status code + first 200 chars of response body, mark as failed, continue (do not abort remaining tests).
-- Use the same `passed`/`failed` counter already used in the file.
+Every new test must:
+- Wrap the HTTP call in a `try/except Exception` the same way existing tests do.
+- On any exception: mark as failed, log the exception message, continue.
+- Never abort the remaining tests on failure.
 
 **Step 2.4 — Report update**
 
-The final JSON report written to `backend/tests/e2e/control_center/results/control_center_production_smoke_report.json` must include the new 8 tests in its `tests` array and update the `summary.total` count from 15 to 23.
+The JSON report written to `backend/tests/e2e/control_center/results/control_center_production_smoke_report.json`
+must include all 8 new tests in the `tests` array.
+Update `summary.total` from 15 to 23.
+The `gateway` field in the report must remain `https://bhiv-hr-gateway-l0xp.onrender.com`.
 
-**Boundary:** Do not modify existing 15 tests. Do not change report schema. Only extend.
+**Boundary:** Do not touch, reorder, or rename any of the existing 15 tests. Only extend.
 
 ---
 
 ## PRIORITY 3 — Two-Tenant Isolation Test
 
-**Goal:** Create a new pytest test file that proves tenant isolation works at the scope-filter level. No MongoDB connection needed — all DB calls are mocked.
+**Goal:** Create a new pytest test file proving tenant isolation works at the scope-filter level.
+No live services needed — all MongoDB calls are mocked.
 
 ### Steps
 
 **Step 3.1 — Create the test file**
 
-Create `backend/tests/gateway/test_tenant_isolation_workforce.py` with the following content:
+Create `backend/tests/gateway/test_tenant_isolation_workforce.py`.
 
-**File header docstring:**
+**File docstring:**
 ```python
 """
 Tenant isolation tests for workforce governance scope filters.
 
-These tests validate that:
-- tenant_id is correctly injected on writes for client-scope callers
+Validates that:
+- tenant_id is injected on writes for client-scope callers
 - cross-tenant reads are blocked by scope filter enforcement
 - platform-scope callers bypass tenant filtering
 
-No MongoDB connection required — all DB calls are mocked via unittest.mock.
+No MongoDB or live gateway required — all DB calls mocked via unittest.mock.
+Production gateway: https://bhiv-hr-gateway-l0xp.onrender.com
 """
 ```
 
-**Imports and path setup** (follow same pattern as existing test files):
+**Imports and path setup** (follow exact pattern of existing test files):
 ```python
 from __future__ import annotations
 import sys
 from pathlib import Path
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 GATEWAY_ROOT = Path(__file__).resolve().parents[2] / "services" / "gateway"
 if str(GATEWAY_ROOT) not in sys.path:
     sys.path.insert(0, str(GATEWAY_ROOT))
 
 from app.workforce_common import workforce_scope_filter, LIFECYCLE_STATES
+
 pytestmark = pytest.mark.e2e_unit
 ```
 
@@ -307,14 +403,10 @@ def test_platform_scope_bypasses_tenant_filter():
 ```
 
 **Test 4 — `test_tenant_id_injected_on_org_create`**
-
-Mock `db.organizations.insert_one` as an `AsyncMock`. Call `create_organization` (import from `app.workforce_runtime`) with a client-scoped caller having `user_id="TENANT_A"`. Capture the document passed to `insert_one`. Assert `doc["tenant_id"] == "TENANT_A"`.
-
 ```python
 @pytest.mark.asyncio
 async def test_tenant_id_injected_on_org_create():
     from app.workforce_runtime import create_organization
-    from app.workforce_common import build_auth_context
 
     db = MagicMock()
     db.organizations = MagicMock()
@@ -324,7 +416,6 @@ async def test_tenant_id_injected_on_org_create():
 
     scope = {"scope": "client", "user_id": "TENANT_A", "role": "org_admin", "type": "jwt_token"}
 
-    from app.workforce_common import ORG_CREATE_BODY  # or inline the body
     body = MagicMock()
     body.name = "Tenant A Org"
     body.code = "TA-001"
@@ -339,9 +430,6 @@ async def test_tenant_id_injected_on_org_create():
 ```
 
 **Test 5 — `test_cross_tenant_read_returns_404`**
-
-Mock `db.organizations.find_one` to return `None` (simulating no result when TENANT_B's filter is applied to TENANT_A's records). Call the get function. Assert `HTTPException` with status 404 is raised.
-
 ```python
 @pytest.mark.asyncio
 async def test_cross_tenant_read_returns_404():
@@ -350,6 +438,7 @@ async def test_cross_tenant_read_returns_404():
 
     db = MagicMock()
     db.organizations = MagicMock()
+    # Returns None — simulates scope filter finding no record for TENANT_B on TENANT_A's data
     db.organizations.find_one = AsyncMock(return_value=None)
 
     scope_b = {"scope": "client", "user_id": "TENANT_B", "role": "org_admin", "type": "jwt_token"}
@@ -363,53 +452,52 @@ async def test_cross_tenant_read_returns_404():
 
 **Step 3.2 — Syntax verify**
 
-After writing the file, run:
+Run immediately after creating the file:
 ```
 python3 -c "import ast; ast.parse(open('backend/tests/gateway/test_tenant_isolation_workforce.py').read()); print('[PASS] Syntax OK')"
 ```
+If this fails, fix the syntax error before proceeding.
 
-**Step 3.3 — Update pytest config**
+**Step 3.3 — Register pytest marker**
 
-Open `backend/tests/e2e/control_center/pytest.ini` or the nearest `pytest.ini`/`conftest.py`. Confirm the marker `e2e_unit` is registered. If not, add:
-```ini
-[pytest]
-markers =
-    e2e_unit: lightweight unit tests with mocked I/O
-    asyncio_mode: auto
-```
+Open `backend/tests/e2e/control_center/pytest.ini` or the nearest `pytest.ini`.
+Confirm `e2e_unit` is listed under `[pytest] markers =`.
+If not found, add it. Also ensure `asyncio_mode = auto` is set for async tests.
 
-**Boundary:** Do not modify any source file in `app/`. Test file only.
+**Boundary:** Do not modify any `.py` file in `app/`. Test file and config only.
 
 ---
 
 ## PRIORITY 4 — Governance Panel Owner Approval Documentation
 
-**Goal:** The frontend governance panel is gated behind `VITE_ENABLE_GOVERNANCE=true` and is not live by default. Create a formal decision record so its non-default state is traceable and auditable. Do NOT enable it — only create the paper trail.
+**Goal:** The frontend governance panel is gated behind `VITE_ENABLE_GOVERNANCE=true` and off by default.
+Create a formal traceable decision record for this. Do NOT enable the panel — paper trail only.
 
 ### Steps
 
 **Step 4.1 — Create approval record file**
 
-Create `docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md` with the following structure:
+Create `docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md` with this exact content:
 
 ```markdown
 # Governance Panel Enablement — Owner Decision Record
 
-| Field               | Value                                      |
-|---------------------|--------------------------------------------|
-| Decision ID         | GOV-PANEL-001                              |
-| Date Raised         | [today's date]                             |
-| Raised By           | Shashank (Sampada Support Builder)         |
-| Decision Authority  | Rishabh Yadav (System Owner)               |
-| Status              | PENDING_OWNER_APPROVAL                     |
-| Feature Flag        | VITE_ENABLE_GOVERNANCE=true                |
-| Scope               | Frontend ControlCenter.tsx panel visibility|
+| Field              | Value                                       |
+|--------------------|---------------------------------------------|
+| Decision ID        | GOV-PANEL-001                               |
+| Date Raised        | [today's date]                              |
+| Raised By          | Shashank (Sampada Support Builder)          |
+| Decision Authority | Rishabh Yadav (System Owner)                |
+| Status             | PENDING_OWNER_APPROVAL                      |
+| Feature Flag       | VITE_ENABLE_GOVERNANCE=true                 |
+| Scope              | Frontend ControlCenter.tsx panel visibility |
+| Production URL     | https://sampada.blackholeinfiverse.com      |
 
 ---
 
 ## What Enabling This Panel Does
 
-When `VITE_ENABLE_GOVERNANCE=true` is set in the frontend environment:
+When `VITE_ENABLE_GOVERNANCE=true` is set in the frontend environment and redeployed to Vercel:
 
 - Organization count is visible on the Control Center dashboard
 - Policy registry and policy count are visible
@@ -444,22 +532,22 @@ All data shown is **read-only observation**. No execution capability is added.
 
 ## Approval
 
-| | |
-|---|---|
-| **Approved by** | _________________________ |
-| **Name** | Rishabh Yadav (System Owner) |
-| **Date** | _________________________ |
-| **Signature / Auth token** | _________________________ |
-| **Notes** | _________________________ |
+|                          |                           |
+|--------------------------|---------------------------|
+| **Approved by**          | _________________________ |
+| **Name**                 | Rishabh Yadav (System Owner) |
+| **Date**                 | _________________________ |
+| **Signature / Auth token** | _________________________|
+| **Notes**                | _________________________ |
 
 ---
 
 ## Rollback
 
 To disable the panel at any time:
-- Remove `VITE_ENABLE_GOVERNANCE=true` from the frontend `.env` file, or set it to `false`
-- Redeploy frontend
-- No data is deleted. No backend change required.
+1. Remove `VITE_ENABLE_GOVERNANCE=true` from the Vercel environment variables, or set it to `false`
+2. Trigger a Vercel redeploy
+3. No data is deleted. No backend change required.
 
 ---
 
@@ -468,32 +556,32 @@ To disable the panel at any time:
 - `frontend/src/pages/control/ControlCenter.tsx` — feature flag check location
 - `docs/SAMPADA_CURRENT_STATE.md` — system state reference
 - `REVIEW_PACKET.md` — risk register
+- Production frontend: `https://sampada.blackholeinfiverse.com`
+- Production gateway: `https://bhiv-hr-gateway-l0xp.onrender.com`
 ```
 
 **Step 4.2 — Update REVIEW_PACKET.md**
 
-Find the risks table in `REVIEW_PACKET.md`. Add this row:
+Find the risks table. Add this row:
 ```
-| Governance panel default off | Low | GOV-PANEL-001 approval record created at docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md — pending owner sign-off |
+| Governance panel default off | Low | GOV-PANEL-001 approval record created at docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md — pending Rishabh sign-off |
 ```
-
-If no risks table exists, add a section:
+If no risks table exists, add:
 ```markdown
 ## Risk Register
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Governance panel default off | Low | GOV-PANEL-001 approval record created at docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md — pending owner sign-off |
+| Governance panel default off | Low | GOV-PANEL-001 approval record at docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md — pending Rishabh sign-off |
 ```
 
 **Step 4.3 — Update SAMPADA_CURRENT_STATE.md**
 
-Search for the text `VITE_ENABLE_GOVERNANCE` in `docs/SAMPADA_CURRENT_STATE.md`. Directly below that reference, add:
+Search for `VITE_ENABLE_GOVERNANCE` in the file. If found, add directly below it:
 ```
 > Governance panel enablement decision pending at docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md (GOV-PANEL-001). Status: PENDING_OWNER_APPROVAL.
 ```
-
-If `VITE_ENABLE_GOVERNANCE` does not appear in the file, add a new section near the bottom:
+If not found, add near the bottom:
 ```markdown
 ## Feature Flag Status
 
@@ -502,13 +590,14 @@ If `VITE_ENABLE_GOVERNANCE` does not appear in the file, add a new section near 
 | VITE_ENABLE_GOVERNANCE | false (off) | GOV-PANEL-001 — PENDING_OWNER_APPROVAL — see docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md |
 ```
 
-**Boundary:** Do NOT change any `.env` file. Do NOT change any `.tsx`/`.jsx` file. Documentation only.
+**Boundary:** Do NOT touch any `.env` file, Vercel config, or `.tsx`/`.jsx` file. Documentation only.
 
 ---
 
 ## PRIORITY 5 — Expand Documentation Depth
 
-**Goal:** Each of the 7 Task 20 runtime docs currently describes architecture but lacks failure cases, audit events, and replay examples. Append three standard sections to each doc without modifying existing content.
+**Goal:** The 7 Task 20 runtime docs describe architecture well but lack failure cases, audit events,
+and replay examples. Append three standard sections to each — do not change existing content.
 
 **Docs to update (all in `docs/` folder):**
 1. `FEDERATED_WORKFORCE_RUNTIME.md`
@@ -519,9 +608,7 @@ If `VITE_ENABLE_GOVERNANCE` does not appear in the file, add a new section near 
 6. `SETU_PARTICIPATION_RUNTIME.md`
 7. `OWNERSHIP_AND_LINEAGE_MODEL.md`
 
-### Sections to append to EVERY doc
-
-Append exactly these three sections at the bottom of each file. Customise the table rows and JSON content per doc using the guidance below.
+### Template — append to every doc
 
 ```markdown
 ---
@@ -530,9 +617,7 @@ Append exactly these three sections at the bottom of each file. Customise the ta
 
 | Scenario | HTTP Status | Error Detail | Audit Event Written |
 |----------|-------------|--------------|---------------------|
-| <row 1>  | <code>      | <detail>     | Yes / No            |
-| <row 2>  | <code>      | <detail>     | Yes / No            |
-| <row 3>  | <code>      | <detail>     | Yes / No            |
+| <row>    | <code>      | <detail>     | Yes / No            |
 
 ---
 
@@ -548,7 +633,7 @@ Append exactly these three sections at the bottom of each file. Customise the ta
 
 ```json
 {
-  "correlation_id": "cid-<doc-specific-placeholder>",
+  "correlation_id": "cid-<placeholder>",
   "event_count": 3,
   "events": [
     {
@@ -557,54 +642,57 @@ Append exactly these three sections at the bottom of each file. Customise the ta
       "correlation_id": "cid-<placeholder>",
       "trace_id": "trace-<placeholder>",
       "created_at": "2026-06-06T10:00:00Z"
-    },
-    ...
+    }
   ]
 }
 ```
 ```
 
-### Per-doc guidance — what rows to fill in
+### Per-doc content guidance
 
-**1. FEDERATED_WORKFORCE_RUNTIME.md**
-- Failure cases: invalid `workforce_type` → 422; duplicate org `code` → 409; missing `organization_id` on employee create → 422; unauthorized scope on hierarchy read → 403
+Before writing each doc's sections, **read the corresponding source file** in
+`backend/services/gateway/app/` to find real `HTTPException` raises and `write_workforce_audit` calls.
+Use only failure modes and audit actions that actually exist in the code.
+
+**1. FEDERATED_WORKFORCE_RUNTIME.md** — source: `workforce_runtime.py`
+- Failures: invalid `workforce_type` → 422; duplicate org `code` → 409; missing `organization_id` on employee create → 422; unauthorized scope on hierarchy read → 403
 - Audit actions: `create_organization`, `create_employee`, `get_org_hierarchy`
-- Replay: use action names `create_organization`, `create_division`, `create_employee`
+- Replay: `create_organization` → `create_division` → `create_employee`
 
-**2. WORKFORCE_LIFECYCLE_API.md**
-- Failure cases: invalid transition (e.g. `active` → `draft`) → 409; employee not found → 404; missing required transition field → 422
+**2. WORKFORCE_LIFECYCLE_API.md** — source: `workforce_lifecycle.py`
+- Failures: invalid transition e.g. `active → draft` → 409; employee not found → 404; missing required field → 422
 - Audit actions: `lifecycle_transition` (fired on every valid state change)
-- Replay: use action names `lifecycle_transition` with states in event sequence: `draft → onboarding → active`
+- Replay: `lifecycle_transition` sequence: `draft → onboarding → active`
 
-**3. POLICY_ENGINE_RUNTIME.md**
-- Failure cases: unknown `policy_key` → 404; missing context field for rule evaluation → 422; policy override by non-governor → 403
-- Audit actions: `policy_evaluation` (on every evaluate call), `policy_override_created` (on override)
-- Replay: use action names `policy_seed`, `policy_evaluation`, `policy_override_created`
+**3. POLICY_ENGINE_RUNTIME.md** — source: `policy_engine.py`
+- Failures: unknown `policy_key` → 404; missing context field → 422; override by non-governor → 403
+- Audit actions: `policy_evaluation`, `policy_override_created`
+- Replay: `policy_seed` → `policy_evaluation` → `policy_override_created`
 
-**4. DECISION_AND_CHALLENGE_FLOW.md**
-- Failure cases: challenge on non-existent policy → 404; review assignment to non-existent reviewer → 422; override applied before review complete → 409
+**4. DECISION_AND_CHALLENGE_FLOW.md** — source: `decision_workflow.py`
+- Failures: challenge on non-existent policy → 404; review assigned to invalid reviewer → 422; override applied before review complete → 409
 - Audit actions: `challenge_created`, `review_assigned`, `review_completed`, `override_applied`
-- Replay: use action names in order: `challenge_created`, `review_assigned`, `review_completed`
+- Replay: `challenge_created` → `review_assigned` → `review_completed`
 
-**5. DECISION_LEDGER_MODEL.md**
-- Failure cases: duplicate `decision_id` → 409; missing `owner` or `rationale` field → 422; replay on empty ledger → 200 with empty list (not an error)
-- Audit actions: `decision_recorded` (on create), `decision_replay_accessed` (on replay call)
-- Replay: use action names `decision_recorded` with two decisions showing `supersedes` chain
+**5. DECISION_LEDGER_MODEL.md** — source: `decision_ledger.py`
+- Failures: duplicate `decision_id` → 409; missing `owner` or `rationale` → 422; replay on empty ledger → 200 empty list (not error)
+- Audit actions: `decision_recorded`, `decision_replay_accessed`
+- Replay: two `decision_recorded` entries showing `supersedes` chain
 
-**6. SETU_PARTICIPATION_RUNTIME.md**
-- Failure cases: unknown `signal_type` in path → 422; missing `source_declaration` → 422; trace_id not found → 404
-- Audit actions: `setu_signal_ingested` (on every ingest), ownership field always set by `OWNERSHIP_BY_TYPE`
-- Replay: show two signals ingested: `niyantran_telemetry` then `artha_payroll_visibility`, with trace continuity
+**6. SETU_PARTICIPATION_RUNTIME.md** — source: `setu_participation.py`
+- Failures: unknown `signal_type` in path → 422; missing `source_declaration` → 422; `trace_id` not found → 404
+- Audit actions: `setu_signal_ingested` (ownership always set by `OWNERSHIP_BY_TYPE`)
+- Replay: `niyantran_telemetry` ingest → `artha_payroll_visibility` ingest → trace continuity response
 
-**7. OWNERSHIP_AND_LINEAGE_MODEL.md**
-- Failure cases: lineage envelope missing required field → 500 (internal — envelope is internal not user-facing); mismatched `owning_system` → logged warning, not hard error
-- Audit actions: lineage envelope is attached to every workforce audit entry — no standalone audit action; `visibility_scope` field on every event
-- Replay: show a lineage envelope block as it appears attached to a workforce event trace entry
+**7. OWNERSHIP_AND_LINEAGE_MODEL.md** — source: `lineage_envelope.py`
+- Failures: missing required envelope field → 500 (internal); mismatched `owning_system` → logged warning, not hard error
+- Audit actions: lineage envelope attached to every audit entry — no standalone action; `visibility_scope` on every event
+- Replay: lineage envelope block as it appears in a workforce event trace entry
 
-### Execution order for Priority 5
+### Execution order
 
-Process one file at a time in this order:
-1. `POLICY_ENGINE_RUNTIME.md` (simplest)
+Process one file at a time:
+1. `POLICY_ENGINE_RUNTIME.md`
 2. `WORKFORCE_LIFECYCLE_API.md`
 3. `FEDERATED_WORKFORCE_RUNTIME.md`
 4. `DECISION_LEDGER_MODEL.md`
@@ -612,25 +700,26 @@ Process one file at a time in this order:
 6. `SETU_PARTICIPATION_RUNTIME.md`
 7. `OWNERSHIP_AND_LINEAGE_MODEL.md`
 
-After each file: print `[DONE] P5 — <filename> updated (+N lines)`.
+After each file print: `[DONE] P5 — <filename> updated (+N lines)`
 
-**Boundary:** Append only — do not modify or delete any existing content. Do not edit any source `.py` file.
+**Boundary:** Append only — do not modify or delete any existing content in any doc.
+Do not edit any `.py` source file.
 
 ---
 
 ## COMPLETION CHECKLIST
 
-After all 5 priorities are done, verify each item:
+Run through every item after all 5 priorities finish:
 
-- [ ] `evidence/workforce_runtime/api_proof_workforce.json` — status is `"live_capture"`, not `"verified_template"`
-- [ ] `evidence/workforce_runtime/setu_signal_proof.json` — contains real signal_ids and trace_ids
-- [ ] `evidence/workforce_runtime/replay_trace_proof.md` — contains real correlation_ids
-- [ ] `evidence/workforce_runtime/test_output_summary.md` — updated with real execution date
-- [ ] `run_production_smoke.py` — 8 new tests added, total count 23
-- [ ] `backend/tests/gateway/test_tenant_isolation_workforce.py` — file exists, syntax OK, 5 tests
-- [ ] `docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md` — file exists, status is `PENDING_OWNER_APPROVAL`
-- [ ] `REVIEW_PACKET.md` — GOV-PANEL-001 row added to risk register
+- [ ] `evidence/workforce_runtime/api_proof_workforce.json` — `"status": "live_capture"`, contains real IDs and real gateway URL `https://bhiv-hr-gateway-l0xp.onrender.com`
+- [ ] `evidence/workforce_runtime/setu_signal_proof.json` — real `signal_id` and `trace_id` values present, not placeholders
+- [ ] `evidence/workforce_runtime/replay_trace_proof.md` — real `X-Correlation-ID` values from production run
+- [ ] `evidence/workforce_runtime/test_output_summary.md` — real execution date, real IDs, status `live_capture`
+- [ ] `backend/tests/e2e/control_center/run_production_smoke.py` — 8 new Task 20 tests added, total 23, all pointing to `GATEWAY` variable (production Render URL)
+- [ ] `backend/tests/gateway/test_tenant_isolation_workforce.py` — file exists, 5 tests, `python3 -c "import ast; ast.parse(...)"` returns `[PASS] Syntax OK`
+- [ ] `docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md` — exists, `Status: PENDING_OWNER_APPROVAL`, production URL present
+- [ ] `REVIEW_PACKET.md` — GOV-PANEL-001 row in risk register
 - [ ] `docs/SAMPADA_CURRENT_STATE.md` — GOV-PANEL-001 reference added
-- [ ] All 7 docs in `docs/` — each has `Failure Cases`, `Audit Events`, `Replay Example` sections appended
+- [ ] All 7 docs in `docs/` — each has `### Failure Cases`, `### Audit Events`, `### Replay Example` appended
 
-**If all boxes are checked: Task 20 completion work is done.**
+**If all 10 boxes are checked: Task 20 completion work is done.**

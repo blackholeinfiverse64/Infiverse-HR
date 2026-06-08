@@ -176,6 +176,182 @@ def main() -> int:
             except Exception as exc:
                 record(results, f"vercel_fetch_{name}", False, str(exc))
 
+        # --- Task 20: Workforce Governance Endpoints ---
+        org_id: str | None = None
+        smoke_trace_id: str | None = None
+        smoke_ts = datetime.now(timezone.utc).strftime("%H%M%S")
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/workforce/organizations",
+                headers={**headers, "Content-Type": "application/json"},
+                json={
+                    "name": "Smoke Test Org",
+                    "code": f"SMOKE-{smoke_ts}",
+                    "status": "active",
+                    "default_roles": [],
+                },
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            org_id = data.get("id") or data.get("_id")
+            passed = r.status_code in (200, 201) and bool(org_id)
+            if not passed:
+                org_id = None
+                record(
+                    results,
+                    "workforce_org_create",
+                    False,
+                    f"status={r.status_code} body={r.text[:300]}",
+                )
+            else:
+                record(results, "workforce_org_create", True, f"status={r.status_code} org_id={org_id}")
+        except Exception as exc:
+            org_id = None
+            record(results, "workforce_org_create", False, str(exc))
+
+        try:
+            if org_id is None:
+                record(results, "workforce_employee_create", True, "[SKIP] org_id unavailable", skipped=True)
+            else:
+                r = client.post(
+                    f"{GATEWAY}/v1/workforce/employees",
+                    headers={**headers, "Content-Type": "application/json"},
+                    json={
+                        "organization_id": org_id,
+                        "workforce_type": "employee",
+                        "role": "analyst",
+                        "display_name": "Smoke User",
+                        "lifecycle_state": "draft",
+                        "source_system": "smoke_test",
+                    },
+                )
+                data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                passed = r.status_code in (200, 201) and bool(data.get("workforce_ref_id"))
+                record(
+                    results,
+                    "workforce_employee_create",
+                    passed,
+                    f"status={r.status_code} workforce_ref_id={data.get('workforce_ref_id')}",
+                )
+        except Exception as exc:
+            record(results, "workforce_employee_create", False, str(exc))
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/policies/seed",
+                headers={**headers, "Content-Type": "application/json"},
+                json={},
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            record(
+                results,
+                "policy_seed",
+                r.status_code == 200 and "seeded" in data,
+                f"status={r.status_code}",
+            )
+        except Exception as exc:
+            record(results, "policy_seed", False, str(exc))
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/policies/evaluate",
+                headers={**headers, "Content-Type": "application/json"},
+                json={"policy_key": "leave_policy", "context": {"tenure_days": 120}},
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            result = data.get("result") or {}
+            passed = r.status_code == 200 and isinstance(result, dict) and "decision" in result
+            record(results, "policy_evaluate", passed, f"status={r.status_code} decision={result.get('decision')}")
+        except Exception as exc:
+            record(results, "policy_evaluate", False, str(exc))
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/setu/signals/niyantran_telemetry",
+                headers={**headers, "Content-Type": "application/json"},
+                json={
+                    "payload": {"event": "smoke_check"},
+                    "source_declaration": "smoke test",
+                    "trust_classification": "observed",
+                    "visibility_scope": "tenant",
+                },
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            smoke_trace_id = None
+            if r.status_code in (200, 201) and data.get("signal_id"):
+                lineage = data.get("lineage") or {}
+                smoke_trace_id = lineage.get("trace_id") or data.get("trace_id")
+                record(results, "setu_signal_ingest", True, f"status={r.status_code} signal_id={data.get('signal_id')}")
+            else:
+                record(
+                    results,
+                    "setu_signal_ingest",
+                    False,
+                    f"status={r.status_code} body={r.text[:300]}",
+                )
+        except Exception as exc:
+            smoke_trace_id = None
+            record(results, "setu_signal_ingest", False, str(exc))
+
+        try:
+            if smoke_trace_id is None:
+                record(results, "setu_trace_continuity", True, "[SKIP] smoke_trace_id unavailable", skipped=True)
+            else:
+                r = client.get(f"{GATEWAY}/v1/setu/trace/{smoke_trace_id}", headers=headers)
+                data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                signal_count = data.get("signal_count", 0)
+                passed = r.status_code == 200 and signal_count >= 1
+                record(
+                    results,
+                    "setu_trace_continuity",
+                    passed,
+                    f"status={r.status_code} signal_count={signal_count}",
+                )
+        except Exception as exc:
+            record(results, "setu_trace_continuity", False, str(exc))
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/decisions",
+                headers={**headers, "Content-Type": "application/json"},
+                json={
+                    "owner": "smoke_runner",
+                    "scope": "platform",
+                    "rationale": "Smoke test decision",
+                    "inputs": {"source": "smoke"},
+                    "status": "active",
+                },
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            record(
+                results,
+                "decision_create",
+                r.status_code in (200, 201) and bool(data.get("decision_id")),
+                f"status={r.status_code} decision_id={data.get('decision_id')}",
+            )
+        except Exception as exc:
+            record(results, "decision_create", False, str(exc))
+
+        try:
+            r = client.post(
+                f"{GATEWAY}/v1/governance/challenges",
+                headers={**headers, "Content-Type": "application/json"},
+                json={
+                    "policy_key": "leave_policy",
+                    "reason": "Smoke test challenge",
+                    "subject_type": "policy_evaluation",
+                },
+            )
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+            record(
+                results,
+                "challenge_create",
+                r.status_code in (200, 201) and bool(data.get("challenge_id")),
+                f"status={r.status_code} challenge_id={data.get('challenge_id')}",
+            )
+        except Exception as exc:
+            record(results, "challenge_create", False, str(exc))
+
     elapsed_ms = round((time.perf_counter() - t0) * 1000, 1)
     passed = sum(1 for r in results if r["passed"])
     failed = sum(1 for r in results if not r["passed"] and not r.get("skipped"))

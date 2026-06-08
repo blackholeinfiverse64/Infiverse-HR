@@ -47,3 +47,54 @@ MongoDB collection: `decisions` (append-only; supersession via `supersedes` link
   "trace_references": ["cid-uuid-1"]
 }
 ```
+
+---
+
+### Failure Cases
+
+| Scenario | HTTP Status | Error Detail | Audit Event Written |
+|----------|-------------|--------------|---------------------|
+| `supersedes` references missing decision | 404 | Prior decision not found | No |
+| Decision lookup by ID not found | 404 | Decision not found | No |
+| Missing required fields (`owner`, `rationale`) | 422 | FastAPI validation error | No |
+| Replay with unknown correlation_id | 200 | Empty decisions list (not an error) | No |
+| Review not found when recording from review | 404 | Review not found | No |
+
+---
+
+### Audit Events
+
+| Action | Outcome Values | When Fired | Correlation ID Propagated |
+|--------|---------------|------------|--------------------------|
+| `decision_record` | recorded | After decision document insert | Yes |
+
+---
+
+### Replay Example
+
+```json
+{
+  "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+  "event_count": 2,
+  "events": [
+    {
+      "action": "decision_record",
+      "outcome": "recorded",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:43.132018+00:00",
+      "decision_id": "dec-abc123",
+      "supersedes": null
+    },
+    {
+      "action": "decision_record",
+      "outcome": "recorded",
+      "correlation_id": "9a83b441-e387-4e26-aeb2-2616e86d2762",
+      "trace_id": "f6f72b52-57ed-4ddf-a5c1-43379364c180",
+      "created_at": "2026-06-08T06:50:45.000000+00:00",
+      "decision_id": "dec-def456",
+      "supersedes": "dec-abc123"
+    }
+  ]
+}
+```

@@ -1,6 +1,6 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
 **Last Updated**: 2026-06-06 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Control center production-verified (33/33 API evaluation 2026-06-06); governance panel APIs live, data empty until seed
+**System Owner**: Rishabh Yadav | **Status**: Control center production-verified (33/33 API evaluation 2026-06-06); governance panel approved (GOV-PANEL-001) and enabled in production
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -218,6 +218,8 @@ Low-scroll, high-density, fast scanability, hierarchical emphasis, bounded drill
 | API key | Allowed | `platform_admin` |
 
 Frontend: `ProtectedRoute` on `/control` + `VITE_ENABLE_CONTROL_CENTER=true`. Governance tab: `VITE_ENABLE_GOVERNANCE=true`.
+
+> Governance panel approved (GOV-PANEL-001). See docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md. `VITE_ENABLE_GOVERNANCE=true` enabled in production.
 
 ---
 
