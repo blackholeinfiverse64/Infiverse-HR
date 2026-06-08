@@ -1,7 +1,7 @@
 # Central Control Live Execution Checklist
 
-Status: live on Render + Vercel; automated production API smoke complete (2026-06-03); manual UI login sign-off pending
-Date: 2026-06-03
+Status: live on Render + Vercel; comprehensive production API evaluation complete (2026-06-06, 33/33); manual UI login sign-off pending
+Date: 2026-06-06
 
 ## A) Technical Requirements
 
@@ -56,8 +56,11 @@ Date: 2026-06-03
 - [ ] Production UI smoke (manual): log in on Vercel → `/control` → confirm service cards show Render URLs (automated bundle check passed).
 - [ ] JWT role matrix on production (manual): use real client/recruiter/admin accounts — archived `TECH001`/`demo123`).
 - [x] Production audit write canary: `POST /v1/control-center/audit-events` with `production_smoke_test` → 200.
+- [x] Comprehensive production evaluation (2026-06-06): `python tests/e2e/control_center/run_comprehensive_evaluation.py` — **33/33 passed** (health, core CC, governance reads, RBAC matrix, scope isolation, Vercel bundles). Report:`.
+- [x] Production RBAC JWT matrix (2026-06-06): admin/client/recruiter → 200 with correct scopes; candidate → 403 (minted JWTs with gateway secrets).
+- [ ] Production scoped-data isolation with real tenant accounts (requires `E2E_CLIENT_ID` / `E2E_CLIENT_PASSWORD`).
 
-### Live wiring verification (2026-06-03)
+### Live wiring verification (2026-06-06)
 
 See `docs/CENTRAL_CONTROL_API_CONTRACT_FREEZE.md` (table: UI function → method/path → verified) and `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md` (E2E command + endpoint list).
 

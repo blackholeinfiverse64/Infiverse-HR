@@ -55,12 +55,13 @@ If the build succeeds, you're ready to deploy!
    VITE_AGENT_SERVICE_URL=https://bhiv-hr-agent-cato.onrender.com
    VITE_LANGGRAPH_SERVICE_URL=https://bhiv-hr-langgraph-luy9.onrender.com
    VITE_ENABLE_CONTROL_CENTER=true
-   VITE_API_KEY=prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o
+   VITE_API_KEY=<YOUR_API_KEY>
+   VITE_ENABLE_GOVERNANCE=true
    ```
 
    **Important**: 
    - Add these for **Production**, **Preview**, and **Development** environments
-   - Replace the API_KEY with your actual production API key if different
+   - Use the same `API_KEY_SECRET` value configured on the Render gateway (never commit real keys to git)
 
 5. **Deploy**
    - Click "Deploy"
@@ -108,7 +109,10 @@ If the build succeeds, you're ready to deploy!
    # Enter: true
    
    vercel env add VITE_API_KEY
-   # Enter: prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o
+   # Enter: <YOUR_API_KEY> (matches Render API_KEY_SECRET)
+
+   vercel env add VITE_ENABLE_GOVERNANCE
+   # Enter: true
    ```
 
 6. **Redeploy with Environment Variables**
@@ -204,7 +208,20 @@ The `vercel.json` file should handle this, but if you see 404 errors:
 | `VITE_LANGGRAPH_SERVICE_URL` | LangGraph Service URL | `https://bhiv-hr-langgraph-luy9.onrender.com` |
 | `VITE_ENABLE_CONTROL_CENTER` | Show Command Center nav + `/control` | `true` |
 | `VITE_ENABLE_GOVERNANCE` | Show Governance tab in Control Center | `true` |
-| `VITE_API_KEY` | Backend API Authentication Key | `prod_api_key_...` |
+| `VITE_API_KEY` | Backend API Authentication Key | `<YOUR_API_KEY>` |
+
+## Control Center verification
+
+After deploy, verify control center wiring:
+
+```bash
+# From backend/ — loads .env; requires API_KEY_SECRET
+python tests/e2e/control_center/run_comprehensive_evaluation.py
+```
+
+Manual: log in as client/recruiter/admin → navigate to `/control` → confirm service health cards show Render URLs and KPI data loads.
+
+See `docs/control-center-evaluation-report.md` for the latest evaluation results.
 
 ## Support
 

@@ -28,3 +28,5 @@ yarn-error.log*
 # Build
 build/
 .cache/
+
+TASK20_COMPLETION_PRIORITIES

@@ -1,6 +1,6 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-06-05 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Workforce governance runtime integrated on gateway; control center visibility enabled by feature flag
+**Last Updated**: 2026-06-06 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Control center production-verified (33/33 API evaluation 2026-06-06); governance panel APIs live, data empty until seed
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -206,6 +206,18 @@ Prevent: dashboard score → official truth, operational summary → hidden appr
 
 ### Operational Principles
 Low-scroll, high-density, fast scanability, hierarchical emphasis, bounded drill-down, trace-aware surfaces.
+
+### Role-based access (live verified 2026-06-06)
+
+| Role | Control center access | Policy scope |
+|------|----------------------|--------------|
+| `admin` | Allowed | `platform` (full visibility) |
+| `client` | Allowed | `client` (tenant-scoped jobs/candidates) |
+| `recruiter` | Allowed | `recruiter` (recruiter job scope) |
+| `candidate` | **Denied (403)** | N/A |
+| API key | Allowed | `platform_admin` |
+
+Frontend: `ProtectedRoute` on `/control` + `VITE_ENABLE_CONTROL_CENTER=true`. Governance tab: `VITE_ENABLE_GOVERNANCE=true`.
 
 ---
 

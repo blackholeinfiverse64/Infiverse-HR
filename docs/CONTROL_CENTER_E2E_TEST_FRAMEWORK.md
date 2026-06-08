@@ -1,10 +1,12 @@
 # Control Center E2E Test Framework
 
-**Updated:** 2026-06-03
+**Updated:** 2026-06-06
 
 End-to-end validation of the Control Center data-flow pipeline on **localhost**: environment preflight → baseline capture → pipeline actions (audit + stats refresh) → final capture → state comparison → role matrix and routing checks.
 
-Production deployment (Render + Vercel) is documented in `frontend/VERCEL_DEPLOYMENT.md` and `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F; this suite does not replace production UI smoke.
+Production deployment (Render + Vercel) is documented in `frontend/VERCEL_DEPLOYMENT.md` and `docs/CENTRAL_CONTROL_LIVE_EXECUTION_CHECKLIST.md` §F. For production API + RBAC + governance reads, use `run_comprehensive_evaluation.py` (see below). Manual UI smoke is still required.
+
+**Latest production run (2026-06-06):** `run_comprehensive_evaluation.py` — **33/33 passed**.
 
 ## Prerequisites
 
@@ -64,7 +66,21 @@ cd backend/services/gateway && uvicorn app.main:app --port 8000
 
 **Doc gap fixed:** use `VITE_AGENT_SERVICE_URL` / `VITE_LANGGRAPH_SERVICE_URL` (not `VITE_AGENT_URL`).
 
-## One-command run
+## Production comprehensive evaluation
+
+From repository **`backend/`** directory (loads `backend/.env` automatically; requires `API_KEY_SECRET`, optional JWT secrets for RBAC):
+
+```bash
+python tests/e2e/control_center/run_comprehensive_evaluation.py
+```
+
+Covers: Render health, control center core, governance visibility reads, JWT role matrix (admin/client/recruiter/candidate), client vs recruiter scope isolation, Vercel bundle wiring.
+
+Report: `backend/tests/e2e/control_center/results/control_center_comprehensive_evaluation_report.json`
+
+Lighter smoke (API key only): `python tests/e2e/control_center/run_production_smoke.py`
+
+## One-command run (localhost)
 
 From repository **`backend/`** directory:
 
@@ -109,6 +125,8 @@ backend/tests/e2e/control_center/
 
 ## Endpoints validated (aligned with `frontend/src/services/api.ts`)
 
+### Control center core
+
 | Method | Path |
 |--------|------|
 | GET | `/metrics/dashboard` |
@@ -118,6 +136,17 @@ backend/tests/e2e/control_center/
 | GET | `/v1/control-center/audit-replay` |
 | GET | `/v1/control-center/dashboard-aggregates` |
 | GET | `/health` (gateway, agent, langgraph) |
+
+### Governance visibility (when `VITE_ENABLE_GOVERNANCE=true`)
+
+| Method | Path |
+|--------|------|
+| GET | `/v1/workforce/organizations` |
+| GET | `/v1/policies/definitions` |
+| GET | `/v1/governance/challenges` |
+| GET | `/v1/decisions` |
+| GET | `/v1/setu/signals` |
+| GET | `/v1/workforce/trace-replay` |
 
 ## Pipeline model
 

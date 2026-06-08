@@ -1,9 +1,9 @@
 # Central Control API Contract Freeze
 
-Status: active (verified localhost 2026-06-03; Render `/health` 200)
+Status: active (verified localhost 2026-06-03; Render production 2026-06-06 — 33/33 comprehensive evaluation)
 Owner: Rishabh Yadav
 Support Builder: Shashank
-**Updated:** 2026-06-03
+**Updated:** 2026-06-06
 
 ## Scope
 
@@ -79,6 +79,31 @@ UI gate: `VITE_ENABLE_CONTROL_CENTER=true` and roles `client` \| `recruiter` \| 
 **UI behavior:** parallel fetch on load/refresh; 30s silent background refresh (`CONTROL_CENTER_REFRESH_MS`).
 
 Not called from UI (E2E only): `GET /v1/control-center/audit-events`.
+
+## Governance visibility endpoints (Control Center panel)
+
+Read-only endpoints used when `VITE_ENABLE_GOVERNANCE=true` (`ControlCenter.tsx` governance zone). All require Bearer auth; roles `client`, `recruiter`, `admin`. Verified live 2026-06-06.
+
+| Frontend (`api.ts`) | HTTP | Gateway path | Verified | Notes |
+|---------------------|------|--------------|----------|-------|
+| `fetchWorkforceOrganizations` | GET | `/v1/workforce/organizations` | Y | Returns `items[]`, `policy_scope` |
+| `fetchPolicyDefinitions` | GET | `/v1/policies/definitions` | Y | Returns `items[]`, `policy_scope` |
+| `fetchGovernanceChallenges` | GET | `/v1/governance/challenges` | Y | Returns `items[]`, `policy_scope` |
+| `fetchGovernanceDecisions` | GET | `/v1/decisions` | Y | Returns `items[]`, `policy_scope` |
+| `fetchSetuSignals` | GET | `/v1/setu/signals` | Y | Returns `items[]`; `policy_scope` not yet in response body |
+| `fetchWorkforceTraceReplay` | GET | `/v1/workforce/trace-replay` | Y | Returns `events[]`, `event_count` |
+
+Write/mutation governance endpoints (`POST /v1/governance/*`, `POST /v1/policies/*`, `POST /v1/decisions`) are implemented on the gateway but are **not** invoked from the read-only control center UI. See `backend/services/gateway/routes/workforce_governance_routes.py`.
+
+## Role-based access (verified live 2026-06-06)
+
+| Role | `GET /metrics/dashboard` | `GET /v1/candidates/stats` | `GET /v1/governance/challenges` | Expected scope |
+|------|--------------------------|----------------------------|-----------------------------------|----------------|
+| API key | 200 | 200 | 200 | `platform_admin` |
+| `admin` JWT | 200 | 200 | 200 | `platform` |
+| `client` JWT | 200 | 200 | 200 | `client` |
+| `recruiter` JWT | 200 | 200 | 200 | `recruiter` |
+| `candidate` JWT | 403 | 403 | 403 | denied |
 
 ## Mock Surface Replacement Inventory
 
