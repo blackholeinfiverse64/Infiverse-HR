@@ -37,6 +37,7 @@ class LifecycleTransition(BaseModel):
     new_role: Optional[str] = None
     new_department_id: Optional[str] = None
     reason: Optional[str] = None
+    transition_type: Optional[str] = "role_change"
 
 
 async def _transition_employee(db, employee_id, scope, *, action, updates, correlation_id=None, reason=None):
@@ -86,7 +87,9 @@ async def role_movement(db, employee_id, scope, body, correlation_id=None):
     if not body.new_role:
         raise HTTPException(status_code=422, detail="new_role is required")
     inherited = compute_inherited_roles(body.new_role)
-    return await _transition_employee(db, employee_id, scope, action="employee_role_move", updates={"lifecycle_state": "active", "role": body.new_role, "inherited_roles": inherited}, correlation_id=correlation_id, reason=body.reason)
+    transition_type = (body.transition_type or "role_change").lower()
+    action = "employee_promotion" if transition_type == "promotion" else "employee_role_move"
+    return await _transition_employee(db, employee_id, scope, action=action, updates={"lifecycle_state": "active", "role": body.new_role, "inherited_roles": inherited, "transition_type": transition_type}, correlation_id=correlation_id, reason=body.reason)
 
 
 async def department_transfer(db, employee_id, scope, body, correlation_id=None):

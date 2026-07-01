@@ -20,12 +20,12 @@
 - Executed the controlled failure simulation script `test_failure_simulations.js` (8/8 tests passed successfully).
 - Executed the state machine audit log replay engine `replay_script.js` (state validation matches expected outputs, status: SUCCESS).
 - Regenerated and saved all the fresh verification evidence in the `evidence/` directory.
-- Updated `REVIEW_PACKET.md`, `docs/SAMPADA_CURRENT_STATE.md`, and `docs/ALIGNMENT_SYNC_NOTES.md` with the new trace IDs, job IDs, workflow IDs, and latencies from the live run.
+- Updated `REVIEW_PACKET.md`, `SAMPADA_CURRENT_STATE.md`, and `docs/ALIGNMENT_SYNC_NOTES.md` with the new trace IDs, job IDs, workflow IDs, and latencies from the live run.
 - Documented Docker status blocker B1 as resolved.
 
 **Artifacts Modified**:
 - `REVIEW_PACKET.md` — Updated with latest live run job, trace, and workflow IDs, latencies, and healthy Docker status.
-- `docs/SAMPADA_CURRENT_STATE.md` — Updated with healthy Docker service status, latest live E2E run data, and resolved tasks.
+- `SAMPADA_CURRENT_STATE.md` — Updated with healthy Docker service status, latest live E2E run data, and resolved tasks.
 - `docs/ALIGNMENT_SYNC_NOTES.md` — Updated Docker status decisions and Vinayak's status to healthy.
 - `docs/CONVERGENCE_SUPPORT_LOG.md` — This file, session 4 entry.
 
@@ -51,7 +51,7 @@
 - Full rewrite of all 5 docs/ files:
   - `docs/SHASHANK_REENTRY_ALIGNMENT.md` — Added all 6 named roles with constitutional definitions
   - `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` — Rewritten to strict 1-page concise format
-  - `docs/SAMPADA_CURRENT_STATE.md` — Complete rewrite with all 12 sections in full depth
+  - `SAMPADA_CURRENT_STATE.md` — Complete rewrite with all 12 sections in full depth
   - `docs/CONVERGENCE_SUPPORT_LOG.md` — This file, updated with current session
   - `docs/ALIGNMENT_SYNC_NOTES.md` — Updated with Phase 4 frontend wiring clarifications
 - Updated `REVIEW_PACKET.md` with current Docker status note
@@ -60,7 +60,7 @@
 **Artifacts Produced**:
 - `docs/SHASHANK_REENTRY_ALIGNMENT.md` — Full rewrite (all 7 required sections + 6 named roles)
 - `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` — Concise 1-page format (5 sections)
-- `docs/SAMPADA_CURRENT_STATE.md` — Complete 12-section developer handover document
+- `SAMPADA_CURRENT_STATE.md` — Complete 12-section developer handover document
 - `docs/ALIGNMENT_SYNC_NOTES.md` — Updated with Phase 4 frontend alignment notes
 - `docs/CONVERGENCE_SUPPORT_LOG.md` — This file, session 3 entry
 
@@ -180,7 +180,7 @@ evidence/general/verification_summary.md          — All 10 evidence categories
 - Created starter versions of all 5 required docs/ files:
   - `docs/SHASHANK_REENTRY_ALIGNMENT.md` (initial version)
   - `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` (initial version)
-  - `docs/SAMPADA_CURRENT_STATE.md` (starter bullets)
+  - `SAMPADA_CURRENT_STATE.md` (starter bullets)
   - `docs/CONVERGENCE_SUPPORT_LOG.md` (this file, initial version)
   - `docs/ALIGNMENT_SYNC_NOTES.md` (agenda template)
 - Created root `REVIEW_PACKET.md` with 10-part structure
@@ -217,7 +217,7 @@ evidence/general/verification_summary.md          — All 10 evidence categories
 | `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` | 2 | ✅ Complete (1-page concise) | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/EXECUTION_UNDERSTANDING_SUMMARY.md) |
 | `docs/CONVERGENCE_SUPPORT_LOG.md` | 3 | ✅ Complete (this file) | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/CONVERGENCE_SUPPORT_LOG.md) |
 | `docs/ALIGNMENT_SYNC_NOTES.md` | 4 | ✅ Complete | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/ALIGNMENT_SYNC_NOTES.md) |
-| `docs/SAMPADA_CURRENT_STATE.md` | 5 | ✅ Complete (12 full sections) | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md) |
+| `SAMPADA_CURRENT_STATE.md` | 5 | ✅ Complete (12 full sections) | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/SAMPADA_CURRENT_STATE.md) |
 | `REVIEW_PACKET.md` | Final | ✅ Complete (all 10 parts) | [link](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/REVIEW_PACKET.md) |
 | `evidence/` (all 9 directories) | 3 | ✅ Complete | evidence/ |
 

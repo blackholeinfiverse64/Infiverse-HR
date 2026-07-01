@@ -2,11 +2,26 @@
 
 **Owner**: Rishabh Yadav (system owner; all architectural decisions require his sign-off)  
 **Maintained by**: Shashank (Sampada, Support Builder)  
-**Last Updated**: 2026-06-05  
+**Last Updated**: 2026-06-27  
 
 This log tracks work completed, implementation support provided, commits, architectural contributions, blockers, and convergence impact under Task19.
 
 Entries (newest first):
+
+---
+
+## Live WO/GE/SETU Sprint — Live WO / GE / SETU participation evidence (2026-06-27)
+
+- [x] **MANDATE**: Convergence & Expansion Builder — replace assumptions with runtime evidence (no architecture authority). 8 phases + 12 deliverables per `Implementation.md`.
+- [x] **GAP FIX #1 (additive)**: Added optional `transition_type` to `LifecycleTransition` and `employee_promotion` audit action in `role_movement()` (`backend/services/gateway/app/workforce_lifecycle.py`). Route signature/URL unchanged; backward compatible.
+- [x] **GAP FIX #2 (confirm)**: `schema_version` already present in `app/lineage_envelope.py` (`1.0.0`, emitted in `to_dict()`) — verified, no change.
+- [x] **CONTINUOUS CAPTURE**: One in-process session (real `workforce_governance_routes` router over in-memory async Mongo) — 68 calls, 67×200 + 1×404; single correlation id `9fda459e-…-7f7ec` threads workforce → audit → SETU. Harness: `evidence/live_workforce_governance_setu/harness/run_capture.py`.
+- [x] **PHASE EVIDENCE DOCS** (in sprint folder `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/`): `LIVE_WORKFORCE_OPERATIONS_EVIDENCE.md`, `ORG_HIERARCHY_VALIDATION.md`, `GOVERNANCE_REPLAY_EVIDENCE.md`, `POLICY_REPLAY_VALIDATION.md`, `SETU_PARTICIPATION_EVIDENCE.md`, `LINEAGE_PROPAGATION_EVIDENCE.md`, `CONTROL_CENTER_EVIDENCE.md`.
+- [x] **TESTS**: Added `backend/tests/gateway/test_live_workforce_governance_setu_gapfix.py`; full gateway suite → **29 passed** (24 baseline + 5 new), `compileall` success. Captured in `evidence/live_workforce_governance_setu/test_results/`.
+- [x] **EVIDENCE BUNDLE**: `evidence/live_workforce_governance_setu/` with `SUMMARY.md`, `capture_index.json`, `full_capture.json`, per-phase JSON. Task20 evidence under `evidence/workforce_runtime/` left intact.
+- [x] **DOCS REFRESH**: Updated `REVIEW_PACKET.md` (in place) and `SAMPADA_CURRENT_STATE.md` with Live WO/GE/SETU Sprint state; running notes in sprint folder `EXECUTION_LOG.md`.
+- [x] **REVIEW FEEDBACK RECONCILED**: Read the real `Review Feedback (… Sampada – Convergence And Expansion Builder).md` in full and reconciled all deliverables against it. Added supplemental multi-org proof (finding #3) and a consolidated Decision→Challenge→Review→Override→Final replay packet (finding #5); flagged policy-conflicts as not-a-runtime-capability (finding #4). No new code changes. Evidence: `evidence/live_workforce_governance_setu/addendum/`.
+- [ ] **OPEN / BLOCKED**: SETU external-system participation unproven (no external caller/credentials) — "Not Yet Available — Blocked on external owner integration" (Review Feedback #2). Sustained production usage / operational scale also unproven — Live WO/GE/SETU Sprint capture is local in-process, not deployed-gateway (no creds/Mongo this session) (Review Feedback #1). Policy-conflict resolution is not a present runtime capability (Review Feedback #4).
 
 ---
 
@@ -17,7 +32,7 @@ Entries (newest first):
 - [x] **CONTROL CENTER VISIBILITY**: Governance panel fetches live workforce/governance APIs; feature-gated via `VITE_ENABLE_GOVERNANCE=true`.
 - [x] **RUNTIME DOCS**: Workforce runtime, lifecycle APIs, policy engine, challenge flow, decision ledger, SETU runtime, and lineage/ownership docs under `docs/`.
 - [x] **TEST BASELINE**: `python -m pytest -q backend/tests/gateway/test_workforce_governance_runtime.py backend/tests/gateway/test_workforce_lifecycle.py` => 12 passed.
-- [x] **EVIDENCE REFRESH**: Replay/API/test summary under `evidence/workforce_runtime/`; updated `docs/SAMPADA_CURRENT_STATE.md` and `REVIEW_PACKET.md`.
+- [x] **EVIDENCE REFRESH**: Replay/API/test summary under `evidence/workforce_runtime/`; updated `SAMPADA_CURRENT_STATE.md` and `REVIEW_PACKET.md`.
 - [x] **NAMING CLEANUP**: Renamed routes/tests/evidence paths; removed task-number identifiers from code and UI symbols.
 
 ---
@@ -61,7 +76,7 @@ Entries (newest first):
 
 ## Task19 — Current State Reconstruction (2026-05-30)
 
-- [x] **CURRENT STATE FIXED**: Rebuilt `docs/SAMPADA_CURRENT_STATE.md` with all 10 Task19 required sections. Sections 2-10 now fully populated: Ownership Matrix, Architecture Layers, SETU Relationship, Policy/Governance Model, Federated Workforce Model, Command Center Governance, Human Safety Framework, Current Implementation State, and Developer Entry Guide.
+- [x] **CURRENT STATE FIXED**: Rebuilt `SAMPADA_CURRENT_STATE.md` with all 10 Task19 required sections. Sections 2-10 now fully populated: Ownership Matrix, Architecture Layers, SETU Relationship, Policy/Governance Model, Federated Workforce Model, Command Center Governance, Human Safety Framework, Current Implementation State, and Developer Entry Guide.
 - [x] **STRUCTURAL FIX**: Removed orphaned evidence data, fixed broken formatting, added proper section separators, ensured clean document structure from Section 1 through Section 10.
 - [x] **CROSS-REFERENCE VALIDATION**: Verified all section links reference the 5 Task19 boundary documents and supporting Task18 artifacts correctly.
 
@@ -69,7 +84,7 @@ Entries (newest first):
 
 ## Task19 — Summary Artifact Update (2026-06-02)
 
-- [x] **CURRENT STATE UPDATED**: Refreshed `docs/SAMPADA_CURRENT_STATE.md` for Task19 with the government-scale architecture, governance, federated workforce, command-center, and safety sections.
+- [x] **CURRENT STATE UPDATED**: Refreshed `SAMPADA_CURRENT_STATE.md` for Task19 with the government-scale architecture, governance, federated workforce, command-center, and safety sections.
 - [x] **REVIEW PACKET UPDATED**: Replaced `REVIEW_PACKET.md` with a Task19 review packet that matches the five new boundary documents and the required 10-section review structure.
 - [x] **TASK19 KICKOFF CONTEXT**: Preserved the initial five Task19 boundary documents created for government-scale architecture, policy/governance, federated workforce identity, dashboard governance hardening, and human safety.
 
@@ -88,13 +103,13 @@ Entries (newest first):
 - [x] **VERIFICATION**: `pytest -q tests/test_schemas.py` — 4/4 schema example validations passed.
 - [x] **PHASE 1 ENHANCEMENT**: Added explicit Layer Capability Map tables to `docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md` covering all Task18 layer includes (NDA visibility, onboarding intelligence, complaints, appreciations, policy acknowledgements, etc.).
 - [x] **PHASE 3 CLEANUP**: Removed duplicate stub footer from `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md`.
-- [x] **PHASE 6 ALIGNMENT**: Renumbered `docs/SAMPADA_CURRENT_STATE.md` to Task18's 10 required sections; added Task18 Required Sections Index table.
+- [x] **PHASE 6 ALIGNMENT**: Renumbered `SAMPADA_CURRENT_STATE.md` to Task18's 10 required sections; added Task18 Required Sections Index table.
 
 ---
 
 ## Task18 — Workforce OS Expansion (2026-05-30)
 
-- [x] **PHASE 6 COMPLETE**: `docs/SAMPADA_CURRENT_STATE.md` refreshed to reflect Workforce OS direction. Added: Architecture Layers table (5 layers), SETU Relationship matrix, updated Open Tasks with all Task18 phases, updated Roadmap with Workforce OS direction, added Task18 Supporting Documents section. (2026-05-30)
+- [x] **PHASE 6 COMPLETE**: `SAMPADA_CURRENT_STATE.md` refreshed to reflect Workforce OS direction. Added: Architecture Layers table (5 layers), SETU Relationship matrix, updated Open Tasks with all Task18 phases, updated Roadmap with Workforce OS direction, added Task18 Supporting Documents section. (2026-05-30)
 
 - [x] **PHASE 5 COMPLETE**: Implementation support — Control Center prototype created at `frontend/src/pages/control/ControlCenter.tsx`. Premium multi-zone React component with 6 zones (Executive, Hiring, Workforce Ops, Growth, Org Visibility, Replay/Trace), zone navigation top rail, KPI pills with alert/warning states, pipeline funnel, department load heatmap, audit trace viewer with expand/collapse. Implements all BHIV Dashboard Capability Transmission principles: low-scroll, no surveillance, no gamification, constitutional boundary footer. (2026-05-30)
 
@@ -135,7 +150,7 @@ Entries (newest first):
 | Control Center Blueprint (BHIV) | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` | Governs all dashboard development |
 | Human-Centric Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` | Protects employees from surveillance/gamification |
 | Control Center Prototype | `frontend/src/pages/control/ControlCenter.tsx` | Working dashboard implementation |
-| Current State refresh | `docs/SAMPADA_CURRENT_STATE.md` | Developer onboarding doc updated |
+| Current State refresh | `SAMPADA_CURRENT_STATE.md` | Developer onboarding doc updated |
 | 4 JSON Schemas | `docs/schemas/*.json` | Machine-readable signal contracts |
 
 ---

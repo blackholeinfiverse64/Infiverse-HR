@@ -14,4 +14,4 @@ This document defines the system ownership boundaries and responsibilities to ma
 ## 🔒 Constitutional Boundary Affirmation
 - **Read-Only Observation**: The Sampada role has visibility into system transactions, traces, and metrics.
 - **No Direct Execution**: The Sampada role must not initiate state-changing commands or alter workflow processing logic.
-- **Reference**: Detailed separation models are documented in [SHASHANK_REENTRY_ALIGNMENT.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SHASHANK_REENTRY_ALIGNMENT.md) and [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SAMPADA_CURRENT_STATE.md).
+- **Reference**: Detailed separation models are documented in [SHASHANK_REENTRY_ALIGNMENT.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/docs/SHASHANK_REENTRY_ALIGNMENT.md) and [SAMPADA_CURRENT_STATE.md](file:///c:/Users/Shani/Downloads/INFIVERSE-HR-PLATFORM-main/SAMPADA_CURRENT_STATE.md).

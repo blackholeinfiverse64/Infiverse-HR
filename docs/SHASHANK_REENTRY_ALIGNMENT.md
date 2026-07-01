@@ -454,7 +454,7 @@ node evidence/replay/replay_script.js
 |----------|---------|
 | `Task17.md` | Full re-entry requirements and non-negotiable rules |
 | `REVIEW_PACKET.md` | 10-part convergence proof package |
-| `docs/SAMPADA_CURRENT_STATE.md` | Developer handover (12 sections) |
+| `SAMPADA_CURRENT_STATE.md` | Developer handover (12 sections) |
 | `docs/EXECUTION_UNDERSTANDING_SUMMARY.md` | Sprint priorities and acceleration points |
 | `docs/CONVERGENCE_SUPPORT_LOG.md` | Timestamped work log |
 | `docs/ALIGNMENT_SYNC_NOTES.md` | Team alignment decisions |

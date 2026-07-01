@@ -73,7 +73,7 @@ To disable the panel at any time:
 ## Related Files
 
 - `frontend/src/pages/control/ControlCenter.tsx` — feature flag check location
-- `docs/SAMPADA_CURRENT_STATE.md` — system state reference
+- `SAMPADA_CURRENT_STATE.md` — system state reference
 - `REVIEW_PACKET.md` — risk register
 - Production frontend: `https://sampada.blackholeinfiverse.com`
 - Production gateway: `https://bhiv-hr-gateway-l0xp.onrender.com`

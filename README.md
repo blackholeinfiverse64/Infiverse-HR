@@ -13,7 +13,7 @@ If this is your first day on the project, follow this exact sequence:
 3. **Examine** documentation folders:
    - [SHASHANK_REENTRY_ALIGNMENT.md](docs/SHASHANK_REENTRY_ALIGNMENT.md) — System boundaries and constitutional separation model.
    - [EXECUTION_UNDERSTANDING_SUMMARY.md](docs/EXECUTION_UNDERSTANDING_SUMMARY.md) — Active convergence sprint goals and effort layout.
-   - [SAMPADA_CURRENT_STATE.md](docs/SAMPADA_CURRENT_STATE.md) — Developer Handover and current state documentation.
+   - [SAMPADA_CURRENT_STATE.md](SAMPADA_CURRENT_STATE.md) — Developer Handover and current state documentation.
    - [ALIGNMENT_SYNC_NOTES.md](docs/ALIGNMENT_SYNC_NOTES.md) — Core sync decisions with System Owner Rishabh Yadav.
 
 ### Task19 (government-scale governance + live control center)
@@ -67,7 +67,6 @@ INFIVERSE-HR-PLATFORM-main/
 │   ├── ALIGNMENT_SYNC_NOTES.md           # Decisions from team alignment syncs
 │   ├── CONVERGENCE_SUPPORT_LOG.md        # Support builder work log
 │   ├── EXECUTION_UNDERSTANDING_SUMMARY.md # Concise sprint priorities
-│   ├── SAMPADA_CURRENT_STATE.md          # 12-section system handoff document
 │   └── SHASHANK_REENTRY_ALIGNMENT.md     # Layer separation and rules
 ├── evidence/                             # Verification proof artifacts
 │   ├── boundaries/                       # Visibility boundary verification checks
@@ -91,6 +90,7 @@ INFIVERSE-HR-PLATFORM-main/
 │   └── src/                              # Components, views, routing
 ├── QUICK_START.md                        # Quick setup guidelines
 ├── REVIEW_PACKET.md                      # Compilation of convergence proof
+├── SAMPADA_CURRENT_STATE.md              # 12-section system handoff document
 └── run_project.ps1                       # Complete background startup script
 ```
 

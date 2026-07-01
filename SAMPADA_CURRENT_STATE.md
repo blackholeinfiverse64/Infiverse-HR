@@ -1,6 +1,8 @@
 # SAMPADA CURRENT STATE — Developer Handover Document
-**Last Updated**: 2026-06-06 | **Maintained by**: Shashank (Sampada, Support Builder)
-**System Owner**: Rishabh Yadav | **Status**: Control center production-verified (33/33 API evaluation 2026-06-06); governance panel approved (GOV-PANEL-001) and enabled in production
+**Last Updated**: 2026-06-27 | **Maintained by**: Shashank (Sampada, Support Builder)
+**System Owner**: Rishabh Yadav | **Status**: Control center production-verified (33/33 API evaluation 2026-06-06); governance panel approved (GOV-PANEL-001) and enabled in production; **Live WO/GE/SETU Sprint live runtime evidence captured 2026-06-27 (workforce/governance/policy/SETU/lineage/control-center; 29 tests passing)**
+
+> **Live WO/GE/SETU Sprint update (2026-06-27)**: The workforce/governance/SETU runtime was exercised end-to-end and evidenced (not just compiled). One employee was threaded through the full lifecycle (Created→Assigned→Transferred→Promoted→Moved→Offboarding→Replay) under a single correlation id that also propagates into the audit ledger and a linked SETU signal. Two additive runtime gap fixes were made: a `transition_type` field emitting an `employee_promotion` audit action, and confirmation that `schema_version` is already in the lineage envelope. SETU **external** participation remains unproven (blocked on external owner integration); Live WO/GE/SETU Sprint capture is local in-process, not deployed-gateway. See `evidence/live_workforce_governance_setu/SUMMARY.md` and the seven `*_EVIDENCE.md` / `*_VALIDATION.md` deliverables in the sprint folder `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/`.
 
 > This document enables a completely new developer to enter the system with minimal verbal explanation.
 > Read every section before writing a single line of code.
@@ -363,6 +365,14 @@ Consent is part of the safety model: opt-in for sensitive visibility, explicit a
 | Task18 | Control Center Blueprint | `docs/SAMPADA_CONTROL_CENTER_BLUEPRINT.md` |
 | Task18 | Human Growth Model | `docs/SAMPADA_HUMAN_GROWTH_MODEL.md` |
 | General | Review Packet | `REVIEW_PACKET.md` |
+| Live WO/GE/SETU Sprint | Live Workforce Operations Evidence | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/LIVE_WORKFORCE_OPERATIONS_EVIDENCE.md` |
+| Live WO/GE/SETU Sprint | Org Hierarchy Validation | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/ORG_HIERARCHY_VALIDATION.md` |
+| Live WO/GE/SETU Sprint | Governance Replay Evidence | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/GOVERNANCE_REPLAY_EVIDENCE.md` |
+| Live WO/GE/SETU Sprint | Policy Replay Validation | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/POLICY_REPLAY_VALIDATION.md` |
+| Live WO/GE/SETU Sprint | SETU Participation Evidence | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/SETU_PARTICIPATION_EVIDENCE.md` |
+| Live WO/GE/SETU Sprint | Lineage Propagation Evidence | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/LINEAGE_PROPAGATION_EVIDENCE.md` |
+| Live WO/GE/SETU Sprint | Control Center Evidence | `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/CONTROL_CENTER_EVIDENCE.md` |
+| Live WO/GE/SETU Sprint | Evidence bundle index | `evidence/live_workforce_governance_setu/SUMMARY.md` |
 | Task19 | Requirement evidence matrix | `docs/TASK19_REQUIREMENT_EVIDENCE_MATRIX.md` |
 | Task19 | Acceptance test pack | `docs/TASK19_ACCEPTANCE_TEST_PACK.md` |
 | Task19 | Control Center E2E framework | `docs/CONTROL_CENTER_E2E_TEST_FRAMEWORK.md` |
