@@ -1,11 +1,11 @@
 {
   "suite": "control_center_comprehensive_evaluation",
-  "finished_at": "2026-06-06T09:42:51.484689+00:00",
+  "finished_at": "2026-07-02T06:39:46.936617+00:00",
   "gateway": "https://bhiv-hr-gateway-l0xp.onrender.com",
   "summary": {
     "total": 33,
-    "passed": 33,
-    "failed": 0,
+    "passed": 32,
+    "failed": 1,
     "skipped": 0
   },
   "tests": [
@@ -16,8 +16,8 @@
     },
     {
       "name": "health_agent",
-      "passed": true,
-      "detail": "status=200"
+      "passed": false,
+      "detail": "The read operation timed out"
     },
     {
       "name": "health_langgraph",
@@ -57,7 +57,7 @@
     {
       "name": "apikey_v1_control-center_audit-replay",
       "passed": true,
-      "detail": "status=200 corr=True count=2"
+      "detail": "status=200 corr=True count=1"
     },
     {
       "name": "audit_write_canary",
@@ -72,27 +72,27 @@
     {
       "name": "gov_v1_workforce_organizations",
       "passed": true,
-      "detail": "status=200 items=0 scope=platform_admin"
+      "detail": "status=200 items=3 scope=platform_admin"
     },
     {
       "name": "gov_v1_policies_definitions",
       "passed": true,
-      "detail": "status=200 items=0 scope=platform_admin"
+      "detail": "status=200 items=6 scope=platform_admin"
     },
     {
       "name": "gov_v1_governance_challenges",
       "passed": true,
-      "detail": "status=200 items=0 scope=platform_admin"
+      "detail": "status=200 items=2 scope=platform_admin"
     },
     {
       "name": "gov_v1_decisions",
       "passed": true,
-      "detail": "status=200 items=0 scope=platform_admin"
+      "detail": "status=200 items=2 scope=platform_admin"
     },
     {
       "name": "gov_v1_setu_signals",
       "passed": true,
-      "detail": "status=200 items=0 scope=n/a"
+      "detail": "status=200 items=7 scope=n/a"
     },
     {
       "name": "gov_v1_workforce_trace-replay",

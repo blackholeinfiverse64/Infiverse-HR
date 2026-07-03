@@ -118,3 +118,65 @@ Re-ran the entire capture/test pipeline from scratch so all evidence carries NEW
 - **Step 6 — Verification**: repo-wide grep for every old correlation/employee/decision/org/signal id and old `09:13`/`09:41` timestamps → **zero** remaining in any deliverable; grep for `task21`/`Task21` → **zero** string occurrences; every "Raw capture" path resolves to a regenerated file under `evidence/live_workforce_governance_setu/` and each JSON parses.
 - **Honesty constraints preserved**: SETU external participation still "Not Yet Available — Blocked on external owner integration"; the local in-process (not deployed-gateway) caveat retained in every evidence header. No regression encountered.
 - **Rename intact**: confirmed `evidence/task21/` no longer exists on disk and is not git-tracked (`git ls-files` empty); the bundle lives only at `evidence/live_workforce_governance_setu/`. Repo-wide `task21`/`Task21` string occurrences remain at zero.
+
+---
+
+## Live deployment run (2026-07-02)
+
+- Added live harness: `evidence/live_workforce_governance_setu/harness/run_capture_live.py` (loads `backend/.env`, targets deployed gateway, no secrets persisted in outputs).
+- Executed against `https://bhiv-hr-gateway-l0xp.onrender.com` using API-key auth from secure env.
+- Output folder: `evidence/live_workforce_governance_setu/live/20260702T063831Z/`.
+- Live capture result: **41 calls, 41×HTTP 200**, blockers `[]`.
+- Key IDs:
+  - lifecycle correlation id: `3d0a7d1a-1be8-4267-af5b-8d239ea25049`
+  - decision id: `dec-7a2fbd790e70`
+  - SETU signal ids: `sig-a810511a2509`, `sig-ea9866e71888`, `sig-e138e93526f1`, `sig-78548e3c1c17`
+- Optional production evaluation run: `backend/tests/e2e/control_center/run_comprehensive_evaluation.py` → **32/33 passed**, 1 failure (`health_agent` timed out), report at `backend/tests/e2e/control_center/results/control_center_comprehensive_evaluation_report.json`.
+- Partner-invoked live SETU participation status:
+  - Niyantran/workflow-blackhole: no direct emitter to Sampada `/v1/setu/signals/{signal_type}` discovered.
+  - Artha: docs show dispatch pipeline requiring partner-side SETU URL/key; no validated live partner trigger executed.
+  - ai-crm (CRM/Logistics): no discovered outbound Sampada SETU emitter in scanned backend routes/config.
+
+---
+
+## Partner-Initiated SETU Closeout (2026-07-02)
+
+### §1 Environment setup (DONE)
+
+- Live gateway health: `GET /health` → **200**
+- Auth resolution: `API_KEY_SECRET` → **200** on `GET /v1/setu/signals?limit=1`; `GATEWAY_SECRET_KEY` → **401** (recorded in `partner_live/20260702T073708Z/auth_probe.json`)
+- Repo topology: no uploaded ZIPs; embedded `Artha/`, `ai-crm/`, `workflow-blackhole/` used
+- Bootability: all three partner DBs reachable; partner API servers **not** started → **Tier 2** for all partners
+
+### Phase 5A — Artha (DONE, Tier 2)
+
+- Added `Artha/backend/src/services/sampadaAdapter.js`; updated `signalEngine.service.js` + `signal.controller.js` to POST `/v1/setu/signals/artha_payroll_visibility`
+- Live capture: `sig-9802342a158c` from real `ComplianceSignal` `SIG-d03e25ed-60d4-495c-8fad-6236993e219d`
+
+### Phase 5B — CRM + Logistics (DONE, Tier 2)
+
+- Added `ai-crm/backend/setu/sampada_dispatcher.py`; wired into `telemetry_layer.py`
+- CRM: `sig-5ffbd0b0bde4`; Logistics (`subsystem: logistics`): `sig-3acbbfa3ca0a`
+
+### Phase 5C — Niyantran (DONE, Tier 2)
+
+- Added `workflow-blackhole/server/services/setuDispatcher.js`; wired into `executionEventEmitter.js`
+- Fixed `MONGODB_URI` trailing newline in `server/.env` (blocked Mongo connect in harness)
+- Live capture: `sig-29f9efbb899a` from real `ExecutionEvent` `exec_demo_002` / event `39ec574c…`
+
+### Phase 5D — Consolidated capture (DONE)
+
+- Bundle: `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/`
+- Shared correlation_id: `3d0a7d1a-1be8-4267-af5b-8d239ea25049`
+- Docs updated: `SETU_PARTICIPATION_EVIDENCE.md`, `ACCESS_AND_INTEGRATION_REQUEST.md` §D, `REVIEW_PACKET.md`, `CONTRIBUTION_LOG.md`, `SAMPADA_CURRENT_STATE.md`
+
+### Verification (DONE)
+
+- `python -m pytest -q backend/tests/gateway/` → **35 passed**, 8 warnings
+- `python -m compileall backend/services/gateway` → exit 0
+- `git diff` on `setu_participation.py` + `workforce_governance_routes.py` (SETU routes) → **empty** (no Sampada contract change)
+
+### Open owner decisions (surfaced, not resolved)
+
+1. Logistics `signal_type` vs `crm_participation` + `subsystem` marker
+2. Tier 2 acceptability vs requiring Tier 1 full partner-server flows

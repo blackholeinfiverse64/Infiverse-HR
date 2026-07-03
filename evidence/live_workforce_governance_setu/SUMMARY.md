@@ -28,6 +28,15 @@ Every ID/timestamp in the `docs/*` deliverables traces to a file below. Capture 
 | `test_results/pytest_after_gapfix.txt` | pytest output after gap fix (24 passed). |
 | `test_results/compileall_final.txt` | Final `compileall` (Phase C). |
 | `test_results/pytest_final.txt` | Final pytest incl. new gap-fix tests (**29 passed, 6 warnings**). |
+| `live/latest_run.json` | Pointer to latest deployed-gateway run folder. |
+| `live/20260702T063831Z/capture_index_live.json` | Live deployment run index (41 calls, status counts, IDs). |
+| `live/20260702T063831Z/full_capture_live.json` | Full request/response log for deployed-gateway run. |
+| `harness/run_capture_live.py` | Deployed-gateway capture harness (loads env, writes live evidence). |
+| `partner_live/latest_run.json` | Pointer to latest partner-initiated live capture. |
+| `partner_live/20260702T073708Z/capture_index_partner_live.json` | Partner closeout index (all four systems, Tier 2, real sig ids). |
+| `partner_live/20260702T073708Z/SUMMARY.md` | Partner closeout human summary. |
+| `harness/run_partner_capture.py` | Partner-initiated live SETU capture harness. |
+| `harness/auth_probe.py` | Live gateway auth key probe (status codes only). |
 
 ## Key threaded identifiers
 
@@ -42,3 +51,12 @@ Every ID/timestamp in the `docs/*` deliverables traces to a file below. Capture 
 - Gap Fix #1: `transition_type` field + `employee_promotion` audit action in `backend/services/gateway/app/workforce_lifecycle.py`.
 - Gap Fix #2: `schema_version` confirmed already present in `backend/services/gateway/app/lineage_envelope.py` (no change).
 - New additive test file `backend/tests/gateway/test_live_workforce_governance_setu_gapfix.py`.
+
+## Live deployment addendum (2026-07-02)
+
+- Deployed gateway capture completed via `harness/run_capture_live.py`.
+- Run id: `20260702T063831Z`; total calls: **41**; status counts: `{"200": 41}`.
+- Threaded IDs:
+  - Lifecycle correlation id: `3d0a7d1a-1be8-4267-af5b-8d239ea25049`
+  - Decision id: `dec-7a2fbd790e70`
+  - SETU signals: `sig-a810511a2509`, `sig-ea9866e71888`, `sig-e138e93526f1`, `sig-78548e3c1c17`

@@ -10,6 +10,17 @@ Entries (newest first):
 
 ---
 
+## Live WO/GE/SETU Sprint — Partner-initiated SETU closeout (2026-07-02)
+
+- [x] **AUTH RESOLVED**: `API_KEY_SECRET` authenticates live gateway SETU list (200); `GATEWAY_SECRET_KEY` returns 401.
+- [x] **PARTNER DISPATCHERS (additive)**: Artha `sampadaAdapter.js` + re-pointed `dispatchToSetu`; CRM `sampada_dispatcher.py` + `telemetry_layer` hook; Niyantran `setuDispatcher.js` + `executionEventEmitter` hook.
+- [x] **LIVE CAPTURE (Tier 2)**: All four partners — real HTTP POST → live gateway → real `sig-…` ids. Bundle: `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/`.
+- [x] **SAMPADA CONTRACT**: No changes to `setu_participation.py` or SETU route paths. Gateway tests **35 passed**; `compileall` exit 0.
+- [x] **DOCS**: `SETU_PARTICIPATION_EVIDENCE.md` closeout section, `ACCESS_AND_INTEGRATION_REQUEST.md` §D, `REVIEW_PACKET.md`, `EXECUTION_LOG.md`, `SAMPADA_CURRENT_STATE.md`.
+- [ ] **OPEN / OWNER DECISION**: (1) Logistics separate `signal_type` vs `crm_participation` + `subsystem`; (2) Tier 2 acceptability vs Tier 1 full partner-server flows. Tier 1 not achieved this session.
+
+---
+
 ## Live WO/GE/SETU Sprint — Live WO / GE / SETU participation evidence (2026-06-27)
 
 - [x] **MANDATE**: Convergence & Expansion Builder — replace assumptions with runtime evidence (no architecture authority). 8 phases + 12 deliverables per `Implementation.md`.

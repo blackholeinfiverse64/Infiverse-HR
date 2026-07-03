@@ -3,7 +3,7 @@
 **Status**: Workforce governance runtime completed for gateway, control-center visibility, docs, and baseline tests; **Live WO/GE/SETU Sprint live runtime evidence captured (workforce / governance / policy / SETU / lineage / control-center)**  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
-**Updated**: 2026-06-27
+**Updated**: 2026-07-02
 
 > Operational boundary remains unchanged: Sampada is a visibility and intelligence surface; execution authority stays with owning systems and approved owners.
 
@@ -16,6 +16,8 @@
 - Control-center governance panel is visible only when `VITE_ENABLE_GOVERNANCE=true`.
 - Runtime docs and evidence artifacts are present under `docs/` and `evidence/workforce_runtime/`; the seven Live WO/GE/SETU Sprint phase evidence docs live in the sprint folder `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/`.
 - **Live WO/GE/SETU Sprint (2026-06-27)**: end-to-end runtime usage captured across 8 phases (68 API calls, 67×200 + 1×404 negative path) in one continuous session with a single correlation id threading workforce → audit → SETU. Two additive runtime gap fixes applied (`transition_type`/`employee_promotion`; `schema_version` confirmed present). New evidence bundle: `evidence/live_workforce_governance_setu/`.
+- **Live deployment addendum (2026-07-02)**: deployed-gateway capture completed via `evidence/live_workforce_governance_setu/harness/run_capture_live.py` against `https://bhiv-hr-gateway-l0xp.onrender.com`; run `20260702T063831Z` produced **41/41 HTTP 200** with live IDs and full capture under `evidence/live_workforce_governance_setu/live/20260702T063831Z/`.
+- **Partner-initiated SETU closeout (2026-07-02)**: all four partners dispatched real HTTP to live SETU gateway at **Tier 2**; evidence `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/` (signal ids: Artha `sig-9802342a158c`, CRM `sig-5ffbd0b0bde4`, Logistics `sig-3acbbfa3ca0a`, Niyantran `sig-29f9efbb899a`).
 
 ---
 
@@ -51,6 +53,34 @@ The five findings of the real reviewer document were read in full and mapped to 
 | 3 | Workforce needs real org proof (multi-org, multi-dept, inheritance, transfer, permission propagation, realistic datasets) | **Addressed** — `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/ORG_HIERARCHY_VALIDATION.md` incl. supplemental **multi-org** capture (2 orgs, disjoint listings, per-org inheritance) + transfers + inheritance in Phase 1/2. |
 | 4 | Policy engine operational validation (conflicts, override chains, challenge lifecycle, escalation, replay) | **Mostly addressed** — challenge lifecycle/escalation/override chains/replay proven; **policy conflicts = not a present runtime capability**, flagged not fabricated. |
 | 5 | Decision ledger replay demonstration (Decision→Challenge→Review→Override→Final) | **Addressed** — consolidated correlation-linked replay packet in `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder)/GOVERNANCE_REPLAY_EVIDENCE.md` (workforce trace-replay + control-center audit-replay), plus a 2-link supersedes chain. |
+
+---
+
+## Live WO/GE/SETU Sprint — Partner-Initiated SETU Participation Closeout (2026-07-02 →)
+
+**Status**: **Executed 2026-07-02** — all four partner systems produced real outbound HTTP to the live Sampada SETU gateway. Evidence at `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/`.
+
+| Partner | Tier | Sampada signal_id | Evidence |
+|---|---|---|---|
+| Artha | Tier 2 | `sig-9802342a158c` | `artha_payroll_visibility_capture.json` |
+| CRM | Tier 2 | `sig-5ffbd0b0bde4` | `crm_participation_capture.json` |
+| Logistics | Tier 2 | `sig-3acbbfa3ca0a` | `logistics_crm_participation_capture.json` |
+| Niyantran | Tier 2 | `sig-29f9efbb899a` | `niyantran_telemetry_capture.json` |
+
+**Auth**: `API_KEY_SECRET` is the partner-facing Bearer token; `GATEWAY_SECRET_KEY` returned 401.
+
+**Code changes (additive only, partner repos)**:
+- Artha: `sampadaAdapter.js`; `signalEngine.service.js` + `signal.controller.js` re-pointed to `/v1/setu/signals/artha_payroll_visibility`
+- CRM: `sampada_dispatcher.py`; hook in `telemetry_layer.py`
+- Niyantran: `setuDispatcher.js`; hook in `executionEventEmitter.js`
+
+**Sampada contract**: unchanged (`setu_participation.py`, route paths frozen).
+
+**Two decisions flagged for Rishabh, not resolved by this execution:**
+1. Should Logistics get its own SETU `signal_type` in Sampada's schema in a future sprint, or continue riding inside `crm_participation` with a `subsystem` marker?
+2. Tier 2 (dispatcher invoked directly, partner server not booted) was the achievable evidence tier in this session — is that an acceptable final answer, or does closure require Tier 1 full partner-server business flows in a shared test environment?
+
+**Security note**: rotate `API_KEY_SECRET` / `GATEWAY_SECRET_KEY` after this capture (plaintext exposure during planning — see Implementation.md §0.3).
 
 ---
 
@@ -134,6 +164,8 @@ The five findings of the real reviewer document were read in full and mapped to 
   - `evidence/workforce_runtime/replay_trace_proof.md`
   - `evidence/workforce_runtime/test_output_summary.md`
   - `evidence/workforce_runtime/api_trace_matrix.md`
+  - `evidence/live_workforce_governance_setu/live/20260702T063831Z/capture_index_live.json`
+  - `evidence/live_workforce_governance_setu/live/20260702T063831Z/full_capture_live.json`
 
 ---
 
@@ -146,11 +178,15 @@ The five findings of the real reviewer document were read in full and mapped to 
 | Warning-only pytest marks (`e2e_unit`) may hide marker taxonomy drift | Low | Register custom marks in pytest config in a follow-up cleanup |
 | Replay evidence currently template-driven in docs, not full prod trace capture | Medium (partially mitigated) | Live WO/GE/SETU Sprint captured real ordered replay chains (workforce/decision/SETU/control-center) — but as **local in-process** runtime, not deployed prod. Re-run against deployed gateway + persistent Mongo for production-signed samples. |
 | Governance panel enablement | Low | GOV-PANEL-001 approved — see docs/GOVERNANCE_PANEL_APPROVAL_RECORD.md; enabled in production |
-| **SETU external participation remains unproven** | High | Niyantran/Artha/CRM/Logistics did not initiate any real inbound call; only Sampada-side ingestion/lineage/replay proven (Live WO/GE/SETU Sprint Phase 5 "Not Yet Available"). Blocked on external owner integration + credentials — Rishabh to authorize outreach. |
-| **Live WO/GE/SETU Sprint evidence is local in-process, not deployed-gateway** | Medium | No deployed-gateway credentials/Mongo available this session; re-run `evidence/live_workforce_governance_setu/harness/run_capture.py` flow against deployed Render gateway for production-grade capture. |
+| **SETU external participation — partner-initiated live** | Medium | **Partially closed (2026-07-02)**: all four partners dispatched real HTTP to live gateway at **Tier 2** (`partner_live/20260702T073708Z/`). Tier 1 (full partner-server business flow) not yet proven. |
+| **SETU external participation — Tier 1 full flows** | Medium | Partner API servers not started this session; Artha dispatch route is JWT-gated. Owner decision: is Tier 2 sufficient for sprint closure? |
+| **Logistics signal_type vs subsystem marker** | Low | Logistics rides `crm_participation` + `payload.subsystem: "logistics"`; no separate Sampada signal type. Owner decision pending. |
+| **Live WO/GE/SETU Sprint evidence is local in-process, not deployed-gateway** | Low (partially retired) | Deployed-gateway run now captured (`live/20260702T063831Z`, 41×200). Keep local in-process bundle as supplemental deterministic harness evidence. |
 | `transition_type` field is additive but only positively tested | Low | New `test_live_workforce_governance_setu_gapfix.py` covers promotion vs lateral audit action; negative-path/validation tests (e.g. invalid transition_type) not yet added. |
 | Policy-conflict resolution not a runtime capability (Review Feedback #4) | Medium | `_evaluate_rules` is single-policy; no conflict engine exists. Not built this sprint (two-additive-fixes-only). Needs owner decision on whether multi-policy conflict resolution is in scope for a future sprint. |
 | Sustained production usage & operational scale unproven (Review Feedback #1) | Medium | Live WO/GE/SETU Sprint proves linked end-to-end runtime usage but is a single local in-process session, not sustained/scaled deployed traffic. Re-run against deployed gateway with volume for scale evidence. |
+| Partner-originated live SETU signals (Tier 1 full server flows) | Medium | Tier 2 partner dispatch verified 2026-07-02; full partner-server business-path triggers not exercised. |
+| Agent service intermittent reachability in prod smoke | Low | `run_comprehensive_evaluation.py` result 32/33 with one timeout on `health_agent`; rerun health-only checks in approved window if this becomes recurring. |
 
 ---
 
