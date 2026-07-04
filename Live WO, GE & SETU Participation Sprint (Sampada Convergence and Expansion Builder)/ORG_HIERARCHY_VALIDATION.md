@@ -1,5 +1,23 @@
 # Organizational Hierarchy Validation (Live WO/GE/SETU Sprint · Phase 2)
 
+**Workflow position:** Step 2 of 11  
+**Prerequisites:** Step 1 dataset (org `…5611`, departments, primary employee)  
+**Next step:** Step 3 → `GOVERNANCE_REPLAY_EVIDENCE.md`
+
+---
+
+## Execution method
+
+1. Extend Phase 1 dataset with additional employees in departments A and B.
+2. Call `GET /v1/workforce/organizations/{org}/hierarchy` — verify full nested tree.
+3. List employees under platform scope (expect 3) vs client/tenant token (expect 0).
+4. Negative path: unknown org id → HTTP 404.
+5. Supplemental: run `run_capture_addendum.py` for two-org disjoint listing proof.
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime code path; not deployed

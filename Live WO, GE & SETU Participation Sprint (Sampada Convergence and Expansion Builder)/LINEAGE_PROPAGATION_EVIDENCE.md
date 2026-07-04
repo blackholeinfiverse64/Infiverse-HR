@@ -1,5 +1,23 @@
 # Ownership Metadata & Lineage Propagation Evidence (Live WO/GE/SETU Sprint · Phase 6)
 
+**Workflow position:** Step 6 of 11  
+**Prerequisites:** Steps 1, 3, 5 (workforce, governance, SETU samples exist)  
+**Next step:** Step 7 → `CONTROL_CENTER_EVIDENCE.md`
+
+---
+
+## Execution method
+
+1. Extract lineage envelope from three subsystem samples (workforce employee, governance decision, SETU signal).
+2. Verify all seven required fields present in each sample.
+3. Follow one correlation id (`9fda459e-…`) across systems via `GET /v1/setu/trace/{trace_id}`.
+4. Confirm: 1 SETU signal + 14 audit events share the lifecycle correlation id.
+5. Confirm `schema_version=1.0.0` (Gap Fix #2 — already present in code).
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime code path; not deployed

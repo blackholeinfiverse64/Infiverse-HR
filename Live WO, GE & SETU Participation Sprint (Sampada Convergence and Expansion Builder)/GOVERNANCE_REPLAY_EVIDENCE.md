@@ -1,5 +1,24 @@
 # Governance Exercise & Replay Evidence (Live WO/GE/SETU Sprint · Phase 3)
 
+**Workflow position:** Step 3 of 11  
+**Prerequisites:** Steps 1–2 (workforce context exists)  
+**Next step:** Step 4 → `POLICY_REPLAY_VALIDATION.md`
+
+---
+
+## Execution method
+
+1. Run three independent scenarios: **Leave**, **Visibility**, **Approval**.
+2. Per scenario, execute full chain:
+   `Policy Created → Evaluated → Challenge → Review → Complete → Override Propose → Override Apply → Decision → Replay`.
+3. Scenario A (Leave): record superseding decision → 2-link replay chain.
+4. Supplemental: consolidated replay packet via `run_capture_addendum.py` (one correlation id, 5 events).
+5. Confirm: `GET /v1/decisions/replay?decision_id=<id>` returns expected chain length.
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime code path; not deployed

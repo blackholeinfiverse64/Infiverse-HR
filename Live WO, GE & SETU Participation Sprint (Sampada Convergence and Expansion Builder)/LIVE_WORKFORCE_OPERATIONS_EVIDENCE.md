@@ -1,5 +1,23 @@
 # Live Workforce Operations Evidence (Live WO/GE/SETU Sprint · Phase 1)
 
+**Workflow position:** Step 1 of 11  
+**Prerequisites:** Step 0 (gap fixes, harness ready)  
+**Next step:** Step 2 → `ORG_HIERARCHY_VALIDATION.md`
+
+---
+
+## Execution method
+
+1. Run `evidence/live_workforce_governance_setu/harness/run_capture.py` (Phase 1 section).
+2. Create org scaffold: Organization → Division → Unit → Departments (A/B/C).
+3. Create employee; run lifecycle: onboard → onboard-complete → dept-transfer → role-move (promotion) → dept-transfer → offboard-prepare.
+4. Confirm replay: `GET /v1/workforce/trace-replay?correlation_id=<cid>` → 13 ordered events.
+5. Required path: **Created → Assigned → Transferred → Promoted → Moved → Offboarding Initiated → Replay**.
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime code path; **not** the deployed Render gateway and **not** a persistent DB
@@ -62,7 +80,8 @@ The ordered chain matches steps 1–13 above and proves the required replay path
 
 ## Cross-references
 
+- **Next step:** `ORG_HIERARCHY_VALIDATION.md`
 - Raw: `evidence/live_workforce_governance_setu/workforce_operations/phase1_capture.json`
-- Hierarchy extension: `ORG_HIERARCHY_VALIDATION.md`
-- Lineage propagation: `LINEAGE_PROPAGATION_EVIDENCE.md`
-- Control Center replay of this correlation id: `CONTROL_CENTER_EVIDENCE.md`
+- Lineage: `LINEAGE_PROPAGATION_EVIDENCE.md`
+- Control Center: `CONTROL_CENTER_EVIDENCE.md`
+- Index: `00_DELIVERABLES_INDEX.md`

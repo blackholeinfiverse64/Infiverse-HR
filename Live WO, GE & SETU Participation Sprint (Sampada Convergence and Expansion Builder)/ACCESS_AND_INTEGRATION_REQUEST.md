@@ -1,90 +1,149 @@
 # Access & Integration Request — Live WO/GE/SETU Sprint
 
-**Purpose:** This is the list of items needed to unblock the remaining (currently "Not Yet Available") proof for the Sampada workforce/governance/SETU runtime. Once these are provided, production-grade evidence can be produced and the external-participation gap can be closed.
+**Workflow position:** Required before Steps 9–10 (live gateway + partner closeout)  
+**Purpose:** Unblock remaining proof items — deployed gateway access, live DB, and external partner integration  
+**Requested by:** Shashank (Sampada, Support Builder)  
+**Approval / owner:** Rishabh Yadav  
+**Date raised:** 2026-06-27 · last updated 2026-07-03
 
-**Requested by:** Shashank (Sampada, Support Builder)
-**Approval / owner:** Rishabh Yadav
-**Date raised:** 2026-06-27
+---
+
+## When to use this document
+
+| Workflow step | Sections needed |
+|---|---|
+| Step 9 (live deployment capture) | **B** (gateway) + **C** (database) |
+| Step 10 (partner SETU closeout) | **D** (all four partners) |
+| Step 11 (post-deploy) | B + C + D (all verified) |
+| Optional scale test | **E** |
 
 ---
 
 ## Why this is needed (plain summary)
 
-The system has been proven to work on a **local practice copy** using a temporary database, and our side of partner-data ingestion works. What is **not yet proven**:
+The system has been proven on a **local practice copy** and Sampada-side ingestion works. Three gaps drove this request:
 
-1. The same behaviour on the **real deployed server** with the **real database**.
-2. **Live data actually sent in by the four external partner systems.**
-3. That it holds up under **sustained, higher-volume real use.**
+1. Same behaviour on the **real deployed server** with the **real database** → **RESOLVED** (2026-07-02 live capture)
+2. **Live data sent by four external partner systems** → **RESOLVED Tier 2** (2026-07-02 partner closeout; redeployed 2026-07-03)
+3. **Sustained higher-volume real use** → **OPEN** (Section E)
 
-The items below unblock all three.
+---
+
+## Status dashboard
+
+| Section | Topic | Status |
+|---|---|---|
+| **A** | Owner decisions | Partial — A1 open; A2 open |
+| **B** | Live gateway access | **Complete** |
+| **C** | Live database access | **Complete** |
+| **D** | Partner systems (×4) | **Complete** (Tier 2) |
+| **E** | Scale / sustained test | Open |
 
 ---
 
 ## SECTION A — Owner decision (Rishabh)
 
 - [ ] **A1.** Approval to contact the four external partner teams for live integration.
-- [ ] **A2.** Decision on whether "policy-conflict resolution" should be built in a future sprint *(currently not a system capability; flagged honestly — no action needed now beyond a yes/no for the roadmap).*
+- [ ] **A2.** Decision on whether "policy-conflict resolution" should be built in a future sprint *(currently not a system capability; flagged honestly — yes/no for roadmap only).*
+
+---
 
 ## SECTION B — Live server (deployed gateway) access
 
-- [x] **B1.** Deployed gateway URL (the live server address).  
-  _Received_: `https://bhiv-hr-gateway-l0xp.onrender.com`
-- [x] **B2.** API key / access credentials for the live gateway.  
-  _Received via secure env_: `backend/.env` (`API_KEY_SECRET`; redacted in docs).
-- [x] **B3.** Confirmation that running a controlled evidence capture against the live server is permitted (and a preferred time window, if any).  
-  _Action completed_: live capture executed on 2026-07-02; evidence stored under `evidence/live_workforce_governance_setu/live/20260702T063831Z/`.
+- [x] **B1.** Deployed gateway URL  
+  _Received:_ `https://bhiv-hr-gateway-l0xp.onrender.com`
+- [x] **B2.** API key / access credentials  
+  _Received via secure env:_ `backend/.env` (`API_KEY_SECRET`; redacted in docs)
+- [x] **B3.** Permission for controlled evidence capture  
+  _Completed 2026-07-02:_ `evidence/live_workforce_governance_setu/live/20260702T063831Z/` (41/41 HTTP 200)
+
+**Verification command:** `python evidence/live_workforce_governance_setu/harness/auth_probe.py`
+
+---
 
 ## SECTION C — Live database access
 
-- [x] **C1.** Live MongoDB connection string (or the connection details).  
-  _Received via secure env_: `backend/.env` (`DATABASE_URL` / `MONGODB_URI`; redacted in docs).
-- [x] **C2.** Database name to use.  
-  _Received_: `MONGODB_DB_NAME=bhiv_hr`.
-- [x] **C3.** Read/write permission confirmation for the evidence capture.  
-  _Inferred from successful live write/read evidence_: workforce/governance/SETU/control-center writes and replays returned HTTP 200 in production capture.
+- [x] **C1.** Live MongoDB connection string  
+  _Received via secure env:_ `backend/.env` (`DATABASE_URL` / `MONGODB_URI`)
+- [x] **C2.** Database name  
+  _Received:_ `MONGODB_DB_NAME=bhiv_hr`
+- [x] **C3.** Read/write permission for evidence capture  
+  _Inferred from successful live write/read in production capture_
 
-## SECTION D — External partner systems (one row per system)
+---
 
-For **each** of the four systems, we need a contact and connection details so they can send a real message into Sampada.
+## SECTION D — External partner systems
+
+For **each** of the four systems: repo access, dispatcher wiring, and live test signal.
 
 ### D1. Niyantran
 
-- [x] Repo received (2026-07-02): `workflow-blackhole` codebase provided by owner.
-- [ ] Owner / contact person:
-- [x] Connection key / credential for it to send data in: additive `server/services/setuDispatcher.js` wired; uses `SAMPADA_SETU_BASE_URL` + `SAMPADA_SETU_API_KEY` (= `API_KEY_SECRET` against live gateway).
-- [x] Confirmation it can send a real test signal: **Tier 2 verified 2026-07-02** — `sig-29f9efbb899a` from real `ExecutionEvent` (`exec_demo_002`). Evidence: `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/niyantran_telemetry_capture.json`.
+| Item | Status | Detail |
+|---|---|---|
+| Repo received | [x] 2026-07-02 | `workflow-blackhole` |
+| Owner / contact | [ ] | — |
+| Connection / dispatcher | [x] | `server/services/setuDispatcher.js`; `SAMPADA_SETU_*` env |
+| Live test signal | [x] Tier 2 | `sig-29f9efbb899a` (closeout) · `sig-89a4b9062553` (post-deploy 2026-07-03) |
+| Evidence | | `partner_live/20260702T073708Z/` · `partner_live/20260703T100843Z/` |
+| Deployed | [x] 2026-07-03 | `workflow-blackhole` `main` → Render |
 
 ### D2. Artha
 
-- [x] Repo received (2026-07-02): `Artha_Update_T29-main` codebase provided by owner.
-- [ ] Owner / contact person:
-- [x] Connection key / credential for it to send data in: existing `dispatchToSetu()` re-pointed to `/v1/setu/signals/artha_payroll_visibility` via `sampadaAdapter.js`; `SETU_API_KEY` = `API_KEY_SECRET`.
-- [x] Confirmation it can send a real test signal: **Tier 2 verified 2026-07-02** — `sig-9802342a158c` from real `ComplianceSignal` `SIG-d03e25ed-…`. Evidence: `partner_live/20260702T073708Z/artha_payroll_visibility_capture.json`.
+| Item | Status | Detail |
+|---|---|---|
+| Repo received | [x] 2026-07-02 | `Artha` / `Artha_Update_T29` |
+| Owner / contact | [ ] | — |
+| Connection / dispatcher | [x] | `sampadaAdapter.js`; `SETU_*` env → `/v1/setu/signals/artha_payroll_visibility` |
+| Live test signal | [x] Tier 2 | `sig-9802342a158c` · `sig-43d05ebea091` (post-deploy) |
+| Evidence | | `partner_live/20260702T073708Z/` · `partner_live/20260703T100843Z/` |
+| Deployed | [x] 2026-07-03 | `AI-Artha` + `Artha_Update_T29` `main` aligned (`04608e5`) |
 
 ### D3. CRM
 
-- [x] Repo received (2026-07-02): `ai-crm-main` codebase provided by owner (includes CRM + SETU internal module + Logistics frontend).
-- [ ] Owner / contact person:
-- [x] Connection key / credential for it to send data in: additive `backend/setu/sampada_dispatcher.py` + env `SAMPADA_SETU_*`.
-- [x] Confirmation it can send a real test signal: **Tier 2 verified 2026-07-02** — `sig-5ffbd0b0bde4`. Evidence: `partner_live/20260702T073708Z/crm_participation_capture.json`.
+| Item | Status | Detail |
+|---|---|---|
+| Repo received | [x] 2026-07-02 | `ai-crm` (CRM + SETU module + Logistics frontend) |
+| Owner / contact | [ ] | — |
+| Connection / dispatcher | [x] | `backend/setu/sampada_dispatcher.py`; `SAMPADA_SETU_*` env |
+| Live test signal | [x] Tier 2 | `sig-5ffbd0b0bde4` · `sig-b83c10ba250c` (post-deploy) |
+| Evidence | | `partner_live/20260702T073708Z/` · `partner_live/20260703T100843Z/` |
+| Deployed | [x] 2026-07-03 | `ai-crm` `main` → Render (`backend-nodejs`) |
+| Caveat | | Node API on Render; Python SETU dispatcher not auto-wired to Node routes |
 
 ### D4. Logistics
 
-- [x] Repo received (2026-07-02): ships inside the same `ai-crm-main` codebase — no separate Logistics backend exists (`frontend/src/pages/Logistics.jsx` only); confirmed via repo scan.
-- [ ] Owner / contact person:
-- [x] Connection key / credential for it to send data in: rides CRM dispatcher with `subsystem: "logistics"` marker.
-- [x] Confirmation it can send a real test signal: **Tier 2 verified 2026-07-02** — `sig-3acbbfa3ca0a` (`crm_participation` + `subsystem: logistics`). Evidence: `partner_live/20260702T073708Z/logistics_crm_participation_capture.json`.
+| Item | Status | Detail |
+|---|---|---|
+| Repo received | [x] 2026-07-02 | Inside `ai-crm` — `frontend/src/pages/Logistics.jsx` only; no separate backend |
+| Owner / contact | [ ] | — |
+| Connection / dispatcher | [x] | CRM dispatcher + `subsystem: "logistics"` |
+| Live test signal | [x] Tier 2 | `sig-3acbbfa3ca0a` · `sig-077b665909d2` (post-deploy) |
+| Evidence | | `partner_live/20260702T073708Z/` · `partner_live/20260703T100843Z/` |
+| Owner decision pending | | Separate `signal_type` vs `crm_participation` + subsystem marker |
+
+---
 
 ## SECTION E — (Optional) Scale / sustained-use test
 
-- [ ] **E1.** Go-ahead to run a higher-volume / repeated run against the live server (depends on Section B + C).
+- [ ] **E1.** Go-ahead for higher-volume / repeated run against live server (depends on B + C).
 
 ---
 
 ## What happens once provided
 
-- **With Section B + C** → production-grade evidence for items 1 and 3 can be generated quickly.
-- **With Section D** (per partner) → each partner's live participation moves from "Not Yet Available" to "Verified" as real signals arrive.
+| Sections complete | Unblocks |
+|---|---|
+| **B + C** | Production-grade Sampada evidence (Step 9) |
+| **D** (per partner) | Partner participation: "Not Yet Available" → "Verified Tier 2" |
+| **E** | Sustained-use / scale proof |
 
-> Note: credentials should be shared through a secure channel, **not** committed into the repository or pasted into shared docs.
+> Credentials via secure channel only — never commit to repo or paste in shared docs.
 
+---
+
+## Cross-references
+
+- Master workflow: `Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder).md` Steps 9–11
+- SETU evidence: `SETU_PARTICIPATION_EVIDENCE.md`
+- Deployment runbook: `PARTNER_SETU_LIVE_RUNBOOK.md`
+- Running log: `EXECUTION_LOG.md` §Live deployment · §Partner closeout

@@ -1,5 +1,23 @@
 # Policy Replay Validation (Live WO/GE/SETU Sprint · Phase 4)
 
+**Workflow position:** Step 4 of 11  
+**Prerequisites:** Step 3 scenarios (reuses policy/decision IDs)  
+**Next step:** Step 5 → `SETU_PARTICIPATION_EVIDENCE.md`
+
+---
+
+## Execution method
+
+1. List policy definitions — confirm 3 active, unchanged after overrides.
+2. Re-evaluate each policy with compliant context (tenure 200, scope_match true, approved true).
+3. Document: overrides do **not** version the policy definition; outcome is context-driven.
+4. Cross-reference Phase 3 decision replay chains for reconstruction proof.
+5. Flag policy-conflict resolution as not a present capability (honest — not fabricated).
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime code path; not deployed

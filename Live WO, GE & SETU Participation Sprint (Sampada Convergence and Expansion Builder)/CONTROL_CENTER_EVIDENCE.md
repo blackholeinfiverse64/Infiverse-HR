@@ -1,5 +1,23 @@
 # Control Center Operational Evidence (Live WO/GE/SETU Sprint · Phase 7)
 
+**Workflow position:** Step 7 of 11  
+**Prerequisites:** Steps 1–6 (audit ledger populated with lifecycle + governance + SETU events)  
+**Next step:** Step 8 → `TESTING_AND_ACCEPTANCE_EVIDENCE.md`
+
+---
+
+## Execution method
+
+1. `GET /v1/control-center/audit-events?limit=50` — expect platform-scoped event count.
+2. Filter by Phase 1 lifecycle correlation id — expect 14 events (13 lifecycle + 1 SETU).
+3. `GET /v1/control-center/audit-replay?correlation_id=<cid>` — expect ordered 14-event replay.
+4. Map surfaced fields to constitutional boundaries (Observation / Assessment / Decision / Execution).
+5. UI screenshot optional — backend read endpoints are the primary evidence (UI limitation stated honestly).
+
+---
+
+## Capture metadata
+
 **Date**: 2026-06-27
 **Gateway base URL**: in-process FastAPI app mounting the real `routes/workforce_governance_routes.py` router + the two real Control Center audit read endpoints (wiring copied verbatim from `app/main.py`)
 **Environment**: local in-process runtime over in-memory async Mongo (`mongomock_motor`) — real runtime functions (`list_audit_events`, `build_audit_replay`) executed; not deployed
