@@ -130,6 +130,35 @@ Updated: `TESTING_AND_ACCEPTANCE_EVIDENCE.md` §Post-deploy.
 
 ---
 
+## Step 11b — Live URL verification (2026-07-04, user-provided domains)
+
+| Action | Result |
+|---|---|
+| Reachability: 6 backends + 4 frontends (`*.blackholeinfiverse.com`) | All pass |
+| Agent + LangGraph health (first live check this sprint) | Pass |
+| Gateway auth + Control Center reads (5 endpoints) | Pass |
+| Fresh partner SETU capture (Tier 2) | 4/4 — `sig-5527bab3a3c9`, `sig-8ac9e1885a97`, `sig-fff4f754415a`, `sig-99fcca8ba98a` |
+| Evidence | `partner_live/20260704T071016Z/` |
+| Config gap flagged | SETU frontend bundle still references stale `ai-artha.vercel.app` |
+
+Updated: `TESTING_AND_ACCEPTANCE_EVIDENCE.md` §Live URL verification · `post_deploy_smoke.py` (Agent + LangGraph).
+
+---
+
+## Step 8b — Local multi-service functional test (2026-07-04)
+
+| Action | Result |
+|---|---|
+| Read master sprint workflow + deliverables index | Done |
+| Start Sampada gateway + Artha + ai-crm + Niyantran locally | Done (port overrides: ai-crm 8001, Niyantran 5001) |
+| Gateway health, auth, Control Center reads | Pass |
+| Partner SETU dispatch (Tier 2) | 3/4 pass locally; Niyantran blocked by empty Mongo `ExecutionEvent` |
+| Live smoke re-run (`auth_probe.py`, `post_deploy_smoke.py`) | Pass |
+| Evidence captured | `evidence/live_workforce_governance_setu/local_functional/20260704T064800Z/` |
+| Harness scripts added | `harness/start_local_gateway.py`, `local_*_probe.py`, `local_partner_functional_test.py` |
+
+---
+
 ## Deliverable completion matrix (16 items)
 
 | # | Deliverable | Path | Status |

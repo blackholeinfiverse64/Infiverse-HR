@@ -1,10 +1,10 @@
 # Testing & Acceptance Evidence (Live WO/GE/SETU Sprint · Phase 8)
 
 **Workflow position:** Step 8 of 11 (after Control Center; before live deployment re-verification)  
-**Date:** 2026-06-27 (initial) · updated 2026-07-03 (post-deploy)  
-**Gateway base URL:** in-process FastAPI (Phases 1–8) · `https://bhiv-hr-gateway-l0xp.onrender.com` (live)  
-**Environment:** local in-process + deployed Render gateway  
-**Status:** `complete` — gateway tests pass; post-deploy smoke pass (2026-07-03)  
+**Date:** 2026-06-27 (initial) · updated 2026-07-04 (local functional)  
+**Gateway base URL:** in-process FastAPI (Phases 1–8) · `http://127.0.0.1:8000` (local) · `https://bhiv-hr-gateway-l0xp.onrender.com` (live)  
+**Environment:** local in-process + local multi-service + deployed Render gateway  
+**Status:** `complete` — gateway tests pass; post-deploy smoke pass (2026-07-03); local functional pass 3/4 partners (2026-07-04)  
 **Raw capture:** `evidence/live_workforce_governance_setu/test_results/`
 
 > Owner / acceptance authority: Rishabh Yadav. Builder surfaces evidence only.
@@ -139,6 +139,98 @@ After all four partner repos + Sampada deployed to Render/Vercel with env verifi
 | ai-crm | Yes (`5633c13`) | `sampada_dispatcher.py` |
 | Artha (origin + AI-Artha) | Yes (`04608e5`) | `sampadaAdapter.js` |
 | workflow-blackhole | Yes (`fbcfa73`) | `setuDispatcher.js` |
+
+---
+
+## Live URL verification (2026-07-04 — user-provided production domains)
+
+All URLs supplied by owner verified against live Render + `*.blackholeinfiverse.com` frontends.
+
+### Live service health (backends)
+
+| Service | URL | Result |
+|---|---|---|
+| Sampada gateway | `https://bhiv-hr-gateway-l0xp.onrender.com/health` | **200** — v4.2.0 |
+| Sampada agent | `https://bhiv-hr-agent-cato.onrender.com/health` | **200** — v3.0.0 |
+| Sampada LangGraph | `https://bhiv-hr-langgraph-luy9.onrender.com/health` | **200** |
+| Artha backend | `https://ai-artha.onrender.com/health` | **200** |
+| ai-crm backend | `https://ai-crm-4nje.onrender.com/api/auth/login` | **401** — reachable |
+| Niyantran backend | `https://blackholeworkflow.onrender.com/api/auth/login` | **400** — reachable (no `/health` route) |
+
+### Live frontends (custom domains)
+
+| App | URL | Result | Bundle API target |
+|---|---|---|---|
+| Sampada | `https://sampada.blackholeinfiverse.com/` | **200** | Gateway + Agent + LangGraph ✓ |
+| Artha | `https://artha.blackholeinfiverse.com/` | **200** | `ai-artha.onrender.com/api/v1` ✓ |
+| SETU/CRM | `https://setu.blackholeinfiverse.com/` | **200** | `ai-crm-4nje.onrender.com` ✓ *(stale `ai-artha.vercel.app` ref in bundle — fix env + redeploy)* |
+| Niyantran | `https://niyantran.blackholeinfiverse.com/login` | **200** | `blackholeworkflow.onrender.com/api` ✓ |
+
+### Fresh partner SETU capture (2026-07-04)
+
+**Bundle:** `evidence/live_workforce_governance_setu/partner_live/20260704T071016Z/`
+
+| Partner | signal_id | HTTP |
+|---|---|---|
+| Artha | `sig-5527bab3a3c9` | 200 |
+| CRM | `sig-8ac9e1885a97` | 200 |
+| Logistics | `sig-fff4f754415a` | 200 |
+| Niyantran | `sig-99fcca8ba98a` | 200 |
+
+**Shared correlation_id:** `3d0a7d1a-1be8-4267-af5b-8d239ea25049`
+
+### Open config actions (from live scan)
+
+1. Redeploy SETU frontend — remove stale `ai-artha.vercel.app` from build bundle
+2. Confirm partner Render env: `SETU_ENABLED`, `SETU_BASE_URL`, `SETU_API_KEY` for Tier-1 auto-dispatch
+3. Add Niyantran `/api/health` (optional; login probe sufficient today)
+4. Rotate `API_KEY_SECRET` after capture sessions
+
+---
+
+## Local multi-service functional test (2026-07-04)
+
+**Harness:** `evidence/live_workforce_governance_setu/harness/start_local_gateway.py`, `local_auth_probe.py`, `local_partner_functional_test.py`, `local_control_center_probe.py`  
+**Capture:** `evidence/live_workforce_governance_setu/local_functional/20260704T064800Z/local_partner_dispatch.json`  
+**Correlation ID:** `local-functional-test-20260704`
+
+### Services started (local)
+
+| Service | Port | Status |
+|---|---|---|
+| Sampada gateway | 8000 | Running — health 200, v4.2.0 |
+| Artha backend | 5000 | Running — `/health` 200 |
+| ai-crm Node | 8001 *(override; `.env` default 8000 conflicts with gateway)* | Running |
+| Niyantran | 5001 *(override; `.env` default 5000 conflicts with Artha)* | Running |
+
+### Startup issues
+
+| Issue | Resolution |
+|---|---|
+| Missing `backend/venv` | Created venv; installed `requirements.txt` |
+| Missing ai-crm `node_modules` | `npm install` in `ai-crm/backend-nodejs/` |
+| Port conflicts (8000 / 5000) | Override via `$env:PORT` for ai-crm and Niyantran |
+| Gateway auth 401 without `.env` in process | Restart via `start_local_gateway.py` |
+
+### Features verified (local)
+
+| Feature | Result |
+|---|---|
+| `GET /health` | Pass |
+| SETU auth (`API_KEY_SECRET` 200; `GATEWAY_SECRET_KEY` 401) | Pass |
+| `GET /v1/setu/signals`, `GET /v1/setu/trace/{id}` | Pass |
+| Control Center reads (audit-events, audit-replay, dashboard-aggregates) | Pass |
+| Artha SETU dispatch (`artha_payroll_visibility`) | Pass — `sig-09b6bf7aa810` |
+| CRM SETU dispatch (`crm_participation`) | Pass — `sig-0757dc6c045b` |
+| Logistics SETU dispatch (`crm_participation` + `subsystem: logistics`) | Pass — `sig-7aac0fb6efaf` |
+| Niyantran SETU dispatch (`niyantran_telemetry`) | **Fail** — empty `ExecutionEvent` collection in local Mongo |
+| Live `auth_probe.py` + `post_deploy_smoke.py` | Pass (re-run same session) |
+| `pytest -q backend/tests/gateway/` | 31 passed, 2 failed (missing `pytest-asyncio` in fresh venv) |
+
+### Local blockers (unchanged from sprint)
+
+- Niyantran local Tier-2 capture needs seeded `ExecutionEvent` data (live dispatch works: `sig-89a4b9062553`).
+- Tier 1 business-route → dispatcher path not exercised; ai-crm Node does not auto-wire Python SETU dispatcher.
 
 ---
 

@@ -16,6 +16,14 @@ SERVICES = {
         "url": "https://bhiv-hr-gateway-l0xp.onrender.com/health",
         "expect": 200,
     },
+    "sampada_agent": {
+        "url": "https://bhiv-hr-agent-cato.onrender.com/health",
+        "expect": 200,
+    },
+    "sampada_langgraph": {
+        "url": "https://bhiv-hr-langgraph-luy9.onrender.com/health",
+        "expect": 200,
+    },
     "artha_backend": {
         "url": "https://ai-artha.onrender.com/health",
         "expect": 200,
