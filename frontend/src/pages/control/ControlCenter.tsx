@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Loading from '../../components/Loading'
+import {
+  AlertCard,
+  EscalationCard,
+  ExecutiveMetricCard,
+  GovernanceCard,
+  MapCard,
+  ReplayCard,
+  TelemetryCard,
+  TimelineCard,
+  type CardSeverity,
+} from '../../components/cards'
 import { useAuth } from '../../context/AuthContext'
 import {
   AGENT_SERVICE_URL,
@@ -41,6 +52,58 @@ interface KpiCard {
   sublabel?: string
   alert?: boolean
   warning?: boolean
+  sourceSystem?: string
+  correlationId?: string
+  primitive?: 'executive' | 'telemetry' | 'replay' | 'governance' | 'alert' | 'escalation'
+}
+
+function kpiSeverity(card: KpiCard): CardSeverity {
+  if (card.alert) return 'alert'
+  if (card.warning) return 'warning'
+  return 'normal'
+}
+
+function ConstitutionalKpiRenderer({ card }: { card: KpiCard }) {
+  const severity = kpiSeverity(card)
+  const primitive = card.primitive || (card.alert ? 'alert' : card.label.match(/Gateway|Agent|LangGraph/i) ? 'telemetry' : 'executive')
+
+  if (primitive === 'alert') {
+    return <AlertCard label={card.label} value={card.value} sublabel={card.sublabel} readOnly />
+  }
+  if (primitive === 'telemetry') {
+    return (
+      <TelemetryCard
+        label={card.label}
+        value={card.value}
+        sublabel={card.sublabel}
+        severity={severity}
+        sourceSystem={card.sourceSystem}
+        readOnly
+      />
+    )
+  }
+  if (primitive === 'replay') {
+    return <ReplayCard label={card.label} value={card.value} sublabel={card.sublabel} correlationId={card.correlationId} readOnly />
+  }
+  if (primitive === 'governance') {
+    return <GovernanceCard label={card.label} value={card.value} sublabel={card.sublabel} severity={severity} readOnly />
+  }
+  if (primitive === 'escalation') {
+    return <EscalationCard label={card.label} value={card.value} sublabel={card.sublabel} severity={severity} readOnly />
+  }
+  return (
+    <ExecutiveMetricCard
+      label={card.label}
+      value={card.value}
+      sublabel={card.sublabel}
+      delta={card.delta}
+      deltaPositive={card.deltaPositive}
+      severity={severity}
+      sourceSystem={card.sourceSystem}
+      correlationId={card.correlationId}
+      readOnly
+    />
+  )
 }
 
 type TraceEvent = ControlCenterTraceEvent
@@ -159,9 +222,9 @@ function card(label: string, value: string | number, sublabel: string, severity:
 function buildExecutiveCards(liveData: ControlCenterLiveData | null): KpiCard[] {
   const performance = liveData?.gatewayMetrics?.performance_summary ?? {}
   return [
-    buildGatewayCard(liveData?.gatewayHealth ?? null, `${API_BASE_URL}/metrics/dashboard`),
-    buildServiceCard('Agent', liveData?.agentHealth ?? null, serviceBaseSource(liveData?.agentHealth ?? null, AGENT_SERVICE_URL)),
-    buildServiceCard('LangGraph', liveData?.langgraphHealth ?? null, serviceBaseSource(liveData?.langgraphHealth ?? null, LANGGRAPH_SERVICE_URL)),
+    { ...buildGatewayCard(liveData?.gatewayHealth ?? null, `${API_BASE_URL}/metrics/dashboard`), primitive: 'telemetry' as const, sourceSystem: `${API_BASE_URL}/health` },
+    { ...buildServiceCard('Agent', liveData?.agentHealth ?? null, serviceBaseSource(liveData?.agentHealth ?? null, AGENT_SERVICE_URL)), primitive: 'telemetry' as const, sourceSystem: serviceBaseSource(liveData?.agentHealth ?? null, AGENT_SERVICE_URL) },
+    { ...buildServiceCard('LangGraph', liveData?.langgraphHealth ?? null, serviceBaseSource(liveData?.langgraphHealth ?? null, LANGGRAPH_SERVICE_URL)), primitive: 'telemetry' as const, sourceSystem: serviceBaseSource(liveData?.langgraphHealth ?? null, LANGGRAPH_SERVICE_URL) },
     card(
       'Avg Response Time',
       toMsDisplay(readNumber(performance, ['avg_response_time_ms', 'avg_response_time'])),
@@ -248,49 +311,7 @@ function buildOrgCards(liveData: ControlCenterLiveData | null): KpiCard[] {
 // ────────────────────────────────────────────────────────────────────────────
 
 function KpiPill({ card }: { card: KpiCard }) {
-  const borderColor = card.alert
-    ? 'border-red-400/40 dark:border-red-500/30'
-    : card.warning
-    ? 'border-amber-400/40 dark:border-amber-500/30'
-    : 'border-white/10 dark:border-slate-700/50'
-
-  const bgColor = card.alert
-    ? 'bg-red-50/80 dark:bg-red-950/30'
-    : card.warning
-    ? 'bg-amber-50/80 dark:bg-amber-950/30'
-    : 'bg-white/70 dark:bg-slate-800/60'
-
-  const valuColor = card.alert
-    ? 'text-red-600 dark:text-red-400'
-    : card.warning
-    ? 'text-amber-600 dark:text-amber-400'
-    : 'text-slate-900 dark:text-white'
-
-  return (
-    <div
-      className={`rounded-2xl border ${borderColor} ${bgColor} backdrop-blur-md p-4 flex flex-col gap-1 shadow-sm hover:shadow-md transition-shadow`}
-    >
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-        {card.label}
-      </p>
-      <p className={`text-2xl font-bold font-heading ${valuColor}`}>{card.value}</p>
-      {card.sublabel && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{card.sublabel}</p>
-      )}
-      {card.alert && (
-        <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 dark:text-red-400">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Attention required
-        </span>
-      )}
-    </div>
-  )
+  return <ConstitutionalKpiRenderer card={card} />
 }
 
 function ZoneHeader({
@@ -314,20 +335,6 @@ function ZoneHeader({
         <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
       </div>
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: TraceEvent['status'] }) {
-  const cls =
-    status === 'success'
-      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-      : status === 'failure'
-      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>
-      {status}
-    </span>
   )
 }
 
@@ -492,33 +499,19 @@ function OrgVisibilityZone({
           <KpiPill key={k.label} card={k} />
         ))}
       </div>
-      {/* Department load heatmap (visual-only) */}
-      <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 bg-white/60 dark:bg-slate-800/50 p-4 backdrop-blur-sm">
-        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">Department Load Heatmap (aggregated)</p>
-        <div className="space-y-2">
-          {departmentLoad.map((d) => (
-            <div key={d.dept} className="flex items-center gap-3">
-              <span className="text-xs text-slate-600 dark:text-slate-400 w-20 truncate">{d.dept}</span>
-              <div className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                <div className={`${d.color} h-2 rounded-full`} style={{ width: `${d.load}%` }} />
-              </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 w-8 text-right">
-                {d.load}%
-              </span>
-            </div>
-          ))}
-        </div>
+      <MapCard
+        title="Department Load Map"
+        nodes={departmentLoad.map((d) => ({ id: d.dept, label: d.dept, level: `${d.load}% load` }))}
+        readOnly
+      />
       <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
         Live source: {sourceSummary}
       </p>
-      </div>
     </div>
   )
 }
 
 function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]; traceNote: string }) {
-  const [expanded, setExpanded] = useState<string | null>(null)
-
   return (
     <div>
       <ZoneHeader
@@ -531,47 +524,23 @@ function ReplayTraceZone({ traceEvents, traceNote }: { traceEvents: TraceEvent[]
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-        <KpiPill card={{ label: 'Last Replay', value: '2026-05-26', sublabel: '13:35:22Z — SUCCESS', deltaPositive: true }} />
-        <KpiPill card={{ label: 'Trace Density', value: '5 hops', sublabel: 'correlation ID: trace_conv_17_257502' }} />
-        <KpiPill card={{ label: 'Unreconciled Events', value: 0, sublabel: 'all events matched', deltaPositive: true }} />
+        <ReplayCard label="Last Replay" value={traceEvents[0]?.ts?.slice(0, 10) || '—'} sublabel="Latest audit trace event" readOnly />
+        <ReplayCard label="Trace Density" value={`${traceEvents.length} hops`} sublabel="Visible correlation chain" readOnly />
+        <ReplayCard label="Unreconciled Events" value={0} sublabel="all events matched" readOnly />
       </div>
 
-      <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 bg-white/60 dark:bg-slate-800/50 p-4 backdrop-blur-sm">
-        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
-          Audit Trace — Correlation ID: <code className="font-mono text-indigo-600 dark:text-indigo-400">trace_conv_17_257502</code>
-        </p>
-        <div className="space-y-2">
-          {traceEvents.map((ev, idx) => (
-            <div
-              key={idx}
-              className="rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2"
-            >
-              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setExpanded(expanded === String(idx) ? null : String(idx))}>
-                <StatusBadge status={ev.status} />
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{ev.ts}</span>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{ev.service}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">{ev.op}</span>
-                <svg
-                  className={`w-3 h-3 text-slate-400 ml-auto shrink-0 transition-transform ${expanded === String(idx) ? 'rotate-90' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-              {expanded === String(idx) && (
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 font-mono space-y-1">
-                  <p>correlation_id: {ev.correlation_id}</p>
-                  <p>service: {ev.service}</p>
-                  <p>operation: {ev.op}</p>
-                  <p>timestamp: {ev.ts}</p>
-                  <p>status: {ev.status}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">{traceNote}</p>
-      </div>
+      <TimelineCard
+        title="Audit Trace Timeline"
+        events={traceEvents.map((ev, idx) => ({
+          id: String(idx),
+          timestamp: ev.ts,
+          label: `${ev.service} · ${ev.op}`,
+          status: ev.status,
+          detail: ev.correlation_id,
+        }))}
+        readOnly
+      />
+      <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 italic">{traceNote}</p>
     </div>
   )
 }
@@ -598,11 +567,11 @@ function GovernanceZone({ governance }: { governance: GovernancePanelData | null
         Read-only oversight (GOV-PANEL-001 approved). Visibility ≠ authority — no execution actions in this panel.
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
-        <KpiPill card={card('Organizations', orgCount, '/v1/workforce/organizations')} />
-        <KpiPill card={card('Policies', policyCount, '/v1/policies/definitions')} />
-        <KpiPill card={card('Challenges', challengeCount, '/v1/governance/challenges')} />
-        <KpiPill card={card('Decisions', decisionCount, '/v1/decisions')} />
-        <KpiPill card={card('SETU Signals', signalCount, '/v1/setu/signals')} />
+        <GovernanceCard label="Organizations" value={orgCount} sublabel="/v1/workforce/organizations" readOnly />
+        <GovernanceCard label="Policies" value={policyCount} sublabel="/v1/policies/definitions" readOnly />
+        <EscalationCard label="Challenges" value={challengeCount} sublabel="/v1/governance/challenges" readOnly />
+        <GovernanceCard label="Decisions" value={decisionCount} sublabel="/v1/decisions" readOnly />
+        <TelemetryCard label="SETU Signals" value={signalCount} sublabel="/v1/setu/signals" sourceSystem="/v1/setu/signals" readOnly />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/40 p-4">

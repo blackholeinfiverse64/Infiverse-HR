@@ -27,6 +27,9 @@ node_modules/
 temp/
 tmp/
 
+# Local persistent PostgreSQL data (InsightFlow)
+local-data/postgres/
+
 # Local copy of Complete-Infiverse for integration reference (do not commit)
 /Complete-Infiverse/
 Complete-Infiverse/
@@ -39,18 +42,17 @@ Task19.pdf
 Task20.md
 Task20.pdf
 Live WO, GE & SETU Participation Sprint (Sampada Convergence and Expansion Builder).md
-AGENT_START_PROMPT.md
 Implementation.md
 Review Feedback (Federated Workforce Runtime, Governance Engine And SETU Participation Sprint (Sampada – Convergence And Expansion Builder)).md
 PARTNER_SETU_CLOSEOUT_AGENT_START_PROMPT.md
+Sampada + SETU Product Owner (Convergence And Production Transition Lead).md
 
-# Project files & Folders
-ai-crm-main.zip
-Artha_Update_T29-main.zip
-workflow-blackhole-main.zip
 
+# Integration & PAtner/External repos 
 ai-crm
 Artha
 workflow-blackhole
-
-
+bucket
+Prana
+bhiv-registry
+Karma-Tracker

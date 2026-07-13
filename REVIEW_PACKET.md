@@ -3,7 +3,7 @@
 **Status**: Workforce governance runtime completed for gateway, control-center visibility, docs, and baseline tests; **Live WO/GE/SETU Sprint live runtime evidence captured (workforce / governance / policy / SETU / lineage / control-center)**  
 **Maintained by**: Shashank (Sampada, Support Builder)  
 **For Acceptance Review By**: Rishabh Yadav  
-**Updated**: 2026-07-02
+**Updated**: 2026-07-13 (BHIV Phase IV section added)
 
 > Operational boundary remains unchanged: Sampada is a visibility and intelligence surface; execution authority stays with owning systems and approved owners.
 
@@ -81,6 +81,60 @@ The five findings of the real reviewer document were read in full and mapped to 
 2. Tier 2 (dispatcher invoked directly, partner server not booted) was the achievable evidence tier in this session — is that an acceptable final answer, or does closure require Tier 1 full partner-server business flows in a shared test environment?
 
 **Security note**: rotate `API_KEY_SECRET` / `GATEWAY_SECRET_KEY` after this capture (plaintext exposure during planning — see Implementation.md §0.3).
+
+---
+
+## BHIV Phase IV — Production Transition (2026-07-13)
+
+**Sprint**: Sampada + SETU Product Owner (Convergence And Production Transition Lead). **Status**: Phase IV deliverables produced; Tier-2 live partner SETU re-confirmed; dashboard capability library shipped; HA/DR deferred to TMS.
+
+### State block additions
+
+- **Baseline tests**: 32/32 passed (2026-07-13) — `evidence/phase_iv_tier1/test_results/pytest_phase_iv.txt`
+- **Tier 1 capture run**: `evidence/phase_iv_tier1/20260713T035150Z/` — dual local in-process + live Render
+- **Production validation**: `evidence/phase_iv_production_validation/20260713T035319Z/` — 50-cycle load (p50 37ms), 20-task concurrency (100% success), 30s sustained loop (29 iterations)
+- **Dashboard primitives**: 8 constitutional cards in `frontend/src/components/cards/`; Control Center + portal dashboards wired
+- **SETU contract**: unchanged (`setu_participation.py`)
+
+### Per-system tier (Phase IV)
+
+| Partner | Tier | Sampada signal_id (2026-07-13) | Evidence |
+|---|---|---|---|
+| Sampada (local harness) | Tier 1 | `sig-502f26a49b89` | `capture_index_tier1.json` |
+| Artha | Tier 2 | `sig-66c8d789c660` | live dispatch in `20260713T035150Z/` |
+| CRM | Tier 2 | `sig-5f80c230999c` | live dispatch |
+| Logistics | Tier 2 | `sig-8ae9c683f2ef` | CRM dispatcher + subsystem |
+| Niyantran | Not Yet Available | — | Blocked: server `MODULE_NOT_FOUND` on boot |
+| Bucket / PRANA / InsightFlow / Karma | Not evidenced | — | No Sampada dispatcher — GC/MDU |
+
+**Correlation id (Phase IV run):** `c530d0b7-eb17-4fb8-bc78-e81a500042fd`
+
+### Phase IV deliverables (task folder)
+
+| Deliverable | File |
+|---|---|
+| Tier 1 runtime evidence | `Sampada + SETU Product Owner (...)/TIER1_RUNTIME_EVIDENCE.md` |
+| TANTRA integration matrix | `.../TANTRA_INTEGRATION_MATRIX.md` |
+| Runtime dependency graph | `.../RUNTIME_DEPENDENCY_GRAPH.md` |
+| Constitutional boundaries | `.../CONSTITUTIONAL_BOUNDARY_VALIDATION.md` |
+| Production readiness | `.../PRODUCTION_READINESS_ASSESSMENT.md` |
+| Replay & trace pack | `.../REPLAY_AND_TRACE_VALIDATION_PACK.md` |
+| Observability certification | `.../OBSERVABILITY_CERTIFICATION.md` |
+| Deployment certification | `.../DEPLOYMENT_CERTIFICATION_PACK.md` |
+| Dashboard capability library | `.../DASHBOARD_CAPABILITY_LIBRARY.md` |
+| Production monitoring guide | `.../PRODUCTION_MONITORING_GUIDE.md` |
+| DR / failover validation | `.../DISASTER_RECOVERY_VALIDATION.md`, `.../FAILOVER_VALIDATION.md` |
+| Security validation | `.../SECURITY_VALIDATION.md` |
+| Enterprise handover | `.../ENTERPRISE_HANDOVER_DOCUMENTATION.md` |
+| Canonical convergence report | `.../CANONICAL_ECOSYSTEM_CONVERGENCE_REPORT.md` |
+| Final acceptance package | `.../FINAL_PRODUCTION_ACCEPTANCE_PACKAGE.md` |
+
+### Open owner decisions (Phase IV)
+
+1. Logistics separate `signal_type` vs `crm_participation` + subsystem — **GC**
+2. Bucket / PRANA / InsightFlow / Karma SETU participation path — **GC + MDU**
+3. Tier 1 partner server boot (`npm ci`, fix `MODULE_NOT_FOUND`) — partner owners
+4. HA / DR / IaC — **TMS** (UNKNOWN in workspace)
 
 ---
 
