@@ -1,18 +1,17 @@
-# InsightFlow - PostgreSQL setup for bhiv-registry (idempotent, data NOT wiped on restart)
-# Uses the local PostgreSQL 16 Windows service (persistent data under Program Files).
+# InsightFlow PostgreSQL setup (optional if you already created DB via DBeaver)
+# Default local install credential used by this project: postgres / postgres
+#   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/bhiv_registry
 #
-# One-time: set the postgres superuser password from winget install, then run:
-#   $env:PGPASSWORD = '<postgres-superuser-password>'
+# One-time (if using dedicated bhiv role instead):
+#   $env:PGPASSWORD = 'postgres'
 #   .\scripts\setup_insightflow_postgres.ps1
-#
-# Safe to re-run - only creates role/database if missing.
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 
 $DbName = "bhiv_registry"
-$DbUser = "bhiv"
-$DbPass = "bhiv_secret"
+$DbUser = "postgres"
+$DbPass = "postgres"
 $DbHost = "127.0.0.1"
 $DbPort = 5432
 
@@ -58,10 +57,7 @@ if (-not $psql) {
 }
 
 if (-not $env:PGPASSWORD) {
-    Write-Host "Set postgres superuser password (from winget installer), then re-run:"
-    Write-Host "  `$env:PGPASSWORD = '<postgres-superuser-password>'"
-    Write-Host "  .\scripts\setup_insightflow_postgres.ps1"
-    exit 1
+    $env:PGPASSWORD = 'postgres'
 }
 
 $psqlBase = @("-h", $DbHost, "-p", "$DbPort", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1")
@@ -69,13 +65,9 @@ $psqlBase = @("-h", $DbHost, "-p", "$DbPort", "-U", "postgres", "-d", "postgres"
 Write-Host "Testing postgres connection..."
 & $psql @psqlBase -c "SELECT 1;" | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Authentication failed. Check PGPASSWORD."
+    Write-Host "Authentication failed. Set `$env:PGPASSWORD to your postgres password and retry."
     exit 1
 }
-
-Write-Host "Ensuring role '$DbUser'..."
-$roleSql = 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = ''bhiv'') THEN CREATE ROLE bhiv LOGIN PASSWORD ''bhiv_secret''; END IF; END $$;'
-& $psql @psqlBase -c $roleSql
 
 $dbExists = (& $psql @psqlBase -tAc "SELECT 1 FROM pg_database WHERE datname = '$DbName';").Trim()
 if ($dbExists -ne "1") {
