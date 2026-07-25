@@ -1,26 +1,39 @@
-FROM python:3.12.7-slim
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+RUN pip install --no-cache-dir \
+    --prefix=/install \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
+
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgomp1 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+
+COPY --from=builder /install /usr/local
+
 COPY . .
+
+RUN adduser --disabled-password --gecos "" langgraph
+
+RUN mkdir -p /app/data/cache && \
+    chown -R langgraph:langgraph /app
+
+USER langgraph
 
 EXPOSE 9001
 
-# Health check (will be disabled on Render as it uses dynamic ports)
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-#     CMD python -c "import httpx; httpx.get('http://localhost:9001/health', timeout=5)" || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:9001/health || exit 1
 
-# Port 9001 matches docker-compose.production.yml; override with PORT env if needed
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001", "--timeout-keep-alive", "30"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001"]

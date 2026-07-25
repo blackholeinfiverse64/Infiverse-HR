@@ -1,0 +1,72 @@
+services:
+  gateway:
+    image: bhiv/hr-gateway:IMG_TAG
+    container_name: hr_gateway
+    env_file:
+      - ./backend/gateway.env
+    environment:
+      - DATABASE_URL=${MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI}
+    networks:
+      - HR_network
+    ports:
+      - "8003:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  agent:
+    image: bhiv/hr-agent:IMG_TAG
+    container_name: hr_agent
+    env_file:
+      - ./backend/agent.env
+    environment:
+      - DATABASE_URL=${MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI}
+    networks:
+      - HR_network
+    ports:
+      - "9002:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  lang-graph:
+    image: bhiv/hr-lang-graph:IMG_TAG
+    container_name: hr_lang_graph
+    env_file:
+      - ./backend/langgraph.env
+    environment:
+      - DATABASE_URL=${MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI}
+    networks:
+      - HR_network
+    ports:
+      - "9003:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  frontend:
+    image: bhiv/hr-frontend:IMG_TAG
+    container_name: hr_frontend
+    env_file:
+      - ./frontend/.env
+    networks:
+      - HR_network
+    ports:
+      - "3004:3000"
+    restart: always
+
+networks:
+  HR_network:
+    driver: bridge
