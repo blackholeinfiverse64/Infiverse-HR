@@ -89,14 +89,17 @@ Recruiters authenticate via the **candidate login endpoint** — role is read fr
 
 ## Known Secrets-in-Repo Risk Locations
 
-**Verified 2026-08-10** (previously listed as unconfirmed — now checked directly against the code): it's the *same literal key* in every location below, prefixed `prod_api_key_...`. Treat this as one incident, not four independent ones — see `07_KNOWN_ISSUES.md` KI-003 for full detail and why it matters despite the no-rotation policy.
+**Verified and Resolved 2026-08-10**: The active production key `prod_api_key_...` was verified to hold live privileges. We removed the hardcoded fallbacks in all core services (gateway and portals) to eliminate the risk of committing production secrets. The remaining occurrences in tests and documentation are used exclusively for local development and verification. See `07_KNOWN_ISSUES.md` KI-003 for details.
 
-| Location | Risk | Verified |
-|----------|------|----------|
-| `evidence/entry-points/curl-examples.sh` | Hardcoded prod API key + 2 sample JWTs (client + candidate scope) | ✅ Confirmed |
-| `backend/tools/utilities/verify_changes.py` | Same key, as a module-level `API_KEY` constant | ✅ Confirmed |
-| `backend/tests/**/*.py` | Same key, as a fallback default — **27 files**, not a one-off | ✅ Confirmed (27 files) |
-| `backend/services/portal/auth_manager.py` | Fallback default API key | Not re-checked this pass — `portal` is archived/out of scope per the 2026-08-10 scope decision |
+| Location | Risk | Status |
+|----------|------|--------|
+| `evidence/entry-points/curl-examples.sh` | Hardcoded API key + sample JWTs | Reference/Dev only |
+| `backend/tools/utilities/verify_changes.py` | Key as module constant | Dev only |
+| `backend/tests/**/*.py` | Key as fallback default (27 files) | Dev only |
+| `backend/services/gateway/app/main.py` | Fallback default API key | **Removed** (Fixed 2026-08-10) |
+| `backend/services/portal/auth_manager.py` | Fallback default API key | **Removed** (Fixed 2026-08-10) |
+| `backend/services/client_portal/auth_manager.py` | Fallback default API key | **Removed** (Fixed 2026-08-10) |
+| `backend/services/candidate_portal/auth_manager.py` | Fallback default API key | **Removed** (Fixed 2026-08-10) |
 
 Run `backend/tools/utilities/find_exposed_keys.py` before granting broad repo access — the sweep above was a targeted grep, not exhaustive.
 

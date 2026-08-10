@@ -672,7 +672,9 @@ def _get_langgraph_service_url() -> str:
     return os.getenv("LANGGRAPH_SERVICE_URL", "https://bhiv-hr-langgraph-luy9.onrender.com")
 
 def _get_langgraph_headers() -> Dict[str, str]:
-    api_key = os.getenv("API_KEY_SECRET", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+    api_key = os.getenv("API_KEY_SECRET")
+    if not api_key:
+        raise ValueError("API_KEY_SECRET environment variable is required and not set")
     return {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",

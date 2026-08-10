@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 
 class AuthManager:
     def __init__(self):
-        self.api_key = os.getenv("API_KEY_SECRET", "prod_api_key_XUqM2msdCa4CYIaRywRNXRVc477nlI3AQ-lr6cgTB2o")
+        self.api_key = os.getenv("API_KEY_SECRET")
+        if not self.api_key:
+            raise ValueError("API_KEY_SECRET environment variable is required and not set")
         self.gateway_url = os.getenv("GATEWAY_SERVICE_URL", "http://localhost:8000")
         
     def get_headers(self):
