@@ -748,7 +748,7 @@ def read_root():
         "endpoints": len(app.routes),
         "documentation": "/docs",
         "monitoring": "/metrics",
-        "production_url": "https://bhiv-hr-gateway-ltg0.onrender.com",
+        "production_url": "https://sampada.blackholeinfiverse.com/gateway",
         "langgraph_integration": "active",
         "ai_workflows": ["candidate_applied", "shortlisted", "interview_scheduled"]
     }
@@ -4022,8 +4022,12 @@ async def client_login(login_data: ClientLogin):
             return {"success": False, "error": "Invalid credentials"}
         
         # Check if account is locked
-        if client.get("locked_until") and client.get("locked_until") > datetime.now(timezone.utc):
-            return {"success": False, "error": "Account temporarily locked"}
+        locked_until = client.get("locked_until")
+        if locked_until:
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if locked_until > datetime.now(timezone.utc):
+                return {"success": False, "error": "Account temporarily locked"}
         
         # Check if account is active
         if client.get("status") != 'active':
