@@ -1,18 +1,37 @@
-FROM python:3.12.7-slim
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
-# Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
+RUN pip install --no-cache-dir \
+    --prefix=/install \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
 
-# Copy application files
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgomp1 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
 COPY . .
 
-# Expose port
+RUN adduser --disabled-password --gecos "" agent
+
+RUN mkdir -p /app/data/cache && \
+    chown -R agent:agent /app
+
+USER agent
+
 EXPOSE 9000
 
-# Start application on fixed port 9000
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "9000", "--timeout-keep-alive", "30"]
+HEALTHCHECK CMD curl --fail http://localhost:9000/health || exit 1
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "9000"]

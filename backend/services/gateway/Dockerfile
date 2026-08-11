@@ -1,23 +1,32 @@
-FROM python:3.12.7-slim
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
-# Copy requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
 
-# Copy application code and dependencies
-COPY app/ ./app/
-COPY langgraph_integration.py ./
-COPY monitoring.py ./
-COPY config.py ./
-COPY dependencies.py ./
-COPY jwt_auth.py ./
-COPY workflow_proxy.py ./
-COPY routes/ ./routes/
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Expose port
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgomp1 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
+
+COPY . .
+
+RUN adduser --disabled-password --gecos "" gateway
+
+RUN mkdir -p /app/data/cache && \
+    chown -R gateway:gateway /app
+
+USER gateway
+
 EXPOSE 8000
 
-# Start application on fixed port 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "30"]
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
