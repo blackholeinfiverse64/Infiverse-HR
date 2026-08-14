@@ -60,3 +60,17 @@ Handover.md
 handover.md
 handover/IMPLEMENTATION_PLAN.md
 handover/implementation_plan.md
+
+# Vana reusability & partner repos
+VANA_REUSABILITY_SAMACHAR.md
+VANA_REUSABILITY_SAMPADA.md
+bhiv-SVACS/
+bhiv-intelligence-samachar/
+
+# ==========================================================
+# Archived documentation (superseded by "Updated Docs/") — 2026-08-14
+# Non-destructive archive: originals stay on disk; content lives in Updated Docs/
+# ==========================================================
+backend/docs/
+backend/handover/
+Updated Docs/archived/

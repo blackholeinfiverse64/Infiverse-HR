@@ -1,35 +1,11 @@
-# 02 — Complete Architecture Documentation
+﻿# 02_ARCHITECTURE
 
-**Status:** Pending  
-**Owner:** Shashank Mishra  
-**Last updated:** 2026-08-08
-
----
-
-## What This Deliverable Must Cover
-
-- High-level architecture diagram
-- Module breakdown (gateway, agent, langgraph, frontend, SETU)
-- Service interactions and data flow
-- Authentication flow (API key + JWT layers)
-- Deployment architecture (VM primary, Render backup)
-- Repository structure
-- Environment configuration overview
-- External dependencies (MongoDB Atlas, Twilio, Gemini, workflow bridge)
-
-## Verification Needed Before Writing
-
-- [ ] Validate service health endpoints on VM
-- [ ] Trace auth flow with test login (local or staging)
-- [ ] Confirm SETU signal path with live `/v1/setu/*` call
-- [ ] Draw architecture diagram matching actual deployment
-
-## Source Material
-
-- [backend/handover/architecture/ARCHITECTURE.md](../backend/handover/architecture/ARCHITECTURE.md)
-- [docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md](../docs/SAMPADA_WORKFORCE_OS_ARCHITECTURE.md)
-- [backend/handover/SYSTEM_BEHAVIOR.md](../backend/handover/SYSTEM_BEHAVIOR.md)
-
-## Evidence Links
-
-_None yet._
+> **SUPERSEDED - 2026-08-14**
+>
+> This document was replaced by the verified **Single Source of Truth** produced during the full
+> repository audit (code, live VM, and local verification) on 2026-08-14.
+>
+> - Canonical reference: [../Updated Docs/03_ARCHITECTURE.md](../Updated Docs/03_ARCHITECTURE.md)
+> - Full archived copy: [../Updated Docs/archived/handover/02_ARCHITECTURE.md](../Updated Docs/archived/handover/02_ARCHITECTURE.md)
+>
+> See the master index: [../Updated Docs/README.md](../Updated Docs/README.md).

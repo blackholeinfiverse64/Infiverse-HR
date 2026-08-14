@@ -1,33 +1,11 @@
-# 01 — Executive Overview
+﻿# 01_EXECUTIVE_OVERVIEW
 
-**Status:** Pending  
-**Owner:** Shashank Mishra  
-**Last updated:** 2026-08-08
-
----
-
-## What This Deliverable Must Cover
-
-- Purpose of SAMPADA (HR / Workforce Intelligence platform)
-- Current implementation status
-- Overall architecture (high level)
-- Production readiness assessment
-- Known limitations summary
-- SETU ecosystem context — Sampada's side only (`/v1/setu/*` routes); Niyantran/Artha/CRM are separate repos not in this handover (see `IMPLEMENTATION_PLAN.md` § Ecosystem Scope)
-
-## Verification Needed Before Writing
-
-- [ ] Confirm VM primary services healthy ([EVD-001](evidence/health_checks_2026-08-08.md))
-- [ ] Review [SAMPADA_CURRENT_STATE.md](../SAMPADA_CURRENT_STATE.md) for accuracy
-- [ ] Review [REVIEW_PACKET.md](../REVIEW_PACKET.md) for open risks
-- [ ] Confirm Render backup status (currently 503 — may affect failover claims)
-
-## Source Material
-
-- [Handover.md](../Handover.md) — assignment spec
-- [SAMPADA_CURRENT_STATE.md](../SAMPADA_CURRENT_STATE.md)
-- [ECOSYSTEM_REPOSITORY_MAP.md](../ECOSYSTEM_REPOSITORY_MAP.md)
-
-## Evidence Links
-
-_None yet._
+> **SUPERSEDED - 2026-08-14**
+>
+> This document was replaced by the verified **Single Source of Truth** produced during the full
+> repository audit (code, live VM, and local verification) on 2026-08-14.
+>
+> - Canonical reference: [../Updated Docs/01_PROJECT_OVERVIEW.md](../Updated Docs/01_PROJECT_OVERVIEW.md)
+> - Full archived copy: [../Updated Docs/archived/handover/01_EXECUTIVE_OVERVIEW.md](../Updated Docs/archived/handover/01_EXECUTIVE_OVERVIEW.md)
+>
+> See the master index: [../Updated Docs/README.md](../Updated Docs/README.md).
