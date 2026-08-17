@@ -29,7 +29,8 @@
 | 12 | [12_OPERATIONS_RUNBOOK.md](12_OPERATIONS_RUNBOOK.md) | Monitoring, health checks, rollback |
 | 13 | [13_GOVERNANCE_CONTROL_CENTER.md](13_GOVERNANCE_CONTROL_CENTER.md) | Governance, workforce OS, control center, SETU |
 | 14 | [14_SCOPE_SPRINTS_VANA.md](14_SCOPE_SPRINTS_VANA.md) | SETU ecosystem, sprints, VANA, partners |
-| 15 | [15_KNOWN_ISSUES_ARCHIVE_INDEX.md](15_KNOWN_ISSUES_ARCHIVE_INDEX.md) | Gaps/tech debt + archive map (ends the path) |
+| 15 | [15_KNOWN_ISSUES_ARCHIVE_INDEX.md](15_KNOWN_ISSUES_ARCHIVE_INDEX.md) | Gaps/tech debt + archive map |
+| 16 | [16_ECOSYSTEM_INTEGRATION_REFERENCE.md](16_ECOSYSTEM_INTEGRATION_REFERENCE.md) | Ecosystem integration deep-dive (9 repos, data flows, deployment) |
 
 **Start here → [00_VERIFICATION_REPORT.md](00_VERIFICATION_REPORT.md)**
 
@@ -43,6 +44,9 @@
 - **Frontend**: React 18 + Vite + TypeScript SPA on `:3000` with candidate / recruiter / client /
   control-center portals.
 - **Database**: MongoDB Atlas (`bhiv_hr`), 33 collections.
+- **Ecosystem**: 9 integrated partner repos (Artha, ai-crm, Karma-Tracker, Prana, bucket,
+  bhiv-registry, bhiv-intelligence-samachar, bhiv-SVACS, workflow-blackhole). Full profiles in
+  `16_ECOSYSTEM_INTEGRATION_REFERENCE.md`.
 - **Live production**: `https://sampada.blackholeinfiverse.com` — all services healthy (verified
   2026-08-14).
 

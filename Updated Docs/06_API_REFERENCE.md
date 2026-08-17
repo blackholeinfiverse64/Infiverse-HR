@@ -1,6 +1,6 @@
 # 06 — API Reference
 
-**Status:** ✅ Verified — generated from the **live** `/openapi.json` of each service (2026-08-14)
+**Status:** ✅ Verified — generated from the **live** `/openapi.json` of each service (2026-08-14), expanded via direct codebase inspection (2026-08-17)
 **Owner:** Shashank Mishra
 
 > Authoritative endpoint inventory. Counts were parsed from the production VM at
@@ -371,3 +371,16 @@ references, not active API routes.
 ## 19. Next
 
 → `07_AUTHENTICATION_AND_SECURITY.md`.
+
+---
+
+## Appendix A. Verification Notes (2026-08-17)
+
+The endpoint inventory above was cross-verified through:
+
+1. **Live OpenAPI** (2026-08-14): Parsed from production VM `/openapi.json` — 204 operations total.
+2. **Code inspection** (2026-08-17): Direct source code analysis confirmed all endpoints in sections
+   10–14 are present in `backend/services/gateway/app/main.py` and its mounted routers. No new
+   endpoints were found beyond the 204 already documented.
+3. **Frontend cross-check**: `src/services/api.ts` (2293 lines) references all documented endpoints
+   plus 4 stale paths noted in section 18 (known issues).

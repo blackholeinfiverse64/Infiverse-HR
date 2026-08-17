@@ -63,6 +63,23 @@ Additional runtime collections (doc'd in legacy docs): `api_keys`, `rate_limits`
 `csp_violations`, `sessions`, `ml_feedback`, `performance_metrics`,
 `company_scoring_preferences`.
 
+### 2a. Governance & Workforce Collections (documented 2026-08-17)
+
+These collections support the workforce governance, policy engine, and SETU subsystems. They are
+created on first use by the corresponding gateway modules.
+
+| Collection | Module | Purpose | Key Fields |
+|-----------|--------|---------|------------|
+| `decision_ledger` | `decision_ledger.py` | Immutable governance decision records | `decision_id`, `action`, `resource`, `user_id`, `details`, `correlation_id`, `timestamp` |
+| `policy_registry` | `policy_engine.py` | Policy definitions registered in the system | `policy_id`, `name`, `scope`, `rules`, `created_at` |
+| `policy_evaluations` | `policy_engine.py` | Results of policy evaluations against resources | `evaluation_id`, `policy_id`, `resource_id`, `result`, `timestamp` |
+| `policy_overrides` | `policy_engine.py` | Policy exception/override records | `override_id`, `policy_id`, `scope`, `authorized_by`, `reason`, `expires_at` |
+| `workforce` | `workforce_runtime.py` | Employee/organization records (lineage-enveloped) | `employee_id`, `org_id`, `department_id`, `status`, `lifecycle_state`, `lineage_envelope` |
+| `setu_signals` | `setu_participation.py` | Inbound SETU signals from partner systems | `signal_id`, `signal_type`, `source_system`, `payload`, `trace_id`, `received_at` |
+| `challenges` | `decision_workflow.py` | Governance challenge records | `challenge_id`, `decision_id`, `challenger`, `reason`, `status` |
+| `reviews` | `decision_workflow.py` | Review assignment records | `review_id`, `resource_id`, `reviewer`, `status`, `decision` |
+| `workflow_overrides` | `decision_workflow.py` | Workflow override records | `override_id`, `workflow_id`, `scope`, `authorized_by`, `applied_at` |
+
 ---
 
 ## 3. Key Indexes (from `seed_mongodb.py` + gateway migrations)

@@ -49,7 +49,7 @@ shows while auth state restores.
 - **auth**: `AuthPage.tsx` (login/signup; role config redirects candidate→`/candidate/dashboard`,
   recruiter→`/recruiter`, client→`/client`). `HRAuth.tsx` is empty (0 bytes).
 - **candidate**: `Dashboard`, `Profile`, `JobSearch`, `AppliedJobs` (status + document upload
-  resume/nda), `Interviews`, `Tasks` (workflow bridge), `TaskDetail`, `Feedback`, `candidateTasksTypes.ts`.
+  resume/nda), `Interviews`, `Tasks` (workflow bridge task list), `TaskDetail` (individual task detail & submission form), `Feedback`, `candidateTasksTypes.ts` (TypeScript type definitions).
 - **recruiter**: `Dashboard`, `JobCreation`, `ApplicantsMatching`, `FeedbackForm`,
   `AutomationPanel`, `CandidateSearch`, `BatchUpload` (wrapper), `BatchOperations`,
   `InterviewScheduling`, `ExportReports`, `ClientJobsMonitor`, `ValuesAssessment`.
@@ -111,13 +111,37 @@ shows while auth state restores.
 
 ## 6. Contexts (`src/context/`)
 
-| Context | Responsibility |
-|---------|----------------|
-| `AuthContext` | `user`, `loading`, `signIn/signUp/signOut`, `userRole`, `userName`; restore + role resolution |
-| `ThemeContext` | `localStorage 'bhiv-theme'` (default light); toggles `.dark` class |
-| `SidebarContext` | collapse/mobile state |
-| `RecruiterConnectionContext` | 24-hex `connectionId` + company; status `none\|connected\|invalid`; persisted under `RECRUITER_LAST_CONNECTION_KEY`; restores from DB; **bidirectional SSE** streams (`/v1/client/connection-events`, `/v1/recruiter/connection-events`); 30 s health check auto-disconnect |
-| `CandidateTasksContext` | candidate task list; `upsertSubmission` flips `Pending → In Progress` |
+| Context | File | Responsibility |
+|---------|------|----------------|
+| `AuthContext` | `AuthContext.tsx` | `user`, `loading`, `signIn/signUp/signOut`, `userRole`, `userName`; restore + role resolution. Per-tab isolation via `sessionStorage`. |
+| `ThemeContext` | `ThemeContext.tsx` | `localStorage 'bhiv-theme'` (default light); toggles `.dark` class on `<html>`. |
+| `SidebarContext` | `SidebarContext.tsx` | Sidebar collapsed/expanded state; mobile menu open/close. |
+| `RecruiterConnectionContext` | `RecruiterConnectionContext.tsx` | 24-hex `connectionId` + company; status `none\|connected\|invalid`; persisted under `RECRUITER_LAST_CONNECTION_KEY`; restores from DB; **bidirectional SSE** streams (`/v1/client/connection-events`, `/v1/recruiter/connection-events`); 30 s health check auto-disconnect. Wrapped by `RecruiterLayout`. |
+| `CandidateTasksContext` | `CandidateTasksContext.tsx` | Candidate workflow task list from `/v1/candidate/workflow-tasks`; `upsertSubmission` flips `Pending → In Progress`. Wrapped by `CandidateLayout`. |
+
+### Context Provider Hierarchy
+
+```
+<ErrorBoundary>
+  <AuthProvider>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <CandidateLayout>   <!-- adds SidebarProvider + CandidateTasksProvider -->
+          <RecruiterLayout>   <!-- adds SidebarProvider + RecruiterConnectionProvider -->
+          <ClientLayout>      <!-- adds SidebarProvider only -->
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  </AuthProvider>
+</ErrorBoundary>
+```
+
+### Auth Storage Strategy (`src/utils/authStorage.ts`)
+
+- Per-tab isolation via `sessionStorage` (not `localStorage`) — allows multiple roles logged in simultaneously across browser tabs
+- Fallback to `localStorage` if `sessionStorage` unavailable
+- All auth keys: `auth_token`, `user_data`, `user_role`, `user_email`, `user_name`, `isAuthenticated`, `candidate_id`, `backend_candidate_id`, `client_id`, `candidate_profile_data`
 
 ---
 
@@ -129,12 +153,11 @@ shows while auth state restores.
   `Table`.
 - **cards/**: `ExecutiveMetricCard`, `TelemetryCard`, `ReplayCard`, `GovernanceCard`,
   `TimelineCard`, `AlertCard`, `EscalationCard`, `MapCard` — read-only observability surfaces
-  ("observability not execution authority").
-- **layouts/**: `CandidateLayout`, `RecruiterLayout`, `ClientLayout` (each = SidebarProvider +
-  RoleNavbar + role sidebar + mobile overlay).
-- **sidebars/**: `CandidateSidebar`, `RecruiterSidebar` (connection status block),
-  `ClientSidebar` (SSE + health check).
-- **navbars/**: `RoleNavbar` (theme toggle, portal-notification bell with mark-read, logout).
+  ("observability not execution authority"). Shared types in `types.ts`, shared styles in
+  `cardStyles.ts`.
+- **layouts/**: `CandidateLayout` (SidebarProvider + CandidateTasksProvider + RoleNavbar + CandidateSidebar), `RecruiterLayout` (SidebarProvider + RecruiterConnectionProvider + RoleNavbar + RecruiterSidebar), `ClientLayout` (SidebarProvider + RoleNavbar + ClientSidebar).
+- **sidebars/**: `CandidateSidebar` (7 nav items + API health + user info + logout), `RecruiterSidebar` (11 nav items + connection status block + API health + user info + logout), `ClientSidebar` (6 nav items + connected recruiter status via SSE + API health + user info + logout).
+- **navbars/**: `RoleNavbar` (theme toggle, portal-notification bell polling every 20s with mark-read, user profile, logout).
 - **recruiter/**: `BulkCandidateUploadPanel` (858 lines — CSV/XLSX/PDF parse via `xlsx`, editable
   preview, duplicate check, per-job bulk upload).
 - **config/**: `notifications.config.ts` — validation regexes, `FILTER_CONFIG` (min match 70,

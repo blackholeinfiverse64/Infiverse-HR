@@ -47,10 +47,24 @@ INFIVERSE-HR-PLATFORM/
 └── .gitignore                      # Ignore rules (incl. archived-doc entries appended 2026-08-14)
 ```
 
-**Gitignored folders present on disk (partner/external repos — do not document as in-scope):**
+**Gitignored folders present on disk (partner/external repos — see `16_ECOSYSTEM_INTEGRATION_REFERENCE.md` for full profiles):**
 `ai-crm/`, `Artha/`, `Prana/`, `Karma-Tracker/`, `bhiv-registry/`, `bhiv-SVACS/`,
 `bhiv-intelligence-samachar/`, `bucket/`, `workflow-blackhole/`, plus `local-data/postgres/`,
 `Complete-Infiverse/`.
+
+### Integrated Repository Summary
+
+| Repo | Stack | Port(s) | Role |
+|------|-------|---------|------|
+| `Artha/` | Node.js/Express/MongoDB/Redis + React + Python | 5000 | India-compliant accounting (GST/TDS, HMAC ledger) |
+| `ai-crm/` | Node.js/Express/MongoDB + Python/FastAPI + React | 8001/8002 | Logistics/inventory CRM |
+| `Karma-Tracker/` | Python/FastAPI + MongoDB + NumPy | 8003/8030 | Karma scoring (passive mode) |
+| `Prana/` | Vanilla JS (browser-only) | — | Cognitive state capture |
+| `bucket/` | Python/FastAPI + MongoDB + Redis | 8001/8010 | Append-only immutable storage |
+| `bhiv-registry/` | Python/FastAPI + PostgreSQL | 8020 | Dataset metadata registry (MDU) |
+| `bhiv-intelligence-samachar/` | Python/FastAPI + Next.js 14 | 8000/3000 | News AI platform |
+| `bhiv-SVACS/` | Python/FastAPI + PyTorch + React | 8000/5173 | Maritime vessel classification |
+| `workflow-blackhole/` | Node.js/Express/MongoDB/Socket.IO + React 19 | 5000/80 | Workforce management + Docker orchestration hub |
 
 ---
 
@@ -158,6 +172,7 @@ frontend/
 | `frontend/*.md` (3 files) | Frontend README, auth structure, Vercel deploy | Archived → `Updated Docs/archived/frontend/` |
 | Root `*.md` (10 files) | README, quick start, state, review, VANA, etc. | Archived → `Updated Docs/archived/root/` |
 | `evidence/` | Proof artifacts (11 subdirs) | **Live** — referenced, not archived |
+| `Updated Docs/` (17→18 files) | Master docs 00–15 + **16_ECOSYSTEM_INTEGRATION_REFERENCE** | **Single source of truth** |
 
 ---
 
@@ -189,6 +204,9 @@ evidence/
 - `cleanup_keep_latest_14_jobs.py` + `.mongosh.js` — prune active jobs to the 14 most recent.
 - `migrate_interview_dates.py` — string `interview_date` → datetime migration (Motor).
 - `local-deploy.cmd` — 5-step Docker deploy.
+- `setup_insightflow_postgres.ps1` — One-time PostgreSQL setup for bhiv-registry (creates `bhiv_registry` database).
+- `start_all_ecosystem_services.ps1` — Starts ALL 9 ecosystem services as hidden PowerShell processes (gateway :8000, frontend :3000, Artha :5000, Niyantran :5001, ai-crm Python :8001, ai-crm Node :8002, Bucket :8010, InsightFlow :8020, Karma :8030).
+- `start_all_ecosystem_services.cmd` — CMD wrapper for the PowerShell ecosystem launcher.
 
 **`backend/tools/`** — 10 categories of helper scripts: `analysis/`, `data/`, `database/`,
 `fixes/`, `monitoring/`, `portal/`, `security/`, `utilities/` (13 scripts), plus
