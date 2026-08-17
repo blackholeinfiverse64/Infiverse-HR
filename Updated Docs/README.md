@@ -2,7 +2,7 @@
 
 **Status:** ✅ Verified 2026-08-14 (live VM + local tests)
 **Owner:** Shashank Mishra
-**System Owner:** Rishabh Yadav
+**System Owner:** Soham Kotkar & Vijay Dhawan (Sampada)
 
 > This folder is the **single source of truth** for the INFIVERSE-HR (Sampada / BHIV) platform.
 > All content was verified against the working codebase and the live production VM on 2026-08-14.
@@ -90,5 +90,5 @@ remaining on disk. **Nothing was deleted.**
 - All dashboard / control-center / governance surfaces are **read-only observability** — no
   parallel execution authority.
 - Escalation authority, schema mutations, security overrides, and final prioritization remain with
-  System Owner **Rishabh Yadav**.
+  System Owners **Soham Kotkar & Vijay Dhawan** (Sampada).
 - Never commit secrets. Never delete files — archive instead.

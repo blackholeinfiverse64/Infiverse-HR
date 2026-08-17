@@ -105,6 +105,25 @@ Modeled as `organizations → divisions → units → departments → employees`
 - Verified API: `/v1/setu/signals` (GET), `/v1/setu/signals/{signal_type}` (POST),
   `/v1/setu/trace/{trace_id}` (GET).
 - Implementation: `app/setu_participation.py`; collection `setu_signals`.
+
+### Integration Repo Connection Architecture
+
+| Partner Repo | Connection Method | Signal Flow |
+|-------------|-------------------|-------------|
+| **Artha** (port 5000) | SETU Pipeline + Sampada Adapter | Artha → Sampada Adapter (maps to `SetuSignalIngest` envelopes) → `POST /v1/setu/signals/{type}` on Gateway |
+| **ai-crm** (ports 8001/8002) | SETU Pipeline + Bucket Lineage + Sovereign Routing + Niyantran adapter | CRM → `sampada_dispatcher.py` + `bucket_lineage_adapter.py` + `niyantran_integration_adapter.py` → Gateway |
+| **Karma-Tracker** (port 8030) | Passive consumption from Bucket only | PRANA → Bucket → Karma (consumption boundary; never direct from PRANA). Emits `KarmaSignal` ONLY to Bucket. |
+| **Prana** (client-side JS) | HTTP packets to Bucket | Browser signals → `prana_state_engine.js` → `bucket_bridge.js` → `POST localhost:8010/api/v1/bucket/prana/ingest` |
+| **bhiv-intelligence-samachar** | Bucket integration + Karma tracker | News analysis → Bucket lineage anchoring + Karma feedback integration |
+| **bhiv-registry** (port 8020) | PostgreSQL (local) | InsightFlow registry; setup via `scripts/setup_insightflow_postgres.ps1` |
+
+### Ecosystem Launcher
+
+`scripts/start_all_ecosystem_services.ps1` starts all 9 services as hidden PowerShell processes:
+Gateway (:8000), Frontend (:3000), Artha (:5000), Niyantran (:5001), ai-crm Python (:8001),
+ai-crm Node (:8002), Bucket (:8010), InsightFlow/bhiv-registry (:8020), Karma (:8030).
+Logs written to `local-data/service-logs/`.
+
 - Live evidence: `evidence/live_workforce_governance_setu/partner_live/20260702T073708Z/`
   (Tier-2 dispatcher captures). External participation remains unproven pending partner
   integration (see `15_KNOWN_ISSUES_ARCHIVE_INDEX.md`).

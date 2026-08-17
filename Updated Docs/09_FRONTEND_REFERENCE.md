@@ -70,6 +70,8 @@ shows while auth state restores.
   `/v1/candidate/workflow`).
 - Request interceptor injects `Authorization: Bearer <token>`.
 - Notification posts use 150 s timeout + 503/504 retry helper `postNotificationWithRetry`.
+- Notification polling every 20 seconds + visibility change listener for real-time bell updates.
+- `CustomEvent('portal-notifications-updated')` for cross-component notification sync.
 
 ### Endpoint groups used by the frontend
 
@@ -114,7 +116,7 @@ shows while auth state restores.
 | `AuthContext` | `user`, `loading`, `signIn/signUp/signOut`, `userRole`, `userName`; restore + role resolution |
 | `ThemeContext` | `localStorage 'bhiv-theme'` (default light); toggles `.dark` class |
 | `SidebarContext` | collapse/mobile state |
-| `RecruiterConnectionContext` | 24-hex `connectionId` + company; status `none\|connected\|invalid`; persisted under `RECRUITER_LAST_CONNECTION_KEY`; restores from DB; SSE-synced; 30 s health check auto-disconnect |
+| `RecruiterConnectionContext` | 24-hex `connectionId` + company; status `none\|connected\|invalid`; persisted under `RECRUITER_LAST_CONNECTION_KEY`; restores from DB; **bidirectional SSE** streams (`/v1/client/connection-events`, `/v1/recruiter/connection-events`); 30 s health check auto-disconnect |
 | `CandidateTasksContext` | candidate task list; `upsertSubmission` flips `Pending → In Progress` |
 
 ---

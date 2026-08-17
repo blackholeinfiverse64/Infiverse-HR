@@ -2,7 +2,7 @@
 
 **Status:** ✅ Verified (2026-08-14)
 **Owner:** Shashank Mishra
-**System Owner:** Rishabh Yadav
+**System Owner:** Soham Kotkar & Vijay Dhawan (Sampada)
 
 > This is the single-source-of-truth overview of **INFIVERSE-HR (codename: Sampada / BHIV)**.
 > Read this document first, then continue linearly through `02_REPOSITORY_STRUCTURE.md` → `15_*`.
@@ -77,10 +77,27 @@ in source but are marked **LEGACY** in the production compose file (see `05_BACK
 ### Database
 - MongoDB Atlas (primary datastore), db `bhiv_hr`. PostgreSQL fully retired (legacy references only).
 
+### Communications
+- **Twilio** — WhatsApp/SMS notifications (sandbox number `+14155238886`).
+- **Gmail SMTP** — Email notifications via `smtplib`.
+- **Telegram Bot** — Telegram notifications via `python-telegram-bot`.
+- **SSE** — Server-Sent Events for real-time client/recruiter connection status.
+- **WebSocket** — LangGraph service workflow updates.
+
+### AI / ML Pipeline
+- **Semantic Matching** — Sentence Transformers (`all-MiniLM-L6-v2`) in Agent service (port 9000).
+- **Reinforcement Learning** — Custom `RLEngine` with feature weight learning (skill_match 50pts,
+  experience 30pts, education 20pts, RL adjustment ±10). Decision thresholds: ≥75 shortlist,
+  50-74 review, <50 reject. Persistent storage in MongoDB (`rl_predictions`, `rl_feedback`,
+  `rl_training_data`, `rl_model_performance` collections).
+- **LangGraph Workflows** — 4-node state graph: Screen → Notify → HR Update → Feedback. Uses
+  Google Gemini LLM for AI decision reasoning. Custom `MongoDBSaver` checkpointer.
+
 ### External Systems
 - **Complete-Infiverse / EMS** — downstream candidate-task bridge via `workflow_proxy.py`
   (`WORKFLOW_API_BASE_URL`).
 - **SETU ecosystem** — additive outbound dispatchers post signals to `POST /v1/setu/signals/{signal_type}`.
+  See `14_SCOPE_SPRINTS_VANA.md` for full integration repo details.
 
 ### Deployment
 - **VM (primary, verified live)**: `https://sampada.blackholeinfiverse.com` with path-based routing
@@ -114,14 +131,25 @@ in source but are marked **LEGACY** in the production compose file (see `05_BACK
 
 ## 6. Ecosystem & Related Repositories
 
-| Repo / Folder | Relationship | Tracked in git |
-|---------------|--------------|----------------|
-| `ai-crm`, `Artha`, `Prana`, `Karma-Tracker`, `bhiv-registry`, `bhiv-SVACS`, `bhiv-intelligence-samachar`, `bucket`, `workflow-blackhole` | Partner / external repos vendored locally for integration reference | **No** — gitignored |
-| `backend/` | This platform's backend | Yes |
-| `frontend/` | This platform's frontend | Yes |
+| Repo / Folder | Purpose | Port | Technology | Connection Method |
+|---------------|---------|------|------------|-------------------|
+| `Artha` | India-compliant accounting (GST/TDS, double-entry ledger) | 5000 | Node.js/Express + MongoDB + Redis | SETU Pipeline + Sampada Adapter → signals to gateway |
+| `ai-crm` | Logistics/inventory AI CRM (products, orders, restock) | 8001/8002 | Python/FastAPI + Node.js/Express + MongoDB | SETU Pipeline + Bucket Lineage + Sovereign Routing + Niyantran adapter |
+| `Karma-Tracker` | Vedic karma scoring (DharmaPoints, Q-Learning, lifecycle sim) | 8030 | Python/FastAPI + MongoDB | Passive consumption from Bucket only (never direct from PRANA) |
+| `Prana` | Browser cognitive state engine (focus, attention tracking) | N/A (client lib) | Pure JavaScript ES modules | Sends packets to Bucket via HTTP (`localhost:8010/api/v1/bucket/prana/ingest`) |
+| `bhiv-intelligence-samachar` | AI news analysis (credibility, summary, video discovery) | N/A | Next.js 14 + Python/FastAPI + PostgreSQL + MongoDB | Bucket integration + Karma tracker integration |
+| `bhiv-registry` | InsightFlow registry | 8020 | PostgreSQL | Local PostgreSQL (`bhiv_registry` database) |
+| `bucket` | Lineage anchoring / data store (central SETU hub) | 8010 | — | Central hub for all SETU signals and Prana packets |
+| `bhiv-SVACS` | Present in root, integration reference | — | — | — |
+| `workflow-blackhole` | Present in root, integration reference | — | — | — |
+| `backend/` | This platform's backend | 8000/9000/9001 | Python/FastAPI | Primary platform services |
+| `frontend/` | This platform's frontend | 3000 | React 18 + Vite + TypeScript | SPA deployed on Vercel |
 
-The canonical map of the SETU partner ecosystem is `ECOSYSTEM_REPOSITORY_MAP.md` (archived copy in
-`archived/root/`); see `14_SCOPE_SPRINTS_VANA.md`.
+All integration repos are independently cloned git repos (not submodules). They are **gitignored** at
+the repo root. The ecosystem launcher script (`scripts/start_all_ecosystem_services.ps1`) starts
+all 9 services as hidden PowerShell processes.
+
+See `14_SCOPE_SPRINTS_VANA.md` for full SETU ecosystem details.
 
 ---
 
@@ -131,7 +159,7 @@ As a developer working on the **Sampada** scope:
 - **Visibility only**: Dashboard and intelligence features are strictly read-only on execution
   authority. Do not introduce parallel orchestration frameworks or state-mutating handlers.
 - **System boundaries**: Escalation authority, database schema mutations, security-authorization
-  overrides, and final prioritization remain with System Owner **Rishabh Yadav**.
+  overrides, and final prioritization remain with System Owners **Soham Kotkar & Vijay Dhawan** (Sampada).
 - **Non-destructive workflow**: archive rather than delete; never commit secrets.
 
 ---

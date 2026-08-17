@@ -100,6 +100,30 @@
 - RL: `rl_engine.py`, `rl_database.py`, `rl_performance_monitor.py`, `rl_integration/`
   (decision_engine.py, ml_models.py, mongodb_adapter.py, rl_endpoints.py).
 
+### RL Engine Details (verified in `app/rl_engine.py`, `app/rl_database.py`)
+
+- `RLEngine`: feature weight learning — skill_match (50 pts), experience (30 pts), education
+  (20 pts), RL adjustment (+/-10). Decision thresholds: >=75 shortlist, 50-74 review, <50 reject.
+- `FeedbackProcessor`: outcome-based reward signals — hired=1.0, shortlisted=0.5, rejected=-0.3,
+  withdrawn=-0.5.
+- `RLPerformanceMonitor`: in-memory windowed metrics (prediction time, accuracy, reward trends).
+- Persistent storage: `rl_predictions`, `rl_feedback`, `rl_training_data`, `rl_model_performance`
+  MongoDB collections.
+
+### Communication Channels (`app/communication.py` — 791 lines)
+
+- `CommunicationManager` class supporting:
+  - **Email** — Gmail SMTP via `smtplib`.
+  - **WhatsApp** — Twilio API (`+14155238886` sandbox).
+  - **Telegram** — Bot API via `python-telegram-bot`.
+- SSE (Server-Sent Events) for real-time client/recruiter connection status (in-memory event queues).
+- WebSocket support for workflow updates.
+
+### Persistence
+
+- Custom `MongoDBSaver` (`app/mongodb_checkpointer.py`) replacing PostgresSaver for LangGraph
+  state persistence. Stores checkpoints in `langgraph_checkpoints` collection.
+
 ### Endpoint groups (verified)
 
 - Workflow: `POST /workflows/application/start`, `GET /workflows/{id}/status`,

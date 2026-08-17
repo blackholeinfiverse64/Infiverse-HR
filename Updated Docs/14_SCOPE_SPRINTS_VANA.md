@@ -14,14 +14,26 @@ SETU is the unified operational ecosystem that aggregates cross-domain intellige
 participates **additively** — it posts signals to `POST /v1/setu/signals/{signal_type}` and never
 takes ownership of partner execution.
 
-| System | Owner | Role in SETU |
-|--------|-------|--------------|
-| Sampada (this platform) | Rishabh Yadav | Hiring + workforce intelligence, HR visibility |
-| Niyantran | Rishabh Yadav | Tasking, reviews, testing, execution telemetry, payroll participation |
-| Artha | Rishabh Yadav | Financial systems, payroll truth |
-| Logistics | Rishabh Yadav | Logistics systems |
-| CRM | Rishabh Yadav | Relationship intelligence |
-| SETU | Rishabh Yadav | Aggregation, cross-domain intelligence, unified operational visibility |
+| System | Owner | Role in SETU | Port |
+|--------|-------|--------------|------|
+| Sampada (this platform) | Soham Kotkar & Vijay Dhawan | Hiring + workforce intelligence, HR visibility | 8000/9000/9001 |
+| Niyantran | Rudra | Tasking, reviews, testing, execution telemetry, payroll participation | 5001 |
+| Artha | Ashmit | Financial systems, payroll truth | 5000 |
+| Logistics | Soham Kotkar & Vijay Dhawan | Logistics systems | — |
+| CRM | Soham Kotkar & Vijay Dhawan | Relationship intelligence | 8001/8002 |
+| SETU | Soham Kotkar & Vijay Dhawan | Aggregation, cross-domain intelligence, unified operational visibility | — |
+
+### Integration Repository Details
+
+| Repo | Technology | Purpose | Connection Method |
+|------|------------|---------|-------------------|
+| **Artha** | Node.js 18+ / Express / MongoDB 7+ / Redis 7+ (backend) + React/Vite (frontend) + Python/FastAPI (AI platform) | India-compliant accounting: double-entry ledger (HMAC hash chain), GST/TDS compliance, invoicing, expense management. Has `Sampada Adapter` that maps Artha signals to `SetuSignalIngest` envelopes. | Port 5000. SETU Pipeline + Sampada Adapter → signals to Gateway. Render deploy: `ai-uploader-agent`. |
+| **ai-crm** | Node.js/Express + Python/FastAPI + React/Vite | Logistics/inventory AI CRM: product catalog, order management, inventory tracking, supplier management, restock automation. Has dedicated `setu/` directory with `sampada_dispatcher.py`, `bucket_lineage_adapter.py`, `sovereign_routing_adapter.py`, `niyantran_integration_adapter.py`. | Ports 8001 (Python) / 8002 (Node.js). SETU Pipeline + Bucket Lineage + Sovereign Routing + Niyantran adapter. Render deploy: `pratham-setu-ai-crm`. |
+| **Karma-Tracker** | Python/FastAPI/Uvicorn + MongoDB + numpy + networkx | KarmaChain v2.3: Vedic-inspired karma scoring (DharmaPoints, SevaPoints, PunyaTokens, PaapTokens), Q-Learning integration, behavioral state normalization, lifecycle simulation (Birth/Life/Death/Rebirth). | Port 8030. **Passive mode** for PRANA integration — consumes PRANA packets ONLY from Bucket (never directly from PRANA). Emits KarmaSignal ONLY to Bucket. Has STP Bridge for secure telemetry forwarding. |
+| **Prana** | Pure JavaScript ES modules (4 files, browser-only) | Browser cognitive state engine: captures focus, attention, mouse, keyboard, scroll signals. Evaluates into cognitive states (ON_TASK, THINKING, IDLE, DISTRACTED, AWAY, OFF_TASK, DEEP_FOCUS). Builds truth packets every 5 seconds. | Client-side library. Sends packets to Bucket via `bucket_bridge.js` → `POST localhost:8010/api/v1/bucket/prana/ingest`. Global `window.PRANA` namespace. Kill switch: `window.PRANA_DISABLED = true`. |
+| **bhiv-intelligence-samachar** | Next.js 14 (App Router) + Python/FastAPI + SQLAlchemy + PostgreSQL + MongoDB. AI: OpenAI, Groq, Gemini, Ollama. | AI news analysis ("Noopur"/"Sankalp"/"Seeya"): ingests live news, verifies credibility, summarizes, discovers video coverage. Also has educational backend with task/project management. | Tier-2 Render deploy: `news-ai-backend` + `news-ai-frontend`. Bucket integration + Karma tracker integration. CORS allows multiple BHIV domains. |
+| **bhiv-registry** | PostgreSQL | InsightFlow registry. One-time setup via `scripts/setup_insightflow_postgres.ps1`. | Port 8020. Local PostgreSQL (`bhiv_registry` database). |
+| **bucket** | — | Lineage anchoring / data store. Central hub for all SETU signals and Prana packets. | Port 8010. Receives Prana packets, Karma signals, and all partner dispatches. |
 
 Canonical repo map: `ECOSYSTEM_REPOSITORY_MAP.md` (archived → `Updated Docs/archived/root/`).
 
@@ -84,9 +96,21 @@ Both repos (`bhiv-SVACS/`, `bhiv-intelligence-samachar/`) are gitignored working
 
 ## 6. Partner Repositories (gitignored — reference only)
 
-`ai-crm/`, `Artha/`, `Prana/`, `Karma-Tracker/`, `bhiv-registry/`, `bhiv-SVACS/`,
-`bhiv-intelligence-samachar/`, `bucket/`, `workflow-blackhole/`. These are vendored for
-integration reference and are **out of scope** for this documentation set (do not track them).
+All integration repos are independently cloned git repos (not submodules). Each has its own `.git/`
+directory and version history. They are vendored for integration reference and are **out of scope**
+for this documentation set.
+
+| Repo | Key Endpoints | Integration File(s) in Repo |
+|------|---------------|----------------------------|
+| `Artha/` | `/api/v1/ledger/*`, `/api/v1/invoices/*`, `/api/v1/gst/*`, `/api/v1/tds/*`, `/api/v1/reports/*`, `/api/v1/governance/*` (30+ BHIV governance endpoints) | `INTEGRATION.md`, `render.yaml`, `docker-compose.yml` |
+| `ai-crm/` | `/api/auth/*`, `/api/products/*`, `/api/orders/*`, `/api/inventory/*`, `/api/restock/*` | `backend/setu/sampada_dispatcher.py`, `integration/bucket_lineage_adapter.js`, `integration/sovereign_routing_adapter.js` |
+| `Karma-Tracker/` | `POST /v1/karma/event`, `GET /api/v1/karma/{user_id}`, `POST /api/v1/feedback_signal`, `GET /api/v1/analytics/karma_trends`, `POST /v1/karma/lifecycle/simulate` | `karma-tracker/main.py`, `context_weights.json` |
+| `Prana/` | N/A (client-side library, no server) | `signals.js`, `prana_state_engine.js`, `prana_packet_builder.js`, `bucket_bridge.js` |
+| `bhiv-intelligence-samachar/` | Unified tools backend (FastAPI) + main backend (FastAPI/SQLAlchemy) | `unified_tools_backend/main.py`, `BUCKET_INTEGRATION_COMPLETE.md` |
+| `bhiv-registry/` | PostgreSQL-based registry | `setup_insightflow_postgres.ps1` |
+| `bhiv-SVACS/` | Present in root, integration reference | — |
+| `workflow-blackhole/` | Present in root, integration reference | — |
+| `bucket/` | Lineage anchoring hub | Central hub for all SETU signals |
 
 ---
 
@@ -94,7 +118,7 @@ integration reference and are **out of scope** for this documentation set (do no
 
 - Handover prepared for **Vijay Dhawan** and **Soham Kotkar** (transfer model — no formal sign-off
   person; "transfer recipients continue from docs").
-- Owner: Shashank Mishra. System Owner: Rishabh Yadav.
+- Owner: Shashank Mishra. System Owners: Soham Kotkar & Vijay Dhawan (Sampada), Rudra (Niyantran), Ashmit (Artha).
 - User decisions (from archived `handover/00_INDEX.md`): git `main` only; no secret rotation
   (document locations only); scope = `gateway + agent + langgraph + frontend/`
   (`candidate_portal`/`client_portal`/`portal` archived).

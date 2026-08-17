@@ -26,6 +26,15 @@
 | KI-011 | `docs/RELEASE_HISTORY.md` only exists on the VM, not in the repo | Open — by design |
 | KI-012 | `handover/12_DEMONSTRATION_SESSION.md` duplicate of `12_DEMO_SESSION.md` | Resolved — archived; index note added |
 | KI-013 | Streamlit portals (`portal`, `client_portal`, `candidate_portal`) marked LEGACY | Open — retained for reference |
+| KI-014 | No tests in CI/CD pipeline — broken code deploys directly to production (`deploy.yml` has zero `pytest` or `npm test` steps) | Open — critical gap |
+| KI-015 | No automated frontend tests (no Jest, Vitest, Playwright, or Cypress configured) | Open — `npm run build` (type-check) is only verification |
+| KI-016 | No database migration framework — schema changes use ad-hoc scripts (`migrate_mongodb_schema.py`, `migrate_interview_dates.py`) | Open — no versioned migration tool |
+| KI-017 | No `pytest.ini` at `backend/` root (only exists under `tests/e2e/control_center/`); running `pytest` from `backend/` produces `PytestUnknownMarkWarning` | Open — config gap |
+| KI-018 | Ecosystem start script (`scripts/start_all_ecosystem_services.ps1`) requires all 9 partner repos cloned locally — no graceful degradation if a partner folder is missing | Open — hardcoded paths |
+| KI-019 | No `CODEOWNERS` or branch protection configuration — no automated code review assignment | Open — repo governance gap |
+| KI-020 | No `.env.example` at project root (only in `backend/` and `frontend/`) — new developers must know where to look | Open — developer experience |
+| KI-021 | `RELEASE_HISTORY.md` exists only on VM (`/var/tmp/SAMPADA/`), not in the repo — rollback history invisible to local developers | Open — by design, but limits visibility |
+| KI-022 | Stale `package-lock.json` at root (real lockfile is at `frontend/package-lock.json`) | Open — minor cleanup |
 
 ---
 
@@ -113,6 +122,12 @@ document except the explicit "Next" pointers, which form a single forward chain 
 3. Complete partner SETU integration (KI-002) to unblock external participation.
 4. Optionally code-split the frontend bundle (KI-010).
 5. Refactor `test_gateway_imports.py` asserts (KI-009).
+6. **Add test execution to CI/CD pipeline** (KI-014) — even a basic smoke test gate would prevent broken deploys.
+7. **Add frontend test framework** (KI-015) — Vitest or Playwright for critical user flows.
+8. **Add `pytest.ini` to `backend/` root** (KI-017) with proper marker registration.
+9. **Add root `.env.example`** (KI-020) pointing to `backend/.env.example` and `frontend/.env.example`.
+10. **Remove stale root `package-lock.json`** (KI-022).
+11. **Add graceful degradation** to ecosystem launcher (KI-018) — skip missing partner repos instead of failing.
 
 ---
 
