@@ -31,6 +31,7 @@
 | 14 | [14_SCOPE_SPRINTS_VANA.md](14_SCOPE_SPRINTS_VANA.md) | SETU ecosystem, sprints, VANA, partners |
 | 15 | [15_KNOWN_ISSUES_ARCHIVE_INDEX.md](15_KNOWN_ISSUES_ARCHIVE_INDEX.md) | Gaps/tech debt + archive map |
 | 16 | [16_ECOSYSTEM_INTEGRATION_REFERENCE.md](16_ECOSYSTEM_INTEGRATION_REFERENCE.md) | Ecosystem integration deep-dive (9 repos, data flows, deployment) |
+| REF | [BHIV_ECOSYSTEM_RUNTIME_CONVERGENCE_AUDIT.md](BHIV_ECOSYSTEM_RUNTIME_CONVERGENCE_AUDIT.md) | Full runtime convergence audit — live verification, gaps, AI tools, next steps |
 
 **Start here → [00_VERIFICATION_REPORT.md](00_VERIFICATION_REPORT.md)**
 
@@ -59,6 +60,7 @@
    passes).
 3. Use `06_API_REFERENCE.md` + `http://localhost:8000/docs` as your API truth.
 4. Check `15_KNOWN_ISSUES_ARCHIVE_INDEX.md` before touching code that touches flagged areas.
+5. For ecosystem context (partner repos, live state, gaps), see `16` and `BHIV_ECOSYSTEM_RUNTIME_CONVERGENCE_AUDIT.md`.
 
 ---
 
