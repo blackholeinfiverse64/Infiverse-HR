@@ -186,6 +186,8 @@ else:
     allowed_origins_list = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5175",
+        "https://setu.blackholeinfiverse.com",
         "https://sampada.blackholeinfiverse.com",
         "https://infiverse-hr.vercel.app",
     ]
@@ -193,11 +195,18 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins_list,
-    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.vercel\.app",
+    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.vercel\.app|https://.*\.blackholeinfiverse\.com",
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Content-Security-Policy"] = "frame-ancestors * 'self' http://localhost:3000 http://localhost:5175 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
+    return response
 
 # Auth routes removed - using /v1/auth/ endpoints instead
 
