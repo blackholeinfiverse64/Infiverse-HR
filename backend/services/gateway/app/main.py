@@ -776,9 +776,8 @@ def health_check(response: Response):
     response.headers["X-RateLimit-Limit"] = "60"
     response.headers["X-RateLimit-Remaining"] = "59"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Content-Security-Policy"] = "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:3000 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
     
     return {
         "status": "healthy",
@@ -4678,20 +4677,18 @@ async def test_phone_validation(phone_data: PhoneValidation, api_key: str = Depe
 async def test_security_headers(response: Response, api_key: str = Depends(get_api_key)):
     """Security Headers Test"""
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
     
     return {
         "security_headers": {
             "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "SAMEORIGIN",
             "X-XSS-Protection": "1; mode=block",
             "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Content-Security-Policy": "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
+            "Content-Security-Policy": "frame-ancestors 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
         },
-        "headers_count": 5,
+        "headers_count": 4,
         "status": "all_headers_applied"
     }
 
@@ -4699,20 +4696,18 @@ async def test_security_headers(response: Response, api_key: str = Depends(get_a
 async def test_security_headers_legacy(response: Response, api_key: str = Depends(get_api_key)):
     """Test Security Headers"""
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
     
     return {
         "security_headers": {
             "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "SAMEORIGIN",
             "X-XSS-Protection": "1; mode=block",
             "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Content-Security-Policy": "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
+            "Content-Security-Policy": "frame-ancestors 'self' http://localhost:3000 https://setu.blackholeinfiverse.com;"
         },
-        "headers_count": 5,
+        "headers_count": 4,
         "status": "all_headers_applied"
     }
 
