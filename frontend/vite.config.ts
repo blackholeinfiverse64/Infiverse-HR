@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 3000,
+    port: 5175,
+    headers: {
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
+    }
   },
   build: {
     rollupOptions: {
