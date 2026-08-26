@@ -204,8 +204,13 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    response.headers["Content-Security-Policy"] = "frame-ancestors * 'self' http://localhost:3000 http://localhost:5175 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
+    # Delete legacy X-Frame-Options header so modern CSP frame-ancestors governs iframe framing (matching Niyantran server pattern)
+    if "X-Frame-Options" in response.headers:
+        del response.headers["X-Frame-Options"]
+    if "x-frame-options" in response.headers:
+        del response.headers["x-frame-options"]
+
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self' https://setu.blackholeinfiverse.com https://ai-crm-sigma-five.vercel.app http://localhost:3000 http://localhost:5173 http://localhost:5175;"
     return response
 
 # Auth routes removed - using /v1/auth/ endpoints instead

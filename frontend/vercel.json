@@ -15,12 +15,8 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Frame-Options",
-          "value": "ALLOWALL"
-        },
-        {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors * 'self' http://localhost:3000 https://setu.blackholeinfiverse.com https://sampada.blackholeinfiverse.com;"
+          "value": "frame-ancestors 'self' https://setu.blackholeinfiverse.com https://ai-crm-sigma-five.vercel.app http://localhost:3000 http://localhost:5173 http://localhost:5175;"
         },
         {
           "key": "Access-Control-Allow-Origin",
